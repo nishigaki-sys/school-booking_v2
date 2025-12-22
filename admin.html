@@ -564,6 +564,50 @@
             // --- Features ---
             
             // 1. Content Management
+            // HQ Content List Logic
+            // イベントデリゲーションに変更
+            document.getElementById('hqMasterList').addEventListener('click', async (e) => {
+                // 削除ボタン
+                if (e.target.classList.contains('del-hq')) {
+                    const id = e.target.dataset.id;
+                    if (confirm("本当に削除しますか？")) {
+                        try {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'master_contents', id));
+                            showToast("削除しました");
+                        } catch (error) {
+                            console.error("削除エラー:", error);
+                            alert("削除に失敗しました");
+                        }
+                    }
+                }
+                // 編集ボタン
+                if (e.target.classList.contains('edit-hq')) {
+                    const id = e.target.dataset.id;
+                    openHqFormModal(id);
+                }
+            });
+
+            const renderHqList = () => {
+                const l = document.getElementById('hqMasterList');
+                l.innerHTML = '';
+                if (masterContents.length === 0) {
+                    l.innerHTML = '<p class="text-center text-slate-400 py-4">コンテンツがありません</p>';
+                    return;
+                }
+                masterContents.forEach(c => {
+                    const d = document.createElement('div');
+                    d.className = "flex justify-between items-center p-2 border rounded bg-slate-50";
+                    d.innerHTML = `
+                        <span class="font-bold text-slate-700">${c.name}</span>
+                        <div>
+                            <button class="text-blue-500 text-xs mr-3 font-bold hover:underline edit-hq" data-id="${c.id}">編集</button>
+                            <button class="text-red-500 text-xs font-bold hover:underline del-hq" data-id="${c.id}">削除</button>
+                        </div>
+                    `;
+                    l.appendChild(d);
+                });
+            };
+
             const renderLocalContents = () => {
                 const con = document.getElementById('localContentList');
                 con.innerHTML = '';
@@ -980,37 +1024,14 @@
             };
             
             // HQ Masters
-            window.openHqMasterModal = () => {
-                document.getElementById('hqMasterModal').classList.remove('hidden');
-                renderHqList();
-            };
-            const renderHqList = () => {
-                const l = document.getElementById('hqMasterList');
-                l.innerHTML = '';
-                masterContents.forEach(c => {
-                    const d = document.createElement('div');
-                    d.className = "flex justify-between p-2 border rounded bg-slate-50";
-                    d.innerHTML = `
-                        <span class="font-bold">${c.name}</span>
-                        <div>
-                            <button class="text-blue-500 text-xs mr-2 edit-hq" data-id="${c.id}">編集</button>
-                            <button class="text-red-500 text-xs del-hq" data-id="${c.id}">削除</button>
-                        </div>
-                    `;
-                    l.appendChild(d);
-                });
-                l.querySelectorAll('.edit-hq').forEach(b => b.onclick = () => openHqFormModal(b.dataset.id));
-                l.querySelectorAll('.del-hq').forEach(b => b.onclick = async () => {
-                   if(confirm("削除しますか？")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'master_contents', b.dataset.id));
-                });
-            };
+            // window.openHqMasterModal = () => { ... } // 上で実装済み
             
             // 本部マスタ登録
             window.openHqFormModal = (id = null) => {
                  document.getElementById('hqFormTitle').textContent = id ? "マスタ編集" : "新規作成";
                  document.getElementById('hqEditingId').value = id || 'new';
                  
-                 if (id) {
+                 if (id && id !== 'new') {
                      const c = masterContents.find(m => m.id === id);
                      document.getElementById('hqContentName').value = c.name;
                      document.getElementById('hqContentPrice').value = c.price;
@@ -1043,7 +1064,7 @@
                 }
                 
                 document.getElementById('hqContentFormModal').classList.add('hidden');
-                renderHqList();
+                // renderHqList will auto-update via snapshot
             };
 
             // Utils
