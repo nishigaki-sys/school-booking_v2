@@ -578,44 +578,122 @@
     </div>
 
     <!-- スケジュール登録モーダル -->
-    <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4"><span id="modalDateDisplay" class="font-bold"></span><button id="closeScheduleModal" class="text-2xl">&times;</button></div>
-            <div class="flex-1 overflow-y-auto">
-                <div class="timeline-container h-[300px] border mb-4 relative" id="timelineContainer">
-                    <div id="scheduleTimeline" class="absolute inset-0"></div>
-                </div>
-                <div class="bg-slate-50 p-4 rounded">
-                    <input type="hidden" id="editingScheduleIndex" value="-1">
-                    <select id="modalContentSelect" class="w-full p-2 border rounded mb-2 bg-white"></select>
-                    <div class="flex gap-2 mb-2">
-                        <label><input type="checkbox" class="schedule-grade-check" value="preschool"> 年中・長</label>
-                        <label><input type="checkbox" class="schedule-grade-check" value="grade1_2"> 小1-2</label>
-                        <label><input type="checkbox" class="schedule-grade-check" value="grade3_plus"> 小3+</label>
-                    </div>
-                    <div class="flex gap-2 mb-2">
-                        <input type="time" id="modalStartTime" class="w-full p-2 border rounded">
-                        <input type="time" id="modalEndTime" class="w-full p-2 border rounded">
-                    </div>
-                    <input type="number" id="modalCapacity" value="5" class="w-full p-2 border rounded mb-4" placeholder="定員">
-                    <div class="flex gap-2">
-                        <button id="deleteScheduleBtn" class="flex-1 bg-red-100 text-red-600 font-bold py-2 rounded hidden">削除</button>
-                        <button id="addScheduleBtn" class="flex-[2] bg-blue-600 text-white font-bold py-2 rounded">保存</button>
+    <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl transform transition-all scale-100 max-h-[85vh] overflow-y-auto">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b border-slate-100 pb-2">
+                <span id="modalDateDisplay">2025-12-24</span> の設定
+                <button id="closeScheduleModal" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- 左側：タイムライン -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 mb-2">タイムライン</h4>
+                    <div class="timeline-container relative bg-slate-50 border border-slate-200 rounded h-[300px] overflow-y-auto">
+                        <!-- 時間軸メモリ -->
+                        <div id="timelineAxis" class="absolute left-0 top-0 bottom-0 w-8 border-r border-slate-200 bg-white text-[10px] text-slate-400 text-center pt-1">
+                            <!-- JSで生成 -->
+                        </div>
+                        <div id="scheduleTimeline" class="absolute left-8 right-0 top-0 bottom-0 relative h-[660px]">
+                            <!-- JSでバーを追加 -->
+                        </div>
                     </div>
                 </div>
-                <div id="dayScheduleList" class="mt-4 space-y-2"></div>
+
+                <!-- 右側：登録・編集フォーム -->
+                <div>
+                    <h4 class="text-xs font-bold text-slate-500 mb-2 flex justify-between items-center">
+                        <span id="scheduleFormTitle">新規枠を追加</span>
+                        <button type="button" id="cancelScheduleEditBtn" class="text-xs text-blue-500 hover:underline hidden">キャンセル</button>
+                    </h4>
+                    <div class="space-y-3 bg-white">
+                        <input type="hidden" id="editingScheduleIndex" value="-1">
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">コンテンツ</label>
+                            <select id="modalContentSelect" class="w-full p-2 border border-slate-300 rounded text-sm bg-white"></select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-500 mb-1">対象学年</label>
+                            <p class="text-[10px] text-red-500 mb-1 hidden" id="scheduleGradeErrorMsg">※少なくとも1つ選択してください</p>
+                            <div class="flex flex-wrap gap-2 text-xs">
+                                <label class="inline-flex items-center"><input type="checkbox" class="schedule-grade-check mr-1" value="preschool"> 年中・年長</label>
+                                <label class="inline-flex items-center"><input type="checkbox" class="schedule-grade-check mr-1" value="grade1_2"> 小1～小2</label>
+                                <label class="inline-flex items-center"><input type="checkbox" class="schedule-grade-check mr-1" value="grade3_plus"> 小3以上</label>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label class="block text-xs text-slate-500 mb-1">開始</label>
+                                <input type="time" id="modalStartTime" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs text-slate-500 mb-1">終了</label>
+                                <input type="time" id="modalEndTime" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            </div>
+                        </div>
+                        <div class="w-20">
+                             <label class="block text-xs text-slate-500 mb-1">定員</label>
+                             <input type="number" id="modalCapacity" value="5" class="w-full p-2 border border-slate-300 rounded text-sm">
+                        </div>
+                        
+                        <div class="flex gap-2 mt-4 pt-2 border-t border-slate-100">
+                             <button type="button" id="deleteScheduleBtn" class="flex-1 bg-red-100 text-red-600 font-bold py-2 rounded hover:bg-red-200 text-sm hidden">削除</button>
+                             <button type="button" id="addScheduleBtn" class="flex-[2] bg-blue-600 text-white font-bold py-2 rounded hover:bg-blue-700 text-sm">追加して保存</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 既存スケジュールリスト（複製ボタン付き） -->
+            <div class="mt-6 pt-4 border-t border-slate-200">
+                <h4 class="text-xs font-bold text-slate-500 mb-2">登録済みリスト (複製操作)</h4>
+                <div id="dayScheduleList" class="space-y-2 text-sm max-h-32 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 複製先日付選択ダイアログ -->
+    <div id="copyDialog" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white rounded-lg p-4 shadow-xl max-w-xs w-full">
+            <h4 class="font-bold text-slate-700 mb-2">スケジュールの複製</h4>
+            <p class="text-xs text-slate-500 mb-3">このスケジュールをコピーする日付を選択してください。</p>
+            <input type="date" id="copyTargetDate" class="w-full p-2 border border-slate-300 rounded mb-4">
+            <div class="flex justify-end gap-2">
+                <button id="cancelCopyBtn" class="px-3 py-1 bg-slate-200 text-slate-600 rounded text-sm">キャンセル</button>
+                <button id="execCopyBtn" class="px-3 py-1 bg-blue-600 text-white rounded text-sm font-bold">複製する</button>
             </div>
         </div>
     </div>
 
     <!-- 予約詳細モーダル -->
     <div id="bookingDetailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 max-w-lg w-full shadow-2xl max-h-[80vh] flex flex-col">
-            <h3 class="font-bold mb-2">予約詳細</h3>
-            <div class="flex-1 overflow-y-auto">
-                <table class="w-full text-sm"><tbody id="bookingDetailList"></tbody></table>
+        <div class="bg-white rounded-xl p-6 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="flex justify-between items-start mb-4 border-b border-slate-100 pb-2">
+                <div>
+                    <h3 class="text-lg font-bold text-slate-800" id="detailModalTitle">体験会詳細</h3>
+                    <p class="text-sm text-slate-500" id="detailModalSubtitle"></p>
+                </div>
+                <button id="closeDetailModal" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">×</button>
             </div>
-            <button onclick="document.getElementById('bookingDetailModal').classList.add('hidden')" class="mt-4 w-full py-2 bg-slate-200 rounded font-bold">閉じる</button>
+            
+            <div class="flex-1 overflow-y-auto">
+                <table class="w-full text-sm text-left text-slate-600">
+                    <thead class="text-xs text-slate-700 uppercase bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-2">お名前</th>
+                            <th class="px-4 py-2">保護者様</th>
+                            <th class="px-4 py-2">連絡先</th>
+                            <th class="px-4 py-2 text-right">申込日時</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingDetailList"></tbody>
+                </table>
+                <div id="noBookingsMsg" class="text-center py-8 text-slate-400 hidden">予約はありません</div>
+            </div>
+            
+            <div class="mt-4 pt-2 border-t border-slate-100 text-right">
+                <button class="px-4 py-2 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 font-bold text-sm" onclick="document.getElementById('bookingDetailModal').classList.add('hidden')">閉じる</button>
+            </div>
         </div>
     </div>
 
