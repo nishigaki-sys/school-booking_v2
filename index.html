@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ロボ団 開講クラス</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', 'Noto Sans JP', sans-serif;
+            overscroll-behavior: none;
+        }
+        .course-kinder { background-color: #fce7f3; border-color: #ec4899; color: #831843; }
+        .course-wonder { background-color: #f5d0fe; border-color: #e879f9; color: #701a75; }
+        .course-beginner { background-color: #ffedd5; border-color: #fb923c; color: #9a3412; }
+        .course-challenger { background-color: #dbeafe; border-color: #60a5fa; color: #1e40af; }
+        .course-creator { background-color: #dcfce7; border-color: #4ade80; color: #166534; }
+        .course-innovator { background-color: #eef2ff; border-color: #818cf8; color: #3730a3; }
+        
+        .time-slot { height: 1.25rem; border-bottom: 1px dotted #e2e8f0; border-right: 1px solid #e2e8f0; }
+        .time-label { height: 1.25rem; }
+        .hour-separator { border-top: 1px solid #cbd5e1; }
+        .dragging { opacity: 0.5; }
+        .drag-over { background-color: #3b82f620; border: 2px dashed #3b82f6; }
+        .class-item { transition: all 0.2s; position: absolute; cursor: pointer; }
+        .class-item-inactive { opacity: 0.4; pointer-events: none; z-index: 5; }
+        .class-item-in-bank { cursor: grab; }
+        .class-item-in-bank:active { cursor: grabbing; }
+        
+        .delete-btn {
+            display: none; position: absolute; top: 2px; right: 2px; width: 16px; height: 16px;
+            background-color: rgba(0,0,0,0.4); color: white; border-radius: 50%;
+            text-align: center; line-height: 14px; font-size: 12px; cursor: pointer; z-index: 20;
+        }
+        .class-item:hover .delete-btn { display: block; }
+
+        .promotion-badge {
+            position: absolute; top: -8px; left: -8px; width: 20px; height: 20px;
+            background-color: #fbbf24; color: #78350f; border: 1px solid #f59e0b;
+            border-radius: 50%; display: flex; align-items: center; justify-content: center;
+            font-size: 12px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.2); z-index: 20;
+        }
+        
+        .semester-btn.active { background-color: #3b82f6; color: white; }
+        .classroom-tab.active { background-color: #3b82f6; color: white; }
+        #promotedBank .class-item-in-bank { background-color: #eff6ff; }
+
+        .timing-indicator {
+            width: 18px; height: 18px; border-radius: 50%;
+            display: inline-flex; align-items: center; justify-content: center;
+            font-size: 10px; font-weight: bold; color: white;
+        }
+        .timing-april { background-color: #ec4899; } /* Pink */
+        .timing-october { background-color: #818cf8; } /* Indigo */
+        
+        /* Styles for School Tabs */
+        .school-tab {
+            transition: all 0.2s;
+            border-bottom: 3px solid transparent;
+        }
+        .school-tab.active {
+            border-bottom-color: #3b82f6;
+            color: #3b82f6;
+            font-weight: 600;
+        }
+        .school-tab-delete {
+            display: none;
+            margin-left: 8px;
+            font-size: 14px;
+            color: #ef4444;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+        .school-tab:hover .school-tab-delete {
+            display: inline;
+        }
+        .school-tab-delete:hover {
+            opacity: 1;
+        }
+        
+        .tab-drag-over {
+            border-left: 3px solid #3b82f6;
+            background-color: #eff6ff;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-screen-2xl">
+        
+        <div id="main-sticky-header" class="sticky top-0 z-40 bg-slate-50 pt-4 pb-2">
+            <header class="text-center mb-4">
+                <h1 class="text-3xl md:text-4xl font-bold text-slate-900 flex items-center justify-center gap-2 flex-wrap">
+                    ロボ団「<span id="schoolNameDisplay" class="text-blue-600"></span>」開講クラス
+                </h1>
+            </header>
+
+            <div class="mb-4">
+                <h3 class="text-sm font-bold text-slate-600 mb-2">学期</h3>
+                <div id="semesterSelector" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-10 gap-2">
+                </div>
+            </div>
+    
+            <div id="schoolTabsContainer" class="border-b-2 border-slate-200 flex items-center gap-2 flex-wrap">
+            </div>
+        </div>
+
+
+        <div class="mt-8 bg-white p-6 rounded-2xl shadow-lg">
+            <h2 class="text-2xl font-bold text-slate-900 mb-4">クラスサマリー</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-center">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <div class="text-sm font-semibold text-blue-800">総生徒数</div>
+                    <div id="totalStudents" class="text-3xl font-bold text-blue-600">0</div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <div class="text-sm font-semibold text-green-800">総クラス数</div>
+                    <div id="totalClasses" class="text-3xl font-bold text-green-600">0</div>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <div class="text-sm font-semibold text-orange-800">総空き枠数</div>
+                    <div id="totalAvailable" class="text-3xl font-bold text-orange-600">0</div>
+                </div>
+            </div>
+            <div class="border-t border-slate-200 pt-4 mb-6">
+                <h3 class="text-lg font-bold text-slate-800 mb-3">全クラス充足率</h3>
+                <div id="totalFulfillment">
+                </div>
+            </div>
+            <div class="border-t border-slate-200 pt-4">
+              <h3 class="text-lg font-bold text-slate-800 mb-3">コース別状況</h3>
+              <div id="courseDashboard" class="space-y-3">
+              </div>
+            </div>
+        </div>
+
+        <div id="mainContent" class="flex flex-col lg:flex-row gap-8 mt-8 lg:items-start">
+            <aside id="sidePanel" class="lg:w-1/4 xl:w-1-5 lg:sticky">
+                <div class="bg-white p-6 rounded-2xl shadow-lg space-y-4 lg:overflow-y-auto" id="sidePanelContent">
+                    <div id="promotedSection">
+                        <h3 class="text-lg font-bold mb-3 text-blue-700 border-b pb-2">持ち越しクラス</h3>
+                        <div id="promotedBank" class="space-y-3 min-h-[50px]">
+                        </div>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-bold mb-3 border-b pb-2">新規クラス</h3>
+                        <div id="classBank" class="space-y-3">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <h2 class="text-xl font-bold mt-4 mb-2">データ管理</h2>
+                        <div class="space-y-2 text-xs">
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="importSchoolBtn" class="w-full px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200 disabled:hover:bg-green-100">この校舎にインポート</button>
+                                <button id="exportSchoolBtn" class="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 disabled:hover:bg-blue-100">この校舎をエクスポート</button>
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button id="importAllBtn" class="w-full px-3 py-2 bg-green-100 text-green-700 rounded-md hover:bg-green-200">全校舎インポート</button>
+                                <button id="exportAllBtn" class="w-full px-3 py-2 bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200">全校舎エクスポート</button>
+                            </div>
+                            <button id="resetBtn" class="w-full mt-2 px-3 py-2 bg-red-100 text-red-700 rounded-md hover:bg-red-200 disabled:hover:bg-red-100">この校舎をリセット</button>
+                            <input type="file" id="importFile" class="hidden" accept=".json">
+                            <button id="exportPdfBtn" class="w-full mt-2 px-3 py-2 bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200">PDFでエクスポート</button>
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <main class="flex-1">
+                <div id="timetable-container" class="bg-white rounded-2xl shadow-lg">
+                    <div id="timetable" class="grid relative min-w-[1000px]">
+                    </div>
+                </div>
+            </main>
+        </div>
+         <div id="allSchoolsMessage" class="hidden text-center p-8 bg-white rounded-2xl shadow-lg">
+            <h2 class="text-xl font-bold text-slate-800">全校舎のサマリー</h2>
+            <p class="text-slate-600 mt-2">ここは全校舎の合計データを表示しています。<br>個別のスケジュールを編集するには、上の校舎タブを選択してください。</p>
+        </div>
+    </div>
+
+    <div id="detailModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div id="modalBackdrop" class="absolute inset-0"></div>
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 z-10 mx-4">
+            <h2 id="modalTitle" class="text-2xl font-bold mb-6 text-slate-800">クラス詳細設定</h2>
+            <div class="space-y-4">
+                <div class="grid grid-cols-3 items-center">
+                    <label for="daySelect" class="font-semibold text-slate-600">曜日</label>
+                    <select id="daySelect" class="col-span-2 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                <div class="grid grid-cols-3 items-center">
+                    <label for="timeSelect" class="font-semibold text-slate-600">開始時間</label>
+                    <select id="timeSelect" class="col-span-2 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></select>
+                </div>
+                 <div class="grid grid-cols-3 items-center">
+                    <label class="font-semibold text-slate-600">教室</label>
+                    <div class="col-span-2 flex gap-4">
+                        <div>
+                            <input type="radio" id="classroom1Radio" name="classroom" value="classroom1" checked>
+                            <label for="classroom1Radio">第1教室</label>
+                        </div>
+                        <div>
+                            <input type="radio" id="classroom2Radio" name="classroom" value="classroom2">
+                            <label for="classroom2Radio">第2教室</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 items-center">
+                    <label for="capacityInput" class="font-semibold text-slate-600">クラス枠人数</label>
+                    <input type="number" id="capacityInput" min="0" class="col-span-2 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-3 items-center">
+                    <label for="studentsInput" class="font-semibold text-slate-600">現在のクラス人数</label>
+                    <input type="number" id="studentsInput" min="0" class="col-span-2 p-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                <div class="grid grid-cols-3 items-center">
+                    <span class="font-semibold text-slate-600">空き枠数</span>
+                    <span id="availableSlots" class="col-span-2 font-bold text-xl text-blue-600">0</span>
+                </div>
+                <div class="grid grid-cols-3 items-center pt-4 border-t border-slate-200 mt-4">
+                    <label class="font-semibold text-slate-600">進級タイミング</label>
+                    <div class="col-span-2 flex gap-4">
+                        <div>
+                            <input type="radio" id="timingApril" name="promotionTiming" value="4月" checked>
+                            <label for="timingApril">4月</label>
+                        </div>
+                        <div>
+                            <input type="radio" id="timingOctober" name="promotionTiming" value="10月">
+                            <label for="timingOctober">10月</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-8 flex justify-between items-center gap-3">
+                <button id="permanentDeleteBtn" class="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 font-semibold" style="display: none;">このクラスを完全に削除する</button>
+                <div class="flex justify-end gap-3 ml-auto">
+                    <button id="closeBtn" class="px-4 py-2 bg-slate-200 text-slate-700 rounded-md hover:bg-slate-300 font-semibold">閉じる</button>
+                    <button id="saveBtn" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 font-semibold">保存する</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="classroomSelector" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 items-end">
+        <button data-id="all" class="classroom-tab px-4 py-2 font-semibold text-sm bg-white text-slate-700 rounded-full shadow-lg hover:bg-slate-100 transition">全ての教室</button>
+        <button data-id="classroom1" class="classroom-tab px-4 py-2 font-semibold text-sm bg-white text-slate-700 rounded-full shadow-lg hover:bg-slate-100 transition">第1教室</button>
+        <button data-id="classroom2" class="classroom-tab px-4 py-2 font-semibold text-sm bg-white text-slate-700 rounded-full shadow-lg hover:bg-slate-100 transition">第2教室</button>
+    </div>
+
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- CONSTANTS ---
+            const ALL_SCHOOLS_ID = 'all-schools-dashboard';
+            const courseInfo = {
+                'キンダー': { duration: 50, style: 'course-kinder' },
+                'ワンダー': { duration: 50, style: 'course-wonder' },
+                'ビギナー': { duration: 50, style: 'course-beginner' },
+                'チャレンジャー': { duration: 80, style: 'course-challenger' },
+                'クリエイター': { duration: 80, style: 'course-creator' },
+                'イノベーター': { duration: 80, style: 'course-innovator' }
+            };
+            const promotionMap = {
+                'キンダー': 'ビギナー',
+                'ワンダー': 'ビギナー',
+                'ビギナー': 'チャレンジャー',
+                'チャレンジャー': 'クリエイター',
+                'クリエイター': 'イノベーター'
+            };
+
+            const days = ['月', '火', '水', '木', '金', '土', '日'];
+            const timeRange = { start: 8, end: 21, interval: 10 };
+            const semesters = Array.from({length: 5}, (_, i) => i + 1).flatMap(i => [
+                { id: `${i}-spring`, name: `${i}年目 春`},
+                { id: `${i}-autumn`, name: `${i}年目 秋`}
+            ]);
+            
+            // --- DOM Elements ---
+            const schoolTabsContainer = document.getElementById('schoolTabsContainer');
+            const schoolNameDisplay = document.getElementById('schoolNameDisplay');
+            const mainContent = document.getElementById('mainContent');
+            const allSchoolsMessage = document.getElementById('allSchoolsMessage');
+            const classBank = document.getElementById('classBank');
+            const promotedBank = document.getElementById('promotedBank');
+            const timetable = document.getElementById('timetable');
+            const semesterSelector = document.getElementById('semesterSelector');
+            const resetBtn = document.getElementById('resetBtn');
+            const detailModal = document.getElementById('detailModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const daySelect = document.getElementById('daySelect');
+            const timeSelect = document.getElementById('timeSelect');
+            const capacityInput = document.getElementById('capacityInput');
+            const studentsInput = document.getElementById('studentsInput');
+            const availableSlots = document.getElementById('availableSlots');
+            const saveBtn = document.getElementById('saveBtn');
+            const closeBtn = document.getElementById('closeBtn');
+            const permanentDeleteBtn = document.getElementById('permanentDeleteBtn');
+            const modalBackdrop = document.getElementById('modalBackdrop');
+            const dashboardContainer = document.getElementById('courseDashboard');
+            const totalStudentsEl = document.getElementById('totalStudents');
+            const totalClassesEl = document.getElementById('totalClasses');
+            const totalAvailableEl = document.getElementById('totalAvailable');
+            const totalFulfillmentEl = document.getElementById('totalFulfillment');
+            const classroomSelector = document.getElementById('classroomSelector');
+            const sidePanel = document.getElementById('sidePanel');
+            const importFile = document.getElementById('importFile');
+            const importSchoolBtn = document.getElementById('importSchoolBtn');
+            const exportSchoolBtn = document.getElementById('exportSchoolBtn');
+            const importAllBtn = document.getElementById('importAllBtn');
+            const exportAllBtn = document.getElementById('exportAllBtn');
+            const exportPdfBtn = document.getElementById('exportPdfBtn');
+            
+            // --- STATE MANAGEMENT ---
+            let appData = {};
+            let currentSemesterId = semesters[0].id;
+            let currentClassroomId = 'classroom1';
+            let editingClassId = null;
+            let importMode = 'all'; // 'school' or 'all'
+            let draggedTabId = null;
+
+            function getCurrentSchool() {
+                if (!appData.currentSchoolId || !appData.schools) return null;
+                return appData.schools.find(s => s.id === appData.currentSchoolId);
+            }
+            
+            function getClassroomSchedules(classroomId) {
+                const school = getCurrentSchool();
+                return school ? school.schedules[classroomId] : {};
+            }
+            
+            function getClassroomPromotedClasses(classroomId) {
+                const school = getCurrentSchool();
+                return school ? school.promotedClasses[classroomId] : {};
+            }
+            
+            function saveData() {
+                localStorage.setItem('robodanMultiSchoolData', JSON.stringify(appData));
+            }
+
+            function loadData() {
+                const savedData = localStorage.getItem('robodanMultiSchoolData');
+                if (savedData) {
+                    try {
+                        appData = JSON.parse(savedData);
+                    } catch(e) {
+                        console.error("Could not parse saved data, initializing new data.", e);
+                        appData = {};
+                    }
+                }
+                
+                if (!appData.schools || appData.schools.length === 0) {
+                    const firstSchoolId = crypto.randomUUID();
+                    appData = {
+                        schools: [
+                            { id: ALL_SCHOOLS_ID, name: 'すべての校舎' },
+                            {
+                                id: firstSchoolId,
+                                name: '最初の校舎',
+                                schedules: { classroom1: {}, classroom2: {} },
+                                promotedClasses: { classroom1: {}, classroom2: {} }
+                            }
+                        ],
+                        currentSchoolId: ALL_SCHOOLS_ID
+                    };
+                }
+                
+                if (!appData.schools.find(s => s.id === ALL_SCHOOLS_ID)) {
+                     appData.schools.unshift({ id: ALL_SCHOOLS_ID, name: 'すべての校舎' });
+                }
+                if (!appData.currentSchoolId || !appData.schools.find(s => s.id === appData.currentSchoolId)) {
+                     appData.currentSchoolId = appData.schools[0].id;
+                }
+                
+                // Ensure first semester is always initialized for all schools/classrooms
+                appData.schools.forEach(school => {
+                    if (school.id !== ALL_SCHOOLS_ID) {
+                        if (!school.schedules) school.schedules = { classroom1: {}, classroom2: {} };
+                        if (!school.promotedClasses) school.promotedClasses = { classroom1: {}, classroom2: {} };
+
+                        ['classroom1', 'classroom2'].forEach(crId => {
+                            if (!school.schedules[crId]) school.schedules[crId] = {};
+                            if (!school.promotedClasses[crId]) school.promotedClasses[crId] = {};
+
+                            if (!school.schedules[crId][semesters[0].id]) {
+                                school.schedules[crId][semesters[0].id] = [];
+                            }
+                            if (!school.promotedClasses[crId][semesters[0].id]) {
+                                school.promotedClasses[crId][semesters[0].id] = [];
+                            }
+                        });
+                    }
+                });
+                
+                saveData();
+            }
+
+            // --- SCHOOL MANAGEMENT FUNCTIONS ---
+            function renderSchoolTabs() {
+                schoolTabsContainer.innerHTML = '';
+                appData.schools.forEach(school => {
+                    const tab = document.createElement('button');
+                    tab.className = `school-tab px-4 py-2 text-sm font-medium text-slate-600 hover:text-blue-600`;
+                    tab.dataset.id = school.id;
+                    if (school.id === appData.currentSchoolId) tab.classList.add('active');
+                    
+                    if (school.id === ALL_SCHOOLS_ID) {
+                        tab.innerHTML = `📊 ${school.name}`;
+                    } else {
+                        tab.draggable = true;
+                        tab.innerHTML = `${school.name} <span class="school-tab-delete" title="この校舎を削除">×</span>`;
+                        tab.addEventListener('dblclick', () => renameSchool(school.id));
+                        tab.querySelector('.school-tab-delete').addEventListener('click', (e) => {
+                            e.stopPropagation();
+                            deleteSchool(school.id);
+                        });
+                    }
+                    tab.addEventListener('click', () => switchSchoolTab(school.id));
+                    tab.addEventListener('dragstart', handleTabDragStart);
+                    tab.addEventListener('dragover', handleTabDragOver);
+                    tab.addEventListener('dragleave', handleTabDragLeave);
+                    tab.addEventListener('drop', handleTabDrop);
+                    schoolTabsContainer.appendChild(tab);
+                });
+
+                const addBtn = document.createElement('button');
+                addBtn.className = 'ml-2 px-3 py-1 text-sm bg-blue-500 text-white rounded-full hover:bg-blue-600';
+                addBtn.textContent = '+ 校舎を追加';
+                addBtn.addEventListener('click', addSchool);
+                schoolTabsContainer.appendChild(addBtn);
+                adjustStickyHeaders();
+            }
+
+            function addSchool() {
+                const name = prompt('新しい校舎名を入力してください:', `校舎 ${appData.schools.length}`);
+                if (name) {
+                    const newSchoolId = crypto.randomUUID();
+                    appData.schools.push({
+                        id: newSchoolId,
+                        name: name,
+                        schedules: { classroom1: {}, classroom2: {} },
+                        promotedClasses: { classroom1: {}, classroom2: {} }
+                    });
+                    // Initialize the first semester for the new school
+                    ['classroom1', 'classroom2'].forEach(crId => {
+                        appData.schools[appData.schools.length - 1].schedules[crId][semesters[0].id] = [];
+                        appData.schools[appData.schools.length - 1].promotedClasses[crId][semesters[0].id] = [];
+                    });
+                    switchSchoolTab(newSchoolId);
+                }
+            }
+            
+            function renameSchool(schoolId) {
+                const school = appData.schools.find(s => s.id === schoolId);
+                if (!school || school.id === ALL_SCHOOLS_ID) return;
+                const newName = prompt('新しい校舎名を入力してください:', school.name);
+                if (newName && newName.trim() !== '') {
+                    school.name = newName.trim();
+                    saveData();
+                    renderSchoolTabs();
+                    if(school.id === appData.currentSchoolId) {
+                         schoolNameDisplay.textContent = school.name;
+                    }
+                }
+            }
+
+            function deleteSchool(schoolId) {
+                if(appData.schools.filter(s => s.id !== ALL_SCHOOLS_ID).length <= 1) {
+                    alert('最後の校舎は削除できません。');
+                    return;
+                }
+                const school = appData.schools.find(s => s.id === schoolId);
+                if (!school) return;
+                if(confirm(`「${school.name}」とそのすべてのデータを完全に削除します。よろしいですか？`)) {
+                    appData.schools = appData.schools.filter(s => s.id !== schoolId);
+                    if (appData.currentSchoolId === schoolId) {
+                        switchSchoolTab(ALL_SCHOOLS_ID);
+                    } else {
+                        saveData();
+                        renderSchoolTabs();
+                    }
+                }
+            }
+            
+            function switchSchoolTab(schoolId) {
+                if (appData.currentSchoolId !== ALL_SCHOOLS_ID && appData.currentSchoolId) {
+                    saveCurrentSchedule({invalidate: false});
+                }
+                appData.currentSchoolId = schoolId;
+                const school = getCurrentSchool();
+                if (school) {
+                    schoolNameDisplay.textContent = school.name;
+                }
+                
+                const isAllSchoolsView = schoolId === ALL_SCHOOLS_ID;
+                const timetableMain = document.querySelector('#mainContent main');
+                
+                sidePanel.style.display = isAllSchoolsView ? 'none' : 'block';
+                timetableMain.style.display = isAllSchoolsView ? 'none' : 'block';
+                allSchoolsMessage.style.display = isAllSchoolsView ? 'block' : 'none';
+
+                classroomSelector.style.display = isAllSchoolsView ? 'none' : 'flex';
+
+                saveData();
+                renderSchoolTabs();
+                switchSemester(currentSemesterId, true);
+            }
+
+            // --- CORE LOGIC FUNCTIONS ---
+            function invalidateFuture(fromSemesterId) {
+                const school = getCurrentSchool();
+                if (!school || school.id === ALL_SCHOOLS_ID) return;
+
+                ['classroom1', 'classroom2'].forEach(classroomId => {
+                    const classroomSchedules = school.schedules[classroomId];
+                    const classroomPromoted = school.promotedClasses[classroomId];
+                    const currentIndex = semesters.findIndex(s => s.id === fromSemesterId);
+                    if (currentIndex === -1) return;
+                    for (let i = currentIndex + 1; i < semesters.length; i++) {
+                        delete classroomSchedules[semesters[i].id];
+                        delete classroomPromoted[semesters[i].id];
+                    }
+                });
+            }
+            
+            function isSlotOccupied(day, time, duration, classroomId, excludeId) {
+                const school = getCurrentSchool();
+                if (!school || school.id === ALL_SCHOOLS_ID) return true;
+                
+                const [h, m] = time.split(':').map(Number);
+                const startA = h * 60 + m;
+                const endA = startA + duration;
+                const scheduleToCheck = (school.schedules[classroomId] || {})[currentSemesterId] || [];
+
+                for (const classB of scheduleToCheck) {
+                    if (classB.id === excludeId) continue;
+                    if (classB.day !== day) continue;
+                    const [hB, mB] = classB.time.split(':').map(Number);
+                    const startB = hB * 60 + mB;
+                    const endB = startB + courseInfo[classB.course].duration;
+                    if (startA < endB && endA > startB) return true;
+                }
+                return false;
+            }
+
+            function createClassElement(classData, isActive = true) {
+                const { id, course, isPromoted, time, capacity = 8, students = 0, promotionTiming = '4月', classroomId } = classData;
+                const info = courseInfo[course];
+                const slotHeight = 20; 
+                const minutesPerSlot = 10;
+
+                const classEl = document.createElement('div');
+                classEl.dataset.id = id;
+                classEl.dataset.course = course;
+                if(classroomId) classEl.dataset.classroomId = classroomId;
+                classEl.style.height = `${(info.duration / minutesPerSlot) * slotHeight}px`;
+                classEl.className = `class-item w-full p-2 rounded-lg border-l-4 text-xs z-10 ${info.style} flex flex-col justify-between`;
+                if (!isActive) {
+                    classEl.classList.add('class-item-inactive');
+                } else {
+                    classEl.draggable = true;
+                    classEl.dataset.promoted = isPromoted;
+                }
+
+                const [startH, startM] = time.split(':').map(Number);
+                const endTotalMinutes = startH * 60 + startM + info.duration;
+                const endH = Math.floor(endTotalMinutes / 60);
+                const endM = endTotalMinutes % 60;
+                const endTime = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+                
+                const timingIndicatorClass = promotionTiming === '4月' ? 'timing-april' : 'timing-october';
+                const timingIndicatorText = promotionTiming === '4月' ? '④' : '⑩';
+
+                let innerHTML = `
+                    <div>
+                        <div class="course-name font-bold">${course}</div>
+                        <div class="class-time text-xs">${time} - ${endTime}</div>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <div class="student-count text-xs mt-1 font-semibold">(${students} / ${capacity})</div>
+                        <div class="timing-indicator ${timingIndicatorClass}">${timingIndicatorText}</div>
+                    </div>`;
+
+                if (isActive) {
+                    innerHTML += `<div class="delete-btn" title="削除">×</div>`;
+                    if (isPromoted) {
+                        innerHTML += `<div class="promotion-badge" title="持ち越しクラス">★</div>`;
+                    }
+                }
+                classEl.innerHTML = innerHTML;
+                
+                if (isActive) {
+                    classEl.addEventListener('click', () => openDetailModal(id));
+                    classEl.addEventListener('dragstart', handleDragStart);
+                    classEl.querySelector('.delete-btn').addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        
+                        const classIdToRemove = classEl.dataset.id;
+                        const schedule = getClassroomSchedules(currentClassroomId)[currentSemesterId] || [];
+                        const classIndex = schedule.findIndex(c => c.id === classIdToRemove);
+
+                        if (classIndex > -1) {
+                            const [removedClass] = schedule.splice(classIndex, 1);
+                            if (removedClass && !removedClass.isPromoted) {
+                                invalidateFuture(currentSemesterId);
+                            }
+                            saveData();
+                        }
+                        
+                        classEl.remove();
+                        updatePromotedBank(currentSemesterId);
+                        updateNumbering();
+                        updateDashboard();
+                    });
+                }
+                return classEl;
+            }
+
+            function createBankElement(classData) {
+                const { course, isPromoted, id } = classData;
+                const info = courseInfo[course];
+                const el = document.createElement('div');
+                el.className = `class-item-in-bank p-3 rounded-lg border-l-4 font-semibold text-sm ${info.style}`;
+                el.draggable = true;
+                if (id) el.dataset.id = id;
+                el.dataset.course = course;
+                el.dataset.promoted = isPromoted;
+                el.textContent = `${isPromoted ? '★ ' : ''}${course} (${info.duration}分)`;
+                el.addEventListener('dragstart', handleDragStart);
+                return el;
+            }
+
+            // 変更(4): この関数全体を修正
+            function adjustStickyHeaders() {
+                const header = document.getElementById('main-sticky-header');
+                if (!header) return;
+                const headerHeight = header.offsetHeight;
+                
+                const dayHeaders = document.querySelectorAll('.day-header');
+                dayHeaders.forEach(th => {
+                    th.style.top = `${headerHeight}px`;
+                });
+
+                const corner = document.getElementById('timetable-corner');
+                if (corner) {
+                    corner.style.top = `${headerHeight}px`;
+                }
+
+                // --- ここから変更/追加 ---
+                const mainContent = document.getElementById('mainContent');
+                const sidePanel = document.getElementById('sidePanel'); // <aside> タグ
+                const sidePanelContent = document.getElementById('sidePanelContent'); // 中の div
+                
+                if (sidePanel && mainContent && sidePanelContent) {
+                    const mainContentMarginTop = parseFloat(getComputedStyle(mainContent).marginTop);
+                    // sticky になる top の位置 (ヘッダーの高さ + mainContentのmt-8)
+                    const stickyTopValue = headerHeight + mainContentMarginTop;
+                    
+                    // <aside> (親) に top を設定
+                    sidePanel.style.top = `${stickyTopValue}px`;
+                    
+                    const container = document.querySelector('.container');
+                    const containerPaddingBottom = container ? parseFloat(getComputedStyle(container).paddingBottom) : 0;
+                    
+                    // 中身の div に max-height を設定し、ビューポート下端とコンテナのパディング分空ける
+                    sidePanelContent.style.maxHeight = `calc(100vh - ${stickyTopValue}px - ${containerPaddingBottom}px)`;
+                }
+                // --- ここまで変更/追加 ---
+            }
+
+            function generateTimetableGrid() {
+                timetable.innerHTML = '';
+                timetable.style.gridTemplateColumns = `minmax(60px, auto) repeat(${days.length}, minmax(120px, 1fr))`;
+                timetable.insertAdjacentHTML('beforeend', '<div id="timetable-corner" class="sticky left-0 z-30 bg-white"></div>');
+                days.forEach(day => {
+                    timetable.insertAdjacentHTML('beforeend', `<div class="day-header sticky z-20 bg-slate-100 p-2 text-center font-bold hour-separator">${day}曜日</div>`);
+                });
+                for (let hour = timeRange.start; hour < timeRange.end; hour++) {
+                    for (let minute = 0; minute < 60; minute += timeRange.interval) {
+                        const time = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+                        timetable.insertAdjacentHTML('beforeend', `<div class="time-label sticky left-0 bg-white flex items-start justify-end pr-2 text-xs text-slate-500 z-20 ${minute === 0 ? 'hour-separator' : ''}">${minute === 0 ? `${hour}:00` : ''}</div>`);
+                        days.forEach(day => {
+                            timetable.insertAdjacentHTML('beforeend', `<div class="time-slot relative ${minute === 0 ? 'hour-separator' : ''}" data-day="${day}" data-time="${time}"></div>`);
+                        });
+                    }
+                }
+                timetable.querySelectorAll('.time-slot').forEach(slot => {
+                    slot.addEventListener('dragover', handleDragOver);
+                    slot.addEventListener('dragleave', handleDragLeave);
+                    slot.addEventListener('drop', handleDrop);
+                });
+                adjustStickyHeaders();
+            }
+
+            function saveCurrentSchedule(options = { invalidate: true }) {
+                const school = getCurrentSchool();
+                if(!school || school.id === ALL_SCHOOLS_ID || currentClassroomId === 'all') return;
+
+                const classroomSchedules = getClassroomSchedules(currentClassroomId);
+                const classes = [];
+                timetable.querySelectorAll('.class-item:not(.class-item-inactive)').forEach(el => {
+                    const slot = el.parentElement;
+                    const id = el.dataset.id;
+                    const scheduleForSemester = classroomSchedules[currentSemesterId] || [];
+                    const existingData = scheduleForSemester.find(c => c.id === id);
+
+                    if (existingData) {
+                        classes.push({
+                            ...existingData,
+                            day: slot.dataset.day,
+                            time: slot.dataset.time
+                        });
+                    }
+                });
+                
+                if (classes.length > 0 || (classroomSchedules[currentSemesterId] && classroomSchedules[currentSemesterId].length > 0) ) {
+                    classroomSchedules[currentSemesterId] = classes;
+                    if (options.invalidate) {
+                       const hasNewClasses = timetable.querySelectorAll('.class-item:not(.class-item-inactive):not([data-promoted="true"])').length > 0;
+                       if (hasNewClasses) invalidateFuture(currentSemesterId);
+                    }
+                    saveData();
+                }
+            }
+            
+            function updateNumbering() {
+                const school = getCurrentSchool();
+                if(!school || school.id === ALL_SCHOOLS_ID) return;
+
+                const allSchedulesForSemester = [
+                    ...(school.schedules.classroom1[currentSemesterId] || []), 
+                    ...(school.schedules.classroom2[currentSemesterId] || [])
+                ];
+                const courseCounter = {};
+                allSchedulesForSemester.sort((a, b) => {
+                    const dayIndexA = days.indexOf(a.day);
+                    const dayIndexB = days.indexOf(b.day);
+                    if (dayIndexA !== dayIndexB) return dayIndexA - dayIndexB;
+                    return a.time.localeCompare(b.time);
+                });
+                const classNumbering = {};
+                allSchedulesForSemester.forEach(classData => {
+                    courseCounter[classData.course] = (courseCounter[classData.course] || 0) + 1;
+                    classNumbering[classData.id] = courseCounter[classData.course];
+                });
+                timetable.querySelectorAll('.class-item').forEach(el => {
+                    const classData = allSchedulesForSemester.find(c => c.id === el.dataset.id);
+                    const nameSpan = el.querySelector('.course-name');
+                    if (nameSpan && classData) {
+                        const creationSemester = semesters.find(s => s.id === classData.creationSemesterId);
+                        nameSpan.textContent = `${classData.course} ${classNumbering[el.dataset.id] || ''} ${creationSemester ? `(${creationSemester.name})` : ''}`;
+                    }
+                });
+            }
+            
+            function adjustOverlappingClasses() {
+                const allItems = Array.from(timetable.querySelectorAll('.class-item'));
+                allItems.forEach(item => { item.style.width = '100%'; item.style.left = '0%'; });
+                for(let i = 0; i < allItems.length; i++) {
+                    for (let j = i + 1; j < allItems.length; j++) {
+                        const itemA = allItems[i], itemB = allItems[j];
+                        const slotA = itemA.parentElement, slotB = itemB.parentElement;
+                        if (!slotA || !slotB || slotA.dataset.day !== slotB.dataset.day) continue;
+                        const [hA, mA] = slotA.dataset.time.split(':').map(Number);
+                        const startA = hA * 60 + mA;
+                        const endA = startA + courseInfo[itemA.dataset.course].duration;
+                        const [hB, mB] = slotB.dataset.time.split(':').map(Number);
+                        const startB = hB * 60 + mB;
+                        const endB = startB + courseInfo[itemB.dataset.course].duration;
+                        if (startA < endB && endA > startB) {
+                            const classroomIdA = itemA.dataset.classroomId, classroomIdB = itemB.dataset.classroomId;
+                            if (classroomIdA && classroomIdB && classroomIdA !== classroomIdB) {
+                                const classroom1Item = classroomIdA === 'classroom1' ? itemA : itemB;
+                                const classroom2Item = classroomIdA === 'classroom2' ? itemA : itemB;
+                                classroom1Item.style.width = '50%';
+                                classroom1Item.style.left = '0%';
+                                classroom2Item.style.width = '50%';
+                                classroom2Item.style.left = '50%';
+                            }
+                        }
+                    }
+                }
+            }
+
+            function loadSchedule(semesterId) {
+                timetable.querySelectorAll('.class-item').forEach(el => el.remove());
+                const school = getCurrentSchool();
+                if(!school || school.id === ALL_SCHOOLS_ID) return;
+                
+                if (currentClassroomId === 'all') {
+                    const allSchedule = [
+                        ...(school.schedules.classroom1[semesterId] || []), 
+                        ...(school.schedules.classroom2[semesterId] || [])
+                    ];
+                    allSchedule.forEach(item => {
+                        const slot = timetable.querySelector(`.time-slot[data-day="${item.day}"][data-time="${item.time}"]`);
+                        if (slot) {
+                            const classEl = createClassElement(item, false);
+                            classEl.dataset.classroomId = item.classroomId;
+                            slot.appendChild(classEl);
+                        }
+                    });
+                } else {
+                    const inactiveClassroomId = currentClassroomId === 'classroom1' ? 'classroom2' : 'classroom1';
+                    const inactiveSchedule = school.schedules[inactiveClassroomId]?.[semesterId] || [];
+                    inactiveSchedule.forEach(item => {
+                        const slot = timetable.querySelector(`.time-slot[data-day="${item.day}"][data-time="${item.time}"]`);
+                        if (slot) {
+                             const classEl = createClassElement(item, false);
+                             classEl.dataset.classroomId = inactiveClassroomId;
+                             slot.appendChild(classEl);
+                        }
+                    });
+
+                    const activeSchedule = getClassroomSchedules(currentClassroomId)[semesterId] || [];
+                    activeSchedule.forEach(item => {
+                        const slot = timetable.querySelector(`.time-slot[data-day="${item.day}"][data-time="${item.time}"]`);
+                        if (slot) {
+                            const classEl = createClassElement(item, true);
+                            classEl.dataset.classroomId = currentClassroomId;
+                            slot.appendChild(classEl);
+                        }
+                    });
+                }
+                
+                adjustOverlappingClasses();
+                updateNumbering();
+                updateDashboard();
+            }
+            
+            function updatePromotedBank(semesterId) {
+                const school = getCurrentSchool();
+                if (!school || school.id === ALL_SCHOOLS_ID || currentClassroomId === 'all') {
+                    document.getElementById('promotedSection').style.display = 'none';
+                    return;
+                }
+
+                const classroomPromoted = getClassroomPromotedClasses(currentClassroomId);
+                const classroomSchedules = getClassroomSchedules(currentClassroomId);
+                promotedBank.innerHTML = '';
+                const masterPromotedList = classroomPromoted[semesterId] || [];
+                const currentSchedule = classroomSchedules[semesterId] || [];
+                const placedPromotedClassIds = currentSchedule.filter(c => c.isPromoted).map(c => c.id);
+                const bankData = masterPromotedList.filter(c => !placedPromotedClassIds.includes(c.id));
+                document.getElementById('promotedSection').style.display = (masterPromotedList.length > 0) ? 'block' : 'none';
+                bankData.forEach(classData => promotedBank.appendChild(createBankElement(classData)));
+            }
+
+            function updateDashboard() {
+                let schedulesToProcess = [];
+                const school = getCurrentSchool();
+                if (!school) return;
+
+                if (school.id === ALL_SCHOOLS_ID) {
+                    const allRealSchools = appData.schools.filter(s => s.id !== ALL_SCHOOLS_ID);
+                    schedulesToProcess = allRealSchools.flatMap(s => [
+                        ...(s.schedules.classroom1[currentSemesterId] || []),
+                        ...(s.schedules.classroom2[currentSemesterId] || [])
+                    ]);
+                } else {
+                     if (currentClassroomId === 'all') {
+                         schedulesToProcess = [
+                             ...(school.schedules.classroom1[currentSemesterId] || []),
+                             ...(school.schedules.classroom2[currentSemesterId] || [])
+                         ];
+                    } else {
+                         schedulesToProcess = getClassroomSchedules(currentClassroomId)[currentSemesterId] || [];
+                    }
+                }
+                
+                let totalStudents = 0, totalCapacity = 0;
+                const courseStats = Object.fromEntries(Object.keys(courseInfo).map(key => [key, { capacity: 0, students: 0, classCount: 0 }]));
+
+                schedulesToProcess.forEach(classData => {
+                    totalStudents += (classData.students || 0);
+                    totalCapacity += (classData.capacity || 0);
+                    if(courseStats[classData.course]) {
+                        courseStats[classData.course].capacity += (classData.capacity || 0);
+                        courseStats[classData.course].students += (classData.students || 0);
+                        courseStats[classData.course].classCount++;
+                    }
+                });
+
+                totalStudentsEl.textContent = totalStudents;
+                totalClassesEl.textContent = schedulesToProcess.length;
+                totalAvailableEl.textContent = Math.max(0, totalCapacity - totalStudents);
+                
+                const totalProgress = totalCapacity > 0 ? (totalStudents / totalCapacity) * 100 : 0;
+                totalFulfillmentEl.innerHTML = `
+                    <div class="grid grid-cols-12 gap-4 items-center text-sm">
+                        <div class="col-span-3 font-semibold">全クラス合計</div>
+                        <div class="col-span-6"><div class="w-full bg-slate-200 rounded-full h-4"><div class="bg-slate-500 h-4 rounded-full flex items-center justify-center text-[10px] font-bold text-white" style="width: ${totalProgress}%">${Math.round(totalProgress)}%</div></div></div>
+                        <div class="col-span-3 text-right"><span class="font-bold">${totalStudents}</span> / ${totalCapacity}人</div>
+                    </div>`;
+                
+                dashboardContainer.innerHTML = ''; 
+                Object.keys(courseStats).sort((a,b) => Object.keys(courseInfo).indexOf(a) - Object.keys(courseInfo).indexOf(b)).forEach(courseName => {
+                    const stats = courseStats[courseName];
+                    if (stats.classCount > 0) {
+                        const info = courseInfo[courseName];
+                        const progress = stats.capacity > 0 ? (stats.students / stats.capacity) * 100 : 0;
+                        const row = document.createElement('div');
+                        row.className = 'grid grid-cols-12 gap-4 items-center text-sm';
+                        row.innerHTML = `
+                            <div class="col-span-3 font-semibold flex items-center"><span class="w-3 h-3 rounded-full mr-2 ${info.style.split(' ')[0]}"></span>${courseName}</div>
+                            <div class="col-span-6"><div class="w-full bg-slate-200 rounded-full h-4"><div class="${info.style} h-4 rounded-full flex items-center justify-center text-[10px] font-bold" style="width: ${progress}%">${Math.round(progress)}%</div></div></div>
+                            <div class="col-span-3 text-right"><span class="font-bold">${stats.students}</span> / ${stats.capacity}人 (<span class="text-green-600 font-semibold">空き${Math.max(0, stats.capacity - stats.students)}</span>)</div>`;
+                        dashboardContainer.appendChild(row);
+                    }
+                });
+            }
+
+            function calculateScheduleFor(school, semesterId, classroomId) {
+                if(!school || school.id === ALL_SCHOOLS_ID) return;
+
+                const classroomSchedules = school.schedules[classroomId];
+                const classroomPromoted = school.promotedClasses[classroomId];
+
+                if (classroomSchedules[semesterId]) return;
+                
+                const targetIndex = semesters.findIndex(s => s.id === semesterId);
+
+                // This block is no longer needed as loadData handles initialization
+                // if (targetIndex === 0) {
+                //     return;
+                // }
+
+                if (targetIndex > 0) {
+                    const prevSemester = semesters[targetIndex - 1];
+                    calculateScheduleFor(school, prevSemester.id, classroomId);
+                    const prevSchedule = classroomSchedules[prevSemester.id] || [];
+                    
+                    const isSpringToAutumn = prevSemester.id.includes('spring');
+                    const nextSemesterSchedule = [];
+                    
+                    prevSchedule.forEach(item => {
+                        let nextCourse = item.course, semestersInCourse = item.semestersInCourse || 1;
+                        const shouldPromote = (isSpringToAutumn && item.promotionTiming === '10月') || (!isSpringToAutumn && item.promotionTiming === '4月');
+
+                        if (shouldPromote) {
+                            if (item.course === 'イノベーター' && semestersInCourse >= 2) return;
+                            const promotedCourse = promotionMap[item.course];
+                            nextCourse = promotedCourse || item.course;
+                            semestersInCourse = promotedCourse ? 1 : semestersInCourse + 1;
+                        } else {
+                            semestersInCourse++;
+                        }
+                        nextSemesterSchedule.push({ ...item, course: nextCourse, semestersInCourse, isPromoted: true });
+                    });
+                    classroomSchedules[semesterId] = nextSemesterSchedule;
+                    classroomPromoted[semesterId] = [...nextSemesterSchedule];
+                }
+            }
+
+            function switchSemester(semesterId, isSetup = false) {
+                const school = getCurrentSchool();
+                if (!school) return;
+                
+                if (school.id !== ALL_SCHOOLS_ID && currentClassroomId !== 'all' && !isSetup) {
+                    saveCurrentSchedule({invalidate: false});
+                }
+                currentSemesterId = semesterId;
+                
+                if (school.id === ALL_SCHOOLS_ID) {
+                    const allRealSchools = appData.schools.filter(s => s.id !== ALL_SCHOOLS_ID);
+                    allRealSchools.forEach(s => {
+                        ['classroom1', 'classroom2'].forEach(crId => calculateScheduleFor(s, currentSemesterId, crId));
+                    });
+                } else {
+                    ['classroom1', 'classroom2'].forEach(crId => calculateScheduleFor(school, currentSemesterId, crId));
+                }
+
+                semesterSelector.querySelectorAll('.semester-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.id === currentSemesterId));
+                
+                if (school.id !== ALL_SCHOOLS_ID) {
+                    loadSchedule(currentSemesterId);
+                    updatePromotedBank(currentSemesterId);
+                }
+                updateDashboard();
+            }
+
+            function switchClassroom(newClassroomId, isSetup = false) {
+                if (currentClassroomId !== 'all' && !isSetup) saveCurrentSchedule({invalidate: false});
+                currentClassroomId = newClassroomId;
+                classroomSelector.querySelectorAll('.classroom-tab').forEach(tab => tab.classList.toggle('active', tab.dataset.id === newClassroomId));
+                sidePanel.style.display = newClassroomId === 'all' ? 'none' : 'block';
+                timetable.classList.toggle('all-view', newClassroomId === 'all');
+                loadSchedule(currentSemesterId);
+                if (newClassroomId !== 'all') updatePromotedBank(currentSemesterId);
+                updateDashboard();
+            }
+            
+            function handleReset() {
+                const school = getCurrentSchool();
+                if(!school || school.id === ALL_SCHOOLS_ID) return;
+                if(confirm(`「${school.name}」の現在のスケジュールをリセットします。よろしいですか？`)) {
+                    school.schedules = { classroom1: {}, classroom2: {} };
+                    school.promotedClasses = { classroom1: {}, classroom2: {} };
+                    // Re-initialize the first semester
+                    ['classroom1', 'classroom2'].forEach(crId => {
+                        school.schedules[crId][semesters[0].id] = [];
+                        school.promotedClasses[crId][semesters[0].id] = [];
+                    });
+                    saveData();
+                    switchSemester(semesters[0].id, true);
+                }
+            }
+            
+            function handleExportPdf() {
+                const { jsPDF } = window.jspdf;
+                const btn = document.getElementById('exportPdfBtn');
+                const originalBtnText = btn.innerHTML;
+                btn.innerHTML = '作成中...';
+                btn.disabled = true;
+
+                const captureElement = document.querySelector('.container');
+                const elementsToHide = [document.getElementById('sidePanel'), document.getElementById('classroomSelector')];
+                const originalDisplays = elementsToHide.map(el => el ? el.style.display : '');
+                
+                elementsToHide.forEach(el => {
+                    if (el && el.style.display !== 'none') {
+                        el.style.display = 'none';
+                    }
+                });
+                
+                setTimeout(() => {
+                    html2canvas(captureElement, {
+                        scale: 2,
+                        windowWidth: document.body.scrollWidth,
+                        windowHeight: document.body.scrollHeight,
+                        y: 0,
+                        scrollY: -window.scrollY
+                    }).then(canvas => {
+                        const imageData = canvas.toDataURL('image/png');
+                        const pdf = new jsPDF({
+                            orientation: 'portrait',
+                            unit: 'mm',
+                            format: 'a4'
+                        });
+
+                        const pdfWidth = pdf.internal.pageSize.getWidth();
+                        const pdfHeight = pdf.internal.pageSize.getHeight();
+                        const canvasRatio = canvas.width / canvas.height;
+                        
+                        let renderWidth = pdfWidth;
+                        let renderHeight = pdfWidth / canvasRatio;
+
+                        if (renderHeight > pdfHeight) {
+                            renderHeight = pdfHeight;
+                            renderWidth = pdfHeight * canvasRatio;
+                        }
+                        
+                        pdf.addImage(imageData, 'PNG', 0, 0, renderWidth, renderHeight);
+                        
+                        const school = getCurrentSchool();
+                        const semester = semesters.find(s => s.id === currentSemesterId);
+                        const fileName = `ロボ団_${school.name.replace(/\s/g, '')}_${semester.name.replace(/\s/g, '')}.pdf`;
+                        pdf.save(fileName);
+
+                    }).finally(() => {
+                        elementsToHide.forEach((el, index) => {
+                            if (el) el.style.display = originalDisplays[index];
+                        });
+                        btn.innerHTML = originalBtnText;
+                        btn.disabled = false;
+                    });
+                }, 100);
+            }
+
+            function openDetailModal(classId) {
+                editingClassId = classId;
+                const classData = (getClassroomSchedules(currentClassroomId)[currentSemesterId] || []).find(c => c.id === classId);
+                if (!classData) return;
+                
+                modalTitle.textContent = `${classData.course} - 詳細設定`;
+                daySelect.value = classData.day;
+                timeSelect.value = classData.time;
+                document.querySelector(`input[name="classroom"][value="${classData.classroomId}"]`).checked = true;
+                capacityInput.value = classData.capacity;
+                studentsInput.value = classData.students;
+                document.querySelector(`input[name="promotionTiming"][value="${classData.promotionTiming || '4月'}"]`).checked = true;
+                updateAvailableSlots();
+                permanentDeleteBtn.style.display = classData.isPromoted ? 'block' : 'none';
+                detailModal.classList.remove('hidden');
+            }
+
+            function closeDetailModal() { detailModal.classList.add('hidden'); editingClassId = null; }
+
+            function updateAvailableSlots() {
+                const capacity = parseInt(capacityInput.value) || 0;
+                const students = parseInt(studentsInput.value) || 0;
+                availableSlots.textContent = Math.max(0, capacity - students);
+                studentsInput.max = capacity;
+            }
+
+            function saveClassDetails() {
+                if (!editingClassId) return;
+                const originClassroomId = currentClassroomId;
+                const classSchedules = getClassroomSchedules(originClassroomId);
+                const schedule = classSchedules[currentSemesterId] || [];
+                const classIndex = schedule.findIndex(c => c.id === editingClassId);
+                if (classIndex === -1) return;
+
+                const classData = schedule[classIndex];
+                const newClassroomId = document.querySelector('input[name="classroom"]:checked').value;
+                const newDay = daySelect.value, newTime = timeSelect.value;
+                const newCapacity = parseInt(capacityInput.value) || 0, newStudents = parseInt(studentsInput.value) || 0;
+                const newPromotionTiming = document.querySelector('input[name="promotionTiming"]:checked').value;
+                
+                if (originClassroomId !== newClassroomId) {
+                    if (isSlotOccupied(newDay, newTime, courseInfo[classData.course].duration, newClassroomId, null)) {
+                        alert(`移動先の教室の指定された時間帯は既に埋まっています。`); return;
+                    }
+                    const [movedClass] = schedule.splice(classIndex, 1);
+                    Object.assign(movedClass, { classroomId: newClassroomId, day: newDay, time: newTime, capacity: newCapacity, students: newStudents, promotionTiming: newPromotionTiming });
+                    const targetSchedule = getClassroomSchedules(newClassroomId);
+                    targetSchedule[currentSemesterId] = targetSchedule[currentSemesterId] || [];
+                    targetSchedule[currentSemesterId].push(movedClass);
+                } else {
+                    if ((classData.day !== newDay || classData.time !== newTime) && isSlotOccupied(newDay, newTime, courseInfo[classData.course].duration, originClassroomId, editingClassId)) {
+                        alert('移動先の時間帯は他のクラスと重複しています。'); return;
+                    }
+                    Object.assign(classData, { day: newDay, time: newTime, capacity: newCapacity, students: newStudents, promotionTiming: newPromotionTiming });
+                }
+
+                invalidateFuture(currentSemesterId);
+                saveData();
+                loadSchedule(currentSemesterId);
+                updateDashboard();
+                closeDetailModal();
+            }
+
+            // --- INITIALIZATION ---
+            function initializeApp() {
+                loadData();
+                renderSchoolTabs();
+                schoolNameDisplay.textContent = getCurrentSchool()?.name || '';
+                
+                semesters.forEach(semester => {
+                    const btn = document.createElement('button');
+                    btn.className = 'semester-btn w-full p-2 bg-slate-100 text-slate-700 rounded-md text-xs font-semibold hover:bg-slate-200';
+                    btn.textContent = semester.name;
+                    btn.dataset.id = semester.id;
+                    btn.addEventListener('click', () => switchSemester(semester.id));
+                    semesterSelector.appendChild(btn);
+                });
+                classroomSelector.querySelectorAll('.classroom-tab').forEach(tab => tab.addEventListener('click', () => switchClassroom(tab.dataset.id)));
+                Object.keys(courseInfo).forEach(name => classBank.appendChild(createBankElement({ course: name, isPromoted: false })));
+                days.forEach(day => daySelect.add(new Option(`${day}曜日`, day)));
+                for (let h = timeRange.start; h < timeRange.end; h++) {
+                    for (let m = 0; m < 60; m += timeRange.interval) {
+                        const time = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+                        timeSelect.add(new Option(time, time));
+                    }
+                }
+                generateTimetableGrid();
+                
+                // Event Listeners
+                window.addEventListener('resize', adjustStickyHeaders);
+                window.addEventListener('beforeunload', () => {
+                    saveCurrentSchedule({ invalidate: false });
+                });
+                resetBtn.addEventListener('click', handleReset);
+                saveBtn.addEventListener('click', saveClassDetails);
+                closeBtn.addEventListener('click', closeDetailModal);
+                modalBackdrop.addEventListener('click', closeDetailModal);
+                exportPdfBtn.addEventListener('click', handleExportPdf);
+                [capacityInput, studentsInput].forEach(el => el.addEventListener('input', updateAvailableSlots));
+                
+                permanentDeleteBtn.addEventListener('click', () => {
+                    if (!editingClassId) return;
+                    if (!confirm('このクラスをこの学期以降、すべての学期から完全に削除します。この操作は元に戻せません。よろしいですか？')) return;
+                    const school = getCurrentSchool();
+                    const classEl = timetable.querySelector(`.class-item[data-id="${editingClassId}"]`);
+                    if (!school || !classEl) return;
+                    const originClassroomId = classEl.dataset.classroomId;
+                    const currentSemesterIndex = semesters.findIndex(s => s.id === currentSemesterId);
+                    for (let i = currentSemesterIndex; i < semesters.length; i++) {
+                        const semesterId = semesters[i].id;
+                        if (school.schedules[originClassroomId]?.[semesterId]) school.schedules[originClassroomId][semesterId] = school.schedules[originClassroomId][semesterId].filter(c => c.id !== editingClassId);
+                        if (school.promotedClasses[originClassroomId]?.[semesterId]) school.promotedClasses[originClassroomId][semesterId] = school.promotedClasses[originClassroomId][semesterId].filter(c => c.id !== editingClassId);
+                    }
+                    saveData();
+                    closeDetailModal();
+                    loadSchedule(currentSemesterId);
+                    updatePromotedBank(currentSemesterId);
+                });
+                
+                exportSchoolBtn.addEventListener('click', () => {
+                    const school = getCurrentSchool();
+                    if (!school || school.id === ALL_SCHOOLS_ID) return;
+                    saveCurrentSchedule({invalidate: false});
+                    const schoolDataStr = JSON.stringify(school, null, 2);
+                    const blob = new Blob([schoolDataStr], {type: "application/json"});
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = `robodan-schedule-${school.name}.json`;
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                });
+
+                importSchoolBtn.addEventListener('click', () => {
+                    importMode = 'school';
+                    importFile.click();
+                });
+
+                exportAllBtn.addEventListener('click', () => {
+                    saveCurrentSchedule({invalidate: false});
+                    const allDataStr = JSON.stringify(appData, null, 2);
+                    const blob = new Blob([allDataStr], {type: "application/json"});
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(blob);
+                    a.download = 'robodan-all-schools.json';
+                    a.click();
+                    URL.revokeObjectURL(a.href);
+                });
+
+                importAllBtn.addEventListener('click', () => {
+                    importMode = 'all';
+                    importFile.click();
+                });
+
+                importFile.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+
+                    const reader = new FileReader();
+                    reader.onload = (ev) => {
+                        try {
+                            const data = JSON.parse(ev.target.result);
+                            if (importMode === 'all') {
+                                handleAllSchoolsImport(data);
+                            } else { // importMode === 'school'
+                                handleSingleSchoolImport(data);
+                            }
+                        } catch (err) {
+                            alert('ファイルの読み込みまたは解析に失敗しました。');
+                            console.error(err);
+                        }
+                    };
+                    reader.readAsText(file);
+                    e.target.value = ''; // Reset file input
+                });
+
+                function handleAllSchoolsImport(data) {
+                    if (!confirm('現在のすべての校舎データを上書きしてインポートします。よろしいですか？')) return;
+                    if (data.schools && data.currentSchoolId) {
+                        appData = data;
+                        if (!appData.schools.find(s => s.id === ALL_SCHOOLS_ID)) {
+                           appData.schools.unshift({ id: ALL_SCHOOLS_ID, name: 'すべての校舎' });
+                        }
+                        saveData();
+                        renderSchoolTabs();
+                        switchSchoolTab(appData.currentSchoolId);
+                        alert('全校舎のインポートが完了しました。');
+                    } else {
+                        alert('無効な全校舎データファイルです。');
+                    }
+                }
+
+                function handleSingleSchoolImport(data) {
+                    const school = getCurrentSchool();
+                    if (!school || school.id === ALL_SCHOOLS_ID) {
+                        alert('個別の校舎を選択してください。');
+                        return;
+                    }
+                    if (!confirm(`「${school.name}」のデータを上書きしてインポートします。よろしいですか？`)) return;
+
+                    if (data.schedules && data.promotedClasses && data.name) {
+                        school.name = data.name;
+                        school.schedules = data.schedules;
+                        school.promotedClasses = data.promotedClasses;
+                        saveData();
+                        renderSchoolTabs();
+                        schoolNameDisplay.textContent = school.name;
+                        switchSemester(currentSemesterId, true); // Refresh view
+                        alert(`「${school.name}」へのインポートが完了しました。`);
+                    } else {
+                        alert('無効な校舎データファイルです。');
+                    }
+                }
+
+                // Set initial views
+                switchSchoolTab(appData.currentSchoolId);
+                switchClassroom(currentClassroomId, true); 
+                adjustStickyHeaders();
+            }
+
+            // --- DRAG & DROP HANDLERS ---
+            let draggedItem = null;
+            function handleDragStart(e) {
+                draggedItem = e.target;
+                setTimeout(() => { if (draggedItem) draggedItem.classList.add('dragging'); }, 0);
+            }
+            document.addEventListener('dragend', () => { if(draggedItem) { draggedItem.classList.remove('dragging'); draggedItem = null; } });
+            function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+            function handleDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
+            
+            function handleDrop(e) {
+                e.preventDefault();
+                e.currentTarget.classList.remove('drag-over');
+                if (!draggedItem || currentClassroomId === 'all') return;
+                const dropZone = e.currentTarget;
+                const courseName = draggedItem.dataset.course;
+                const duration = courseInfo[courseName].duration;
+                const draggedId = draggedItem.dataset.id;
+                
+                let classData, isNewClass = false;
+                const classroomSchedules = getClassroomSchedules(currentClassroomId);
+                
+                if (draggedItem.classList.contains('class-item')) {
+                    if (isSlotOccupied(dropZone.dataset.day, dropZone.dataset.time, duration, currentClassroomId, draggedId)) return;
+                    const schedule = classroomSchedules[currentSemesterId] || [];
+                    const classIndex = schedule.findIndex(c => c.id === draggedId);
+                    if (classIndex === -1) return; 
+                    classData = schedule[classIndex];
+                    classData.day = dropZone.dataset.day;
+                    classData.time = dropZone.dataset.time;
+                    draggedItem.remove();
+                } else {
+                    if (isSlotOccupied(dropZone.dataset.day, dropZone.dataset.time, duration, currentClassroomId, null)) return;
+                    isNewClass = true;
+                    if (draggedItem.dataset.promoted === 'true' && draggedId) {
+                        const bank = getClassroomPromotedClasses(currentClassroomId)[currentSemesterId] || [];
+                        const originalClassData = bank.find(c => c.id === draggedId);
+                        if(originalClassData) {
+                            classData = { ...originalClassData, day: dropZone.dataset.day, time: dropZone.dataset.time };
+                            classroomSchedules[currentSemesterId] = classroomSchedules[currentSemesterId] || [];
+                            classroomSchedules[currentSemesterId].push(classData);
+                        }
+                    } else {
+                        classData = {
+                            id: crypto.randomUUID(), course: courseName, day: dropZone.dataset.day, time: dropZone.dataset.time,
+                            isPromoted: false, capacity: 8, students: 0, promotionTiming: '4月', semestersInCourse: 1,
+                            creationSemesterId: currentSemesterId, classroomId: currentClassroomId
+                        };
+                        classroomSchedules[currentSemesterId] = classroomSchedules[currentSemesterId] || [];
+                        classroomSchedules[currentSemesterId].push(classData);
+                    }
+                }
+                
+                if(!classData) return;
+                
+                if(isNewClass && !classData.isPromoted) invalidateFuture(currentSemesterId);
+                saveData();
+
+                dropZone.appendChild(createClassElement(classData));
+                updatePromotedBank(currentSemesterId);
+                updateNumbering();
+                updateDashboard();
+                adjustOverlappingClasses();
+            }
+
+            // --- SCHOOL TAB DRAG & DROP HANDLERS ---
+            function handleTabDragStart(e) {
+                draggedTabId = e.target.dataset.id;
+                e.dataTransfer.effectAllowed = 'move';
+                e.target.style.opacity = '0.5';
+            }
+
+            function handleTabDragOver(e) {
+                e.preventDefault();
+                const targetTab = e.target.closest('.school-tab');
+                if (targetTab && targetTab.dataset.id !== ALL_SCHOOLS_ID && targetTab.dataset.id !== draggedTabId) {
+                    e.dataTransfer.dropEffect = 'move';
+                    targetTab.classList.add('tab-drag-over');
+                }
+            }
+
+            function handleTabDragLeave(e) {
+                const targetTab = e.target.closest('.school-tab');
+                if (targetTab) {
+                    targetTab.classList.remove('tab-drag-over');
+                }
+            }
+
+            function handleTabDrop(e) {
+                e.preventDefault();
+                const targetTab = e.target.closest('.school-tab');
+                if (targetTab) {
+                    targetTab.classList.remove('tab-drag-over');
+                }
+                const droppedOnTabId = targetTab ? targetTab.dataset.id : null;
+
+                if (!draggedTabId || !droppedOnTabId || draggedTabId === droppedOnTabId || droppedOnTabId === ALL_SCHOOLS_ID) {
+                    return;
+                }
+
+                const draggedIndex = appData.schools.findIndex(s => s.id === draggedTabId);
+                const targetIndex = appData.schools.findIndex(s => s.id === droppedOnTabId);
+
+                if (draggedIndex > 0 && targetIndex > 0) { // Ensure we don't move "All Schools"
+                    const [draggedItem] = appData.schools.splice(draggedIndex, 1);
+                    const newTargetIndex = appData.schools.findIndex(s => s.id === droppedOnTabId);
+                    appData.schools.splice(newTargetIndex, 0, draggedItem);
+                    
+                    saveData();
+                    renderSchoolTabs();
+                }
+            }
+
+            document.addEventListener('dragend', (e) => {
+                draggedTabId = null;
+                document.querySelectorAll('.school-tab').forEach(tab => {
+                    tab.style.opacity = '1';
+                    tab.classList.remove('tab-drag-over');
+                });
+            });
+
+            // --- Let's go! ---
+            initializeApp();
+        });
+    </script>
+</body>
+</html>
