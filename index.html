@@ -49,6 +49,12 @@
                         <span id="currentSchoolNameDisplay" class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full hidden"></span>
                     </div>
                     <div class="flex items-center gap-4">
+                        <a id="previewPageBtn" href="#" target="_blank" class="text-sm text-teal-600 hover:text-teal-800 hover:underline hidden flex items-center gap-1 font-bold">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            予約ページ確認
+                        </a>
                         <button id="backToSchoolSelectBtn" class="text-sm text-blue-600 hover:underline hidden">校舎選択へ戻る</button>
                         <button id="logoutBtn" class="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-1 rounded">ログアウト</button>
                     </div>
@@ -442,6 +448,8 @@
                 document.getElementById('schoolAdminView').classList.remove('hidden');
                 document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
                 document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
+                document.getElementById('previewPageBtn').classList.remove('hidden');
+                document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
                 // Load Settings
                 onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
@@ -912,6 +920,7 @@
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
                 document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
                 document.getElementById('currentSchoolNameDisplay').classList.add('hidden');
+                document.getElementById('previewPageBtn').classList.add('hidden');
                 currentSchoolId = null;
             };
 
