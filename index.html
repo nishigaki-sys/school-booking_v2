@@ -1362,9 +1362,43 @@
             schedules.forEach((item, idx) => {
                 const content = (currentSettings.contents || []).find(c => c.id === item.contentId) || { name: '削除済み' };
                 const div = document.createElement('div');
-                div.className = "flex justify-between items-center bg-slate-50 p-2 rounded border";
-                div.innerHTML = `<div class="cursor-pointer font-bold text-slate-700 hover:text-blue-600" onclick="window.editSchedule(${idx})">${item.startTime} ${content.name} (定員${item.capacity})</div>`;
+                div.className = "flex justify-between items-center bg-slate-50 p-2 rounded border border-slate-200 mb-2";
+                div.innerHTML = `
+                    <div class="cursor-pointer flex-1" onclick="window.editSchedule(${idx})">
+                        <div class="font-bold text-slate-700 hover:text-blue-600 transition">${item.startTime} - ${item.endTime || ''} ${content.name}</div>
+                        <div class="text-xs text-slate-500">定員: ${item.capacity}名 <span class="text-blue-400 text-[10px] ml-1">(クリックで編集)</span></div>
+                    </div>
+                    <div class="flex gap-1">
+                        <button class="text-blue-500 hover:bg-blue-50 p-1 rounded text-xs copy-sched-btn" data-idx="${idx}" title="複製"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"></path></svg></button>
+                        <button class="text-red-500 hover:bg-red-50 p-1 rounded text-xs delete-sched-btn" data-idx="${idx}" title="削除"><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg></button>
+                    </div>
+                `;
                 list.appendChild(div);
+            });
+            
+            // Add copy listeners
+            list.querySelectorAll('.copy-sched-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.idx);
+                    scheduleToCopy = schedules[idx];
+                    document.getElementById('copyDialog').classList.remove('hidden');
+                });
+            });
+
+            // Add delete listeners
+            list.querySelectorAll('.delete-sched-btn').forEach(btn => {
+                btn.addEventListener('click', async (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(btn.dataset.idx);
+                    if(confirm('削除しますか？')) {
+                        currentSettings.schedule[selectedScheduleDateStr].splice(idx, 1);
+                        await saveSettingsToFirestore(currentSettings);
+                        renderDayScheduleList();
+                        renderScheduleTimeline();
+                        renderScheduleCalendar();
+                    }
+                });
             });
             
             window.editSchedule = (idx) => {
@@ -1379,16 +1413,173 @@
                 });
                 document.getElementById('addScheduleBtn').textContent = "更新";
                 document.getElementById('deleteScheduleBtn').classList.remove('hidden');
+                document.getElementById('cancelScheduleEditBtn').classList.remove('hidden');
             };
         }
 
         // 復元箇所：スケジュール登録モーダル内のタイムライン
         function renderScheduleTimeline() {
-            // Simplified timeline for brevity (just clear for now or implement full visual later if critical)
-            const timeline = document.getElementById('scheduleTimeline');
-            timeline.innerHTML = ''; 
-            // Full implementation would replicate the previous version's grid drawing logic
+            const timelineEl = document.getElementById('scheduleTimeline');
+            timelineEl.innerHTML = '';
+            const axisEl = document.getElementById('timelineAxis');
+            axisEl.innerHTML = '';
+            
+            const startHour = 9;
+            const endHour = 20;
+            const pixelsPerMinute = 660 / ((endHour - startHour) * 60);
+
+            // Draw Grid & Axis
+            for (let h = startHour; h <= endHour; h++) {
+                const hourTop = (h - startHour) * 60 * pixelsPerMinute;
+                
+                const labelDiv = document.createElement('div');
+                labelDiv.className = 'absolute w-full text-center transform -translate-y-1/2';
+                labelDiv.style.top = `${hourTop}px`;
+                labelDiv.textContent = `${h}:00`;
+                axisEl.appendChild(labelDiv);
+
+                if (h < endHour) {
+                    const hourLine = document.createElement('div');
+                    hourLine.className = 'absolute w-full border-t border-slate-300 pointer-events-none';
+                    hourLine.style.top = `${hourTop}px`;
+                    timelineEl.appendChild(hourLine);
+                    
+                    for (let m = 10; m < 60; m += 10) {
+                        const minTop = hourTop + (m * pixelsPerMinute);
+                        const minLine = document.createElement('div');
+                        minLine.className = 'absolute w-full border-t border-slate-100 pointer-events-none';
+                        minLine.style.top = `${minTop}px`;
+                        timelineEl.appendChild(minLine);
+                    }
+                }
+            }
+
+            const schedules = currentSettings.schedule[selectedScheduleDateStr] || [];
+            
+            schedules.forEach((item, idx) => {
+                if (!item.startTime) return;
+                const content = (currentSettings.contents || []).find(c => c.id === item.contentId) || { name: 'Unknown' };
+                
+                const startParts = item.startTime.split(':');
+                const startMins = parseInt(startParts[0]) * 60 + parseInt(startParts[1]);
+                let endMins = startMins + 60;
+                if (item.endTime) {
+                    const endParts = item.endTime.split(':');
+                    endMins = parseInt(endParts[0]) * 60 + parseInt(endParts[1]);
+                }
+                
+                const baseMins = startHour * 60;
+                if (startMins < baseMins) return;
+
+                const top = (startMins - baseMins) * pixelsPerMinute;
+                const height = (endMins - startMins) * pixelsPerMinute;
+                
+                const block = document.createElement('div');
+                let colorClass = "bg-blue-500"; 
+                if (item.grades && item.grades.length > 0) {
+                    if (item.grades.includes('preschool')) colorClass = "bg-[#ff91aa]";
+                    else if (item.grades.includes('grade1_2')) colorClass = "bg-[#ffac2d]";
+                    else if (item.grades.includes('grade3_plus')) colorClass = "bg-[#00b4dc]";
+                }
+                
+                block.className = `timeline-event-block ${colorClass}`;
+                block.style.top = `${top}px`;
+                block.style.height = `${Math.max(20, height)}px`;
+                block.style.left = '4px';
+                block.style.right = '4px';
+                block.textContent = `${item.startTime} ${content.name}`;
+                block.title = `${item.startTime}-${item.endTime} ${content.name}`;
+                block.draggable = true;
+                
+                block.addEventListener('dragstart', (e) => {
+                    e.stopPropagation();
+                    draggingItemIndex = idx;
+                    const rect = block.getBoundingClientRect();
+                    dragStartY = e.clientY - rect.top;
+                    block.classList.add('dragging');
+                });
+                
+                block.addEventListener('dragend', () => {
+                    block.classList.remove('dragging');
+                    draggingItemIndex = null;
+                });
+                
+                block.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    window.editSchedule(idx);
+                });
+                
+                timelineEl.appendChild(block);
+            });
         }
+
+        // Copy Dialog Logic
+        document.getElementById('cancelCopyBtn').addEventListener('click', () => document.getElementById('copyDialog').classList.add('hidden'));
+        
+        document.getElementById('execCopyBtn').addEventListener('click', async () => {
+            const targetDate = document.getElementById('copyTargetDate').value;
+            if (targetDate && scheduleToCopy) {
+                if (!currentSettings.schedule[targetDate]) {
+                    currentSettings.schedule[targetDate] = [];
+                }
+                const newItem = { ...scheduleToCopy, id: 's' + Date.now() };
+                currentSettings.schedule[targetDate].push(newItem);
+                await saveSettingsToFirestore(currentSettings);
+                document.getElementById('copyDialog').classList.add('hidden');
+                showToast(`${targetDate} に複製しました`);
+                renderScheduleCalendar(); 
+            } else {
+                alert("日付を選択してください");
+            }
+        });
+
+        // Timeline Click to Add
+        document.querySelector('.timeline-container').addEventListener('click', (e) => {
+             if (e.target.closest('.timeline-event-block')) return;
+
+             const timelineEl = document.getElementById('scheduleTimeline');
+             const containerRect = e.currentTarget.getBoundingClientRect();
+             const clickYInsideContainer = (e.clientY - containerRect.top) + e.currentTarget.scrollTop;
+             
+             const startHour = 9;
+             const endHour = 20;
+             const pixelsPerMinute = 660 / ((endHour - startHour) * 60);
+             
+             const minsFromStart = clickYInsideContainer / pixelsPerMinute;
+             const totalMins = (startHour * 60) + minsFromStart;
+             const roundedMins = Math.round(totalMins / 10) * 10;
+             
+             const hour = Math.floor(roundedMins / 60);
+             const min = roundedMins % 60;
+             
+             const endTotalMins = roundedMins + 60; // Default 60 min
+             const endHourVal = Math.floor(endTotalMins / 60);
+             const endMin = endTotalMins % 60;
+
+             const formatTime = (h, m) => `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+             
+             document.getElementById('editingScheduleIndex').value = -1;
+             document.getElementById('scheduleFormTitle').textContent = "新規枠を追加";
+             document.getElementById('addScheduleBtn').textContent = "保存";
+             document.getElementById('deleteScheduleBtn').classList.add('hidden');
+             document.getElementById('cancelScheduleEditBtn').classList.add('hidden');
+             
+             document.getElementById('modalStartTime').value = formatTime(hour, min);
+             document.getElementById('modalEndTime').value = formatTime(endHourVal, endMin);
+        });
+
+        // Cancel Edit Logic
+        document.getElementById('cancelScheduleEditBtn').addEventListener('click', () => {
+             document.getElementById('editingScheduleIndex').value = -1;
+             document.getElementById('scheduleFormTitle').textContent = "新規枠を追加";
+             document.getElementById('addScheduleBtn').textContent = "保存";
+             document.getElementById('modalStartTime').value = "";
+             document.getElementById('modalEndTime').value = "";
+             document.getElementById('modalCapacity').value = 5;
+             document.querySelectorAll('.schedule-grade-check').forEach(c=>c.checked=false);
+             document.getElementById('deleteScheduleBtn').classList.add('hidden');
+             document.getElementById('cancelScheduleEditBtn').classList.add('hidden');
+        });
 
         // Schedule Save Logic
         document.getElementById('addScheduleBtn').addEventListener('click', async () => {
@@ -1413,11 +1604,10 @@
             
             await saveSettingsToFirestore(currentSettings);
             renderDayScheduleList();
-            renderScheduleCalendar(); // Update main calendar
-            // Reset form (partial)
-            document.getElementById('editingScheduleIndex').value = -1;
-            document.getElementById('addScheduleBtn').textContent = "保存";
-            document.getElementById('deleteScheduleBtn').classList.add('hidden');
+            renderScheduleTimeline(); // Update main calendar
+            renderScheduleCalendar();
+            // Reset form
+            document.getElementById('cancelScheduleEditBtn').click();
         });
 
         document.getElementById('deleteScheduleBtn').addEventListener('click', async () => {
@@ -1426,10 +1616,9 @@
                 currentSettings.schedule[selectedScheduleDateStr].splice(idx, 1);
                 await saveSettingsToFirestore(currentSettings);
                 renderDayScheduleList();
+                renderScheduleTimeline();
                 renderScheduleCalendar();
-                document.getElementById('editingScheduleIndex').value = -1;
-                document.getElementById('addScheduleBtn').textContent = "保存";
-                document.getElementById('deleteScheduleBtn').classList.add('hidden');
+                document.getElementById('cancelScheduleEditBtn').click();
             }
         });
         
