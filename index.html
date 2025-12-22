@@ -11,10 +11,10 @@
     <style>
         body { font-family: 'M PLUS Rounded 1c', sans-serif; }
         .calendar-day { transition: all 0.2s; aspect-ratio: 1 / 1; }
-        .available { background-color: #c8f5e1; color: #0d774a; cursor: pointer; font-weight: 700; }
-        .available:hover { opacity: 0.8; transform: scale(1.05); }
-        .selected-day { background-color: #2dd4bf; color: white; transform: scale(1.05); box-shadow: 0 0 0 3px #14b8a6; }
-        .disabled { color: #cbd5e1; }
+        .available { background-color: #f0fdfa; color: #0d9488; cursor: pointer; font-weight: 700; }
+        .available:hover { opacity: 0.8; transform: scale(1.05); background-color: #ccfbf1; }
+        .selected-day { background-color: #0d9488 !important; color: white !important; transform: scale(1.05); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .disabled { color: #cbd5e1; background-color: #f8fafc; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         .slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -27,7 +27,7 @@
 <body class="bg-slate-50 text-slate-800 min-h-screen pb-10">
 
     <!-- ナビゲーションバー -->
-    <nav id="globalNav" class="bg-white text-slate-600 p-4 shadow-sm flex justify-between items-center z-50 relative">
+    <nav id="globalNav" class="bg-white text-slate-600 p-4 shadow-sm flex justify-between items-center z-50 relative hidden">
         <div class="flex items-center gap-4">
             <button id="navBackBtn" class="hover:bg-slate-100 p-2 rounded-full transition hidden text-slate-500">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -103,7 +103,11 @@
                         <div class="font-bold text-slate-500 py-2">金</div>
                         <div class="font-bold text-blue-400 py-2">土</div>
                     </div>
-                    <p class="text-xs text-center mt-3 text-slate-400">カラーの日付が予約可能です</p>
+                    <div class="mt-3 text-xs text-center text-slate-500 flex justify-center gap-4">
+                        <span class="flex items-center"><span class="text-red-500 font-bold mr-1">◎</span> 余裕あり</span>
+                        <span class="flex items-center"><span class="text-blue-500 font-bold mr-1">○</span> 空きあり</span>
+                        <span class="flex items-center"><span class="text-slate-400 font-bold mr-1">×</span> 満席</span>
+                    </div>
                 </div>
 
                 <!-- 時間選択 -->
@@ -292,6 +296,10 @@
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                 allBookings = [];
                 snap.forEach(doc => { if(doc.data().schoolId === schoolId) allBookings.push(doc.data()); });
+                // Re-render calendar if bookings update to refresh availability marks
+                if(document.getElementById('calendarContainer').style.display !== 'none') {
+                     renderUserCalendar();
+                }
                 if(selectedDate) renderTimeSlots(selectedDate);
             });
         };
@@ -345,38 +353,68 @@
 
             for(let d=1; d<=daysInMonth; d++) {
                 const cell = document.createElement('div');
-                cell.textContent = d;
-                cell.className = 'calendar-day flex items-center justify-center rounded-full transition text-lg relative';
+                cell.className = 'calendar-day flex flex-col items-center justify-center rounded-lg transition border border-transparent';
+                
                 const dateObj = new Date(year, month, d);
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 
-                let isAvailable = false;
-                if(currentSettings.schedule && currentSettings.schedule[dateStr]) {
-                    isAvailable = currentSettings.schedule[dateStr].some(evt => {
+                // Availability Logic
+                let totalRemaining = 0;
+                let hasEvent = false;
+
+                if (currentSettings.schedule && currentSettings.schedule[dateStr]) {
+                    currentSettings.schedule[dateStr].forEach(evt => {
                         const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
                         const targetGrades = evt.grades || (content ? content.grades : []) || [];
-                        return targetGrades.includes(selectedGrade);
+                        
+                        if (targetGrades.includes(selectedGrade)) {
+                            hasEvent = true;
+                            const bookedCount = allBookings.filter(b => 
+                                b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
+                            ).length;
+                            const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
+                            totalRemaining += remaining;
+                        }
                     });
                 }
+                
+                let symbolHtml = '';
+                let cellClass = '';
+                let isClickable = false;
 
-                if (dateObj < today) { cell.classList.add('disabled', 'text-slate-300'); } 
-                else if (isAvailable) {
-                    cell.classList.add('available');
-                    const conf = GRADE_CONFIG[selectedGrade];
-                    cell.setAttribute('style', `color: ${conf.bg.replace('bg-[','').replace(']','')}; background-color: #f0fdfa; font-weight: bold;`);
+                if (dateObj < today || !hasEvent) {
+                    // 過去日付 or イベントなし -> ハイフン or 空白 (今回はclick不可なdisabled風)
+                    cellClass = 'disabled';
+                    symbolHtml = '<span class="text-xs text-slate-300">-</span>';
+                } else {
+                    // 未来 & イベントあり
+                    isClickable = true;
+                    if (totalRemaining >= 5) {
+                        cellClass = 'available';
+                        symbolHtml = '<span class="text-red-500 font-bold text-xs">◎</span>';
+                    } else if (totalRemaining > 0) {
+                        cellClass = 'available';
+                        symbolHtml = '<span class="text-blue-500 font-bold text-xs">○</span>';
+                    } else {
+                        // 満席
+                        cellClass = 'disabled'; // 背景はグレーだが記号は出す
+                        symbolHtml = '<span class="text-slate-400 font-bold text-xs">×</span>';
+                        isClickable = false; // 満席ならクリック不可にする
+                    }
+                }
+
+                cell.classList.add(cellClass);
+                cell.innerHTML = `<span class="text-sm font-bold leading-tight">${d}</span>${symbolHtml}`;
+
+                if (isClickable) {
                     cell.onclick = () => {
                         selectedDate = dateObj;
-                        document.querySelectorAll('.calendar-day').forEach(c => {
-                            c.classList.remove('selected-day'); 
-                            c.style.backgroundColor = c.classList.contains('available') ? '#f0fdfa' : '';
-                            c.style.color = c.classList.contains('available') ? conf.bg.replace('bg-[','').replace(']','') : '';
-                        });
+                        document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected-day'));
                         cell.classList.add('selected-day');
-                        cell.style.backgroundColor = ''; // Use CSS class
-                        cell.style.color = ''; 
                         renderTimeSlots(selectedDate);
                     };
-                } else { cell.classList.add('disabled', 'text-slate-300'); }
+                }
+
                 grid.appendChild(cell);
             }
         };
@@ -406,7 +444,7 @@
                 events.forEach(evt => {
                     const content = currentSettings.contents.find(c => c.id === evt.contentId);
                     const booked = allBookings.filter(b => b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId).length;
-                    const remaining = evt.capacity - booked;
+                    const remaining = Math.max(0, parseInt(evt.capacity) - booked);
                     const isFull = remaining <= 0;
                     
                     const btn = document.createElement('button');
