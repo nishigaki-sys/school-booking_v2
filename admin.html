@@ -258,7 +258,7 @@
         </div>
     </div>
 
-    <!-- 本部マスタ登録/編集用モーダル -->
+    <!-- 本部マスタ登録/編集用モーダル (ご指定のデザイン) -->
     <div id="hqContentFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60] hidden">
         <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-100">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
@@ -487,10 +487,11 @@
             };
             
             const loadMasterContents = () => {
-                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'master_contents'), (snap) => {
+                const masterRef = collection(db, 'artifacts', appId, 'public', 'data', 'master_contents');
+                onSnapshot(masterRef, (snap) => {
                     masterContents = [];
                     snap.forEach(d => masterContents.push({id:d.id, ...d.data()}));
-                    if(masterContents.length === 0) DEFAULT_CONTENTS.forEach(c => addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'master_contents'), c));
+                    // 自動追加ロジック削除: 意図した削除ができるようにするため
                     renderHqContentList();
                 });
             };
@@ -565,43 +566,40 @@
             // --- Features ---
             
             // 1. Content Management
-            // HQ Content List Logic - FIX: Ensure buttons work
+            // HQ Content List Logic - FIX: Ensure buttons work and use renderHqContentList to unify logic
             const renderHqContentList = () => {
                 const list = document.getElementById('hqMasterList');
+                if(!list) return;
                 list.innerHTML = '';
+                if (masterContents.length === 0) {
+                    list.innerHTML = '<p class="text-center text-slate-400 py-4">コンテンツがありません</p>';
+                    return;
+                }
                 masterContents.forEach(c => {
                     const d = document.createElement('div');
                     d.className = "flex justify-between p-2 border rounded bg-slate-50";
-                    d.innerHTML = ''; // Clear initial
-                    
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = "font-bold text-slate-700";
-                    nameSpan.textContent = c.name;
-                    d.appendChild(nameSpan);
-
-                    const btnDiv = document.createElement('div');
-                    
-                    const editBtn = document.createElement('button');
-                    editBtn.className = "text-blue-500 text-xs mr-3 font-bold hover:underline";
-                    editBtn.textContent = "編集";
-                    editBtn.onclick = (e) => { e.stopPropagation(); openHqFormModal(c.id); };
-                    btnDiv.appendChild(editBtn);
-                    
-                    const delBtn = document.createElement('button');
-                    delBtn.className = "text-red-500 text-xs font-bold hover:underline";
-                    delBtn.textContent = "削除";
-                    delBtn.onclick = async (e) => {
-                         e.stopPropagation();
-                         if(confirm("本当に削除しますか？")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'master_contents', c.id));
-                    };
-                    btnDiv.appendChild(delBtn);
-
-                    d.appendChild(btnDiv);
+                    d.innerHTML = `
+                        <span class="font-bold text-slate-700">${c.name}</span>
+                        <div>
+                            <button class="text-blue-500 text-xs mr-3 font-bold hover:underline edit-hq" data-id="${c.id}">編集</button>
+                            <button class="text-red-500 text-xs font-bold hover:underline del-hq" data-id="${c.id}">削除</button>
+                        </div>
+                    `;
                     list.appendChild(d);
+                });
+                
+                // イベントリスナー設定
+                list.querySelectorAll('.edit-hq').forEach(b => b.onclick = (e) => {
+                    e.stopPropagation();
+                    openHqFormModal(b.dataset.id);
+                });
+                list.querySelectorAll('.del-hq').forEach(b => b.onclick = async (e) => {
+                    e.stopPropagation();
+                    if(confirm("本当に削除しますか？")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'master_contents', b.dataset.id));
                 });
             };
             
-            // Manage Master Content Button Handler - FIX: Correct modal ID
+            // Manage Master Content Button Handler
             document.getElementById('manageMasterContentBtn').addEventListener('click', () => {
                 document.getElementById('hqMasterModal').classList.remove('hidden');
                 renderHqContentList();
@@ -614,10 +612,12 @@
                  
                  if (id && id !== 'new') {
                      const c = masterContents.find(m => m.id === id);
-                     document.getElementById('hqContentName').value = c.name;
-                     document.getElementById('hqContentPrice').value = c.price;
-                     document.getElementById('hqContentImage').value = c.imageUrl || '';
-                     document.getElementById('hqContentType').value = c.type;
+                     if (c) {
+                         document.getElementById('hqContentName').value = c.name;
+                         document.getElementById('hqContentPrice').value = c.price;
+                         document.getElementById('hqContentImage').value = c.imageUrl || '';
+                         document.getElementById('hqContentType').value = c.type;
+                     }
                  } else {
                      document.getElementById('hqContentName').value = '';
                      document.getElementById('hqContentPrice').value = '';
@@ -645,7 +645,7 @@
                 }
                 
                 document.getElementById('hqContentFormModal').classList.add('hidden');
-                // renderHqList will auto-update via snapshot
+                // renderHqContentList will auto-update via snapshot
             };
 
             // Utils
