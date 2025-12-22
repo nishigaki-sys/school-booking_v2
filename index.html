@@ -807,16 +807,6 @@
             });
         };
 
-        const saveSettingsToFirestore = async (newSettings) => {
-            try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), newSettings);
-                showToast('保存しました');
-            } catch (err) {
-                console.error(err);
-                alert('保存に失敗しました');
-            }
-        };
-
         // --- Data Loading ---
         
         const loadSchoolList = async () => {
@@ -1079,7 +1069,7 @@
                 d.onclick = async () => {
                     const newContent = { ...c, id: 'c'+Date.now() }; // New ID for local
                     const newContents = [...(currentSettings.contents || []), newContent];
-                    await saveSettingsToFirestore({ ...currentSettings, contents: newContents });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), { ...currentSettings, contents: newContents });
                     document.getElementById('importMasterModal').classList.add('hidden');
                 };
                 container.appendChild(d);
@@ -1111,7 +1101,7 @@
                 newContents.push(newContent);
             }
             
-            await saveSettingsToFirestore({ ...currentSettings, contents: newContents });
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), { ...currentSettings, contents: newContents });
             document.getElementById('contentModal').classList.add('hidden');
         });
 
@@ -1158,7 +1148,7 @@
                 if(confirm('削除しますか？')) {
                     const newContents = [...currentSettings.contents];
                     newContents.splice(idx, 1);
-                    await saveSettingsToFirestore({ ...currentSettings, contents: newContents });
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), { ...currentSettings, contents: newContents });
                 }
             });
         }
@@ -1640,6 +1630,44 @@
         document.getElementById('nextScheduleMonth').onclick = () => { adminScheduleDate.setMonth(adminScheduleDate.getMonth()+1); renderScheduleCalendar(); };
         document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
         document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
+
+        // Admin Settings Save
+        document.getElementById('adminSettingsForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('saveSettingsBtn');
+            btn.disabled = true;
+            btn.textContent = '保存中...';
+
+            try {
+                const fd = new FormData(e.target);
+                const newSettings = {
+                    ...currentSettings,
+                    schoolName: fd.get('schoolName'),
+                    address: fd.get('address'),
+                    phoneNumber: fd.get('phoneNumber'),
+                    pageTitle: fd.get('pageTitle'),
+                    pageDescription: fd.get('pageDescription'),
+                    headerImageUrl: fd.get('headerImageUrl')
+                };
+                
+                // Update Settings
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), newSettings);
+                
+                // Update School Name in list (if changed)
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { 
+                    id: currentSchoolId, 
+                    name: newSettings.schoolName 
+                }, { merge: true }); // merge option to be safe
+
+                showToast('設定を保存しました');
+            } catch (err) {
+                console.error("保存エラー:", err);
+                alert('保存に失敗しました: ' + err.message);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '設定を保存';
+            }
+        };
 
         // --- Other logic from previous version (User View, Calendar, Schedule, Booking) ---
         // Reuse logic but ensure they use `currentSettings` and `currentSchoolId`
