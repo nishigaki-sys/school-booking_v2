@@ -415,7 +415,10 @@
                             <div id="contentsListContainer" class="space-y-2 max-h-[400px] overflow-y-auto"></div>
                         </div>
                         <div>
-                            <h3 class="text-lg font-bold text-slate-700 mb-4">2. 開催日程登録 (カレンダー)</h3>
+                            <h3 class="text-lg font-bold text-slate-700 mb-4 flex items-center">
+                                <span class="bg-blue-100 text-blue-600 w-6 h-6 rounded-full flex items-center justify-center mr-2 text-sm">2</span>
+                                開催日程登録 (カレンダー)
+                            </h3>
                             <div class="flex items-center justify-between mb-2">
                                 <button type="button" id="prevScheduleMonth" class="px-2 py-1 text-xs bg-white border rounded">&lt;</button>
                                 <span id="scheduleCalendarTitle" class="font-bold text-slate-700"></span>
@@ -423,10 +426,12 @@
                             </div>
                             <div id="scheduleCalendar" class="border border-slate-200 text-xs">
                                 <div class="grid grid-cols-7 bg-slate-100 font-bold text-center py-1">
-                                    <div class="text-red-500">日</div><div>...</div><div class="text-blue-500">土</div>
+                                    <div class="text-red-500">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-500">土</div>
                                 </div>
-                                <div id="scheduleCalendarGrid" class="grid grid-cols-7 gap-px bg-slate-200 border-t border-slate-200"></div>
+                                <div id="scheduleCalendarGrid" class="grid grid-cols-7 gap-px bg-slate-200 border-t border-slate-200">
+                                </div>
                             </div>
+                            <p class="text-xs text-slate-400 mt-1 text-right">※日付をクリックして開催枠を追加・編集</p>
                         </div>
                     </div>
                 </div>
@@ -1054,7 +1059,6 @@
             document.getElementById('newContentName').value = '';
             document.getElementById('newContentPrice').value = '';
             document.getElementById('newContentImage').value = '';
-            document.querySelectorAll('.custom-grade-chk').forEach(c=>c.checked=false);
             document.getElementById('contentModal').classList.remove('hidden');
         });
         
@@ -1089,13 +1093,14 @@
             const price = document.getElementById('newContentPrice').value;
             const type = document.getElementById('newContentType').value;
             const img = document.getElementById('newContentImage').value;
-            const grades = Array.from(document.querySelectorAll('.custom-grade-chk:checked')).map(c=>c.value);
+            // Note: Grades removed from modal UI based on user request, defaulting to empty for custom content
+            // Schedule modal handles grade assignment for events.
             
             if(!name || !price) return alert("必須項目を入力してください");
             
             const newContent = {
                 id: editingContentId || ('c'+Date.now()),
-                name, type, price: parseInt(price), imageUrl: img, grades
+                name, type, price: parseInt(price), imageUrl: img, grades: [] // Default empty
             };
             
             let newContents = [...(currentSettings.contents || [])];
@@ -1144,7 +1149,6 @@
                 document.getElementById('newContentPrice').value = c.price;
                 document.getElementById('newContentType').value = c.type;
                 document.getElementById('newContentImage').value = c.imageUrl || '';
-                document.querySelectorAll('.custom-grade-chk').forEach(chk => chk.checked = (c.grades || []).includes(chk.value));
                 document.getElementById('contentModal').classList.remove('hidden');
             });
             
