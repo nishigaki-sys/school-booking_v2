@@ -11,10 +11,10 @@
     <style>
         body { font-family: 'M PLUS Rounded 1c', sans-serif; }
         .calendar-day { transition: all 0.2s; aspect-ratio: 1 / 1; }
-        .available { background-color: #c8f5e1; color: #0d774a; cursor: pointer; font-weight: 700; }
-        .available:hover { opacity: 0.8; transform: scale(1.05); }
-        .selected-day { background-color: #2dd4bf; color: white; transform: scale(1.05); box-shadow: 0 0 0 3px #14b8a6; }
-        .disabled { color: #cbd5e1; }
+        .available { background-color: #f0fdfa; color: #0d9488; cursor: pointer; font-weight: 700; }
+        .available:hover { opacity: 0.8; transform: scale(1.05); background-color: #ccfbf1; }
+        .selected-day { background-color: #0d9488 !important; color: white !important; transform: scale(1.05); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
+        .disabled { color: #cbd5e1; background-color: #f8fafc; }
         .fade-in { animation: fadeIn 0.5s ease-out forwards; }
         .slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -210,11 +210,18 @@
 
         const initFirebase = async () => {
             try {
-                // Firebase Config
-                const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                    apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project"
+                // デモ用Firebase設定
+                let firebaseConfig = {
+                    apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", 
+                    authDomain: "robot-school-booking.firebaseapp.com", 
+                    projectId: "robot-school-booking", 
+                    appId: "1:443474003538:web:e3a17bd422bcee23f6418b"
                 };
-                
+
+                // Canvasプレビュー用の自動設定
+                if (typeof __firebase_config !== 'undefined') {
+                    firebaseConfig = JSON.parse(__firebase_config);
+                }
                 if (typeof __app_id !== 'undefined') {
                     appId = __app_id;
                 }
@@ -306,6 +313,7 @@
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                 allBookings = [];
                 snap.forEach(doc => { if(doc.data().schoolId === schoolId) allBookings.push(doc.data()); });
+                // Re-render calendar if bookings update to refresh availability marks
                 if(document.getElementById('calendarContainer').style.display !== 'none') {
                      renderUserCalendar();
                 }
@@ -371,14 +379,18 @@
                 const dateObj = new Date(year, month, d);
                 const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                 
+                // Availability Logic
                 let totalRemaining = 0;
                 let hasEvent = false;
 
                 if (currentSettings.schedule && currentSettings.schedule[dateStr]) {
                     currentSettings.schedule[dateStr].forEach(evt => {
+                        // Check content existence
                         const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
                         if (!content) return;
+
                         const targetGrades = evt.grades || (content.grades || []) || [];
+                        
                         if (targetGrades.includes(selectedGrade)) {
                             hasEvent = true;
                             const bookedCount = allBookings.filter(b => 
@@ -395,9 +407,11 @@
                 let isClickable = false;
 
                 if (dateObj < today || !hasEvent) {
+                    // 過去日付 or イベントなし
                     cellClass = 'disabled';
                     symbolHtml = '<span class="text-xs text-slate-300">-</span>';
                 } else {
+                    // 未来 & イベントあり
                     isClickable = true;
                     if (totalRemaining >= 5) {
                         cellClass = 'available';
@@ -406,6 +420,7 @@
                         cellClass = 'available';
                         symbolHtml = '<span class="text-blue-500 font-bold text-xs">○</span>';
                     } else {
+                        // 満席
                         cellClass = 'disabled'; 
                         symbolHtml = '<span class="text-slate-400 font-bold text-xs">×</span>';
                         isClickable = false; 
@@ -423,6 +438,7 @@
                         renderTimeSlots(selectedDate);
                     };
                 }
+
                 grid.appendChild(cell);
             }
         };
@@ -491,6 +507,7 @@
             container.scrollIntoView({behavior: 'smooth'});
         };
 
+        // Nav Back
         document.getElementById('navBackBtn').onclick = () => {
              document.getElementById('userView').classList.add('hidden');
              document.getElementById('schoolSelectionView').classList.remove('hidden');
@@ -498,6 +515,7 @@
              currentSchoolId = null;
         };
 
+        // Booking Logic
         document.getElementById('userInfoForm').onsubmit = (e) => {
             e.preventDefault();
             pendingBookingData = {
