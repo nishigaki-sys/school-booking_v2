@@ -402,7 +402,7 @@
                             <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
                                 <div class="space-y-3">
                                     <button type="button" id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
-                                        <span class="text-2xl font-bold leading-none">+</span> 新規コンテンツを作成
+                                        <span class="text-2xl font-bold leading-none">+</span> 新規作成
                                     </button>
                                     <div class="text-center pt-2">
                                         <button type="button" id="openImportMasterModalBtn" class="text-indigo-600 text-xs font-bold hover:underline inline-flex items-center gap-1">
@@ -539,25 +539,40 @@
     </div>
 
     <!-- コンテンツ登録モーダル (独自作成) -->
-    <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl">
-            <h3 class="text-lg font-bold mb-4">コンテンツ編集</h3>
+    <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-100">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
+                <span id="contentFormTitle">新規作成</span>
+                <button id="closeContentModal" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            
             <div class="space-y-4">
-                <input type="hidden" id="editingContentId">
-                <input type="text" id="newContentName" class="w-full p-2 border rounded" placeholder="コンテンツ名">
-                <input type="text" id="newContentImage" class="w-full p-2 border rounded" placeholder="画像URL">
+                <input type="hidden" id="editingContentId" value="">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名</label>
+                    <input type="text" id="newContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
+                    <input type="text" id="newContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
+                    <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
+                </div>
                 <div class="flex gap-2">
-                    <select id="newContentType" class="w-full p-2 border rounded"><option value="trial">体験会</option><option value="event">イベント</option></select>
-                    <input type="number" id="newContentPrice" class="w-full p-2 border rounded" placeholder="金額">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
+                        <select id="newContentType" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            <option value="trial">体験会</option>
+                            <option value="event">イベント</option>
+                        </select>
+                    </div>
+                    <!-- 時間(分)の入力欄は削除されました -->
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
+                        <input type="number" id="newContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
+                    </div>
                 </div>
-                <!-- Grades for custom content -->
-                <div class="flex gap-2 text-xs">
-                    <label><input type="checkbox" class="custom-grade-chk" value="preschool"> 年中長</label>
-                    <label><input type="checkbox" class="custom-grade-chk" value="grade1_2"> 小1-2</label>
-                    <label><input type="checkbox" class="custom-grade-chk" value="grade3_plus"> 小3+</label>
-                </div>
-                <button id="addContentBtn" class="w-full bg-orange-500 text-white font-bold py-2 rounded">保存</button>
-                <button onclick="document.getElementById('contentModal').classList.add('hidden')" class="w-full text-sm text-slate-500 mt-2">閉じる</button>
+                
+                <button type="button" id="addContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">作成して保存</button>
             </div>
         </div>
     </div>
@@ -958,8 +973,11 @@
             document.getElementById('newContentName').value = '';
             document.getElementById('newContentPrice').value = '';
             document.getElementById('newContentImage').value = '';
-            document.querySelectorAll('.custom-grade-chk').forEach(c=>c.checked=false);
             document.getElementById('contentModal').classList.remove('hidden');
+        });
+        
+        document.getElementById('closeContentModal').addEventListener('click', () => {
+            document.getElementById('contentModal').classList.add('hidden');
         });
 
         // 2. Import from Master
@@ -989,13 +1007,14 @@
             const price = document.getElementById('newContentPrice').value;
             const type = document.getElementById('newContentType').value;
             const img = document.getElementById('newContentImage').value;
-            const grades = Array.from(document.querySelectorAll('.custom-grade-chk:checked')).map(c=>c.value);
+            // Note: Grades removed from modal UI based on user request, defaulting to empty for custom content
+            // Schedule modal handles grade assignment for events.
             
             if(!name || !price) return alert("必須項目を入力してください");
             
             const newContent = {
                 id: editingContentId || ('c'+Date.now()),
-                name, type, price: parseInt(price), imageUrl: img, grades
+                name, type, price: parseInt(price), imageUrl: img, grades: [] // Default empty
             };
             
             let newContents = [...(currentSettings.contents || [])];
@@ -1044,7 +1063,6 @@
                 document.getElementById('newContentPrice').value = c.price;
                 document.getElementById('newContentType').value = c.type;
                 document.getElementById('newContentImage').value = c.imageUrl || '';
-                document.querySelectorAll('.custom-grade-chk').forEach(chk => chk.checked = (c.grades || []).includes(chk.value));
                 document.getElementById('contentModal').classList.remove('hidden');
             });
             
