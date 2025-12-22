@@ -39,7 +39,7 @@
     <!-- ロード画面 -->
     <div id="loadingScreen" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center">
         <div class="loader"></div>
-        <p class="mt-4 text-slate-500 font-bold">読み込み中...</p>
+        <p class="mt-4 text-slate-500 font-bold" id="loadingText">読み込み中...</p>
     </div>
 
     <div class="container mx-auto max-w-4xl p-4 sm:p-6 mt-4">
@@ -59,7 +59,7 @@
         <div id="userView" class="max-w-2xl mx-auto hidden fade-in">
             <header class="text-center mb-8">
                 <div class="w-full h-48 sm:h-64 bg-slate-200 rounded-2xl mb-4 overflow-hidden shadow-lg relative">
-                    <img id="headerImage" src="" alt="教室イメージ" class="w-full h-full object-cover">
+                    <img id="headerImage" src="" alt="教室イメージ" class="w-full h-full object-cover" onerror="this.style.display='none'">
                     <div class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
                          <p class="text-white font-bold text-xl drop-shadow-md"><span id="headerSchoolName"></span>校へようこそ</p>
                     </div>
@@ -116,7 +116,7 @@
                 <!-- 入力フォーム -->
                 <div id="bookingForm" class="mt-10 pt-6 border-t border-slate-100">
                      <div class="bg-teal-50 p-5 rounded-xl mb-6 border border-teal-100 flex flex-col sm:flex-row gap-4 items-center">
-                        <img id="bookingContentImage" src="" alt="体験イメージ" class="w-24 h-24 object-cover rounded-lg bg-slate-200 hidden sm:block">
+                        <img id="bookingContentImage" src="" alt="体験イメージ" class="w-24 h-24 object-cover rounded-lg bg-slate-200 hidden sm:block" onerror="this.style.display='none'">
                         <div class="flex-1 text-center sm:text-left">
                             <h3 class="font-bold text-teal-800 mb-1">選択中の体験会</h3>
                             <p class="text-sm text-teal-700 font-bold mb-1" id="selectedSlotInfo"></p>
@@ -209,40 +209,55 @@
         let pendingBookingData = null;
 
         const initFirebase = async () => {
-            // Environment variables for preview compatibility
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {
-                apiKey: "demo-key", authDomain: "demo.firebaseapp.com", projectId: "demo-project"
-            };
-            
-            // Override appId if provided by environment
-            if (typeof __app_id !== 'undefined') {
-                appId = __app_id;
-            }
+            try {
+                // ▼▼▼ Firebaseの設定ここから ▼▼▼
+                // ご自身のFirebaseコンソールで取得した設定値に書き換えてください
+                const firebaseConfig = {
+                  apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU",
+                  authDomain: "robot-school-booking.firebaseapp.com",
+                  projectId: "robot-school-booking",
+                  storageBucket: "robot-school-booking.firebasestorage.app",
+                  messagingSenderId: "443474003538",
+                  appId: "1:443474003538:web:e3a17bd422bcee23f6418b"
+                };
+                // ▲▲▲ Firebaseの設定ここまで ▲▲▲
 
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-            
-            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                await signInWithCustomToken(auth, __initial_auth_token);
-            } else {
-                await signInAnonymously(auth);
-            }
-            
-            onAuthStateChanged(auth, async (u) => {
-                user = u;
-                if (u) {
-                    // Check URL parameter for direct access
-                    const params = new URLSearchParams(window.location.search);
-                    const targetSchoolId = params.get('school');
-                    
-                    if (targetSchoolId) {
-                        loadSchoolData(targetSchoolId, true);
-                    } else {
-                        loadSchoolList();
-                    }
+                // Canvasプレビュー用の自動設定 (本番環境では無視されます)
+                if (typeof __firebase_config !== 'undefined') {
+                    Object.assign(firebaseConfig, JSON.parse(__firebase_config));
                 }
-            });
+                if (typeof __app_id !== 'undefined') {
+                    appId = __app_id;
+                }
+
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+                
+                onAuthStateChanged(auth, async (u) => {
+                    user = u;
+                    if (u) {
+                        // Check URL parameter for direct access (e.g., ?school=toyota)
+                        const params = new URLSearchParams(window.location.search);
+                        const targetSchoolId = params.get('school');
+                        
+                        if (targetSchoolId) {
+                            loadSchoolData(targetSchoolId, true);
+                        } else {
+                            loadSchoolList();
+                        }
+                    }
+                });
+            } catch (e) {
+                console.error("Firebase Init Error:", e);
+                document.getElementById('loadingText').textContent = "エラーが発生しました。リロードしてください。";
+            }
         };
 
         const loadSchoolList = () => {
@@ -280,6 +295,13 @@
             
             // Load Settings
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', schoolId), (snap) => {
+                if (!snap.exists()) {
+                    alert("指定された校舎が見つかりません。");
+                    document.getElementById('loadingScreen').classList.add('hidden');
+                    document.getElementById('schoolSelectionView').classList.remove('hidden');
+                    return;
+                }
+                
                 currentSettings = snap.data() || { schoolName: '未設定', contents: [], schedule: {} };
                 renderUserView();
                 document.getElementById('loadingScreen').classList.add('hidden');
@@ -310,7 +332,8 @@
             document.getElementById('headerSchoolName').textContent = s.schoolName;
             document.getElementById('pageTitleDisplay').textContent = s.pageTitle || '体験教室予約';
             document.getElementById('pageDescriptionDisplay').textContent = s.pageDescription || '';
-            document.getElementById('headerImage').src = s.headerImageUrl || 'https://images.unsplash.com/photo-1581092921461-eab62e97a782?q=80&w=2070';
+            const img = document.getElementById('headerImage');
+            if(s.headerImageUrl) img.src = s.headerImageUrl;
             document.getElementById('schoolInfoDisplay').textContent = `${s.address || ''} | ${s.phoneNumber || ''}`;
         };
 
@@ -364,8 +387,11 @@
 
                 if (currentSettings.schedule && currentSettings.schedule[dateStr]) {
                     currentSettings.schedule[dateStr].forEach(evt => {
+                        // Check content existence
                         const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
-                        const targetGrades = evt.grades || (content ? content.grades : []) || [];
+                        if (!content) return;
+
+                        const targetGrades = evt.grades || (content.grades || []) || [];
                         
                         if (targetGrades.includes(selectedGrade)) {
                             hasEvent = true;
@@ -383,7 +409,7 @@
                 let isClickable = false;
 
                 if (dateObj < today || !hasEvent) {
-                    // 過去日付 or イベントなし -> ハイフン or 空白 (今回はclick不可なdisabled風)
+                    // 過去日付 or イベントなし
                     cellClass = 'disabled';
                     symbolHtml = '<span class="text-xs text-slate-300">-</span>';
                 } else {
@@ -397,9 +423,9 @@
                         symbolHtml = '<span class="text-blue-500 font-bold text-xs">○</span>';
                     } else {
                         // 満席
-                        cellClass = 'disabled'; // 背景はグレーだが記号は出す
+                        cellClass = 'disabled'; 
                         symbolHtml = '<span class="text-slate-400 font-bold text-xs">×</span>';
-                        isClickable = false; // 満席ならクリック不可にする
+                        isClickable = false; 
                     }
                 }
 
@@ -435,7 +461,9 @@
             
             const events = (currentSettings.schedule[dateStr] || []).filter(evt => {
                 const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
-                const targetGrades = evt.grades || (content ? content.grades : []) || [];
+                if(!content) return false;
+                
+                const targetGrades = evt.grades || (content.grades || []) || [];
                 return targetGrades.includes(selectedGrade);
             }).sort((a,b) => a.startTime.localeCompare(b.startTime));
 
@@ -463,7 +491,14 @@
                             document.getElementById('bookingForm').scrollIntoView({behavior:'smooth'});
                             document.getElementById('selectedSlotInfo').textContent = `${dateStr.replace(/-/g,'/')} ${evt.startTime}`;
                             document.getElementById('selectedPriceInfo').textContent = `¥${Number(content.price).toLocaleString()}`;
-                            document.getElementById('bookingContentImage').src = content.imageUrl || '';
+                            const bImg = document.getElementById('bookingContentImage');
+                            if(content.imageUrl) {
+                                bImg.src = content.imageUrl;
+                                bImg.style.display = 'block';
+                            } else {
+                                bImg.style.display = 'none';
+                            }
+                            
                             document.getElementById('inputPhase').classList.remove('hidden');
                             document.getElementById('confirmPhase').classList.add('hidden');
                         };
