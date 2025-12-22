@@ -76,7 +76,6 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         新しい校舎を追加
                     </button>
-                    <!-- IDを追加しonclickを削除 -->
                     <button id="manageMasterContentBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-500 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         本部コンテンツマスタ管理
@@ -439,6 +438,8 @@
             let adminDate = new Date();
             let selectedDateStr = "";
             let scheduleToCopy = null;
+            let unsubscribeSettings = null; // リスナー解除用
+            let unsubscribeBookings = null; // リスナー解除用
 
             const initFirebase = async () => {
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
@@ -487,7 +488,7 @@
                 onSnapshot(masterRef, (snap) => {
                     masterContents = [];
                     snap.forEach(d => masterContents.push({id:d.id, ...d.data()}));
-                    // 自動追加ロジック削除: 意図した削除ができるようにするため
+                    // 自動追加ロジックは削除済み
                     renderHqContentList();
                 });
             };
@@ -520,6 +521,10 @@
             };
 
             const selectSchool = (id) => {
+                // 前のリスナーがあれば解除
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+
                 currentSchoolId = id;
                 document.getElementById('schoolSelectionView').classList.add('hidden');
                 document.getElementById('schoolAdminView').classList.remove('hidden');
@@ -529,7 +534,7 @@
                 document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
                 // Load Settings
-                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
+                unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
                     if(snap.exists()) currentSettings = snap.data();
                     else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
                     
@@ -551,7 +556,7 @@
                 });
                 
                 // Load Bookings
-                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+                unsubscribeBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     allBookings = [];
                     snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
                     renderDashboard();
@@ -641,7 +646,6 @@
                 }
                 
                 document.getElementById('hqContentFormModal').classList.add('hidden');
-                // renderHqContentList will auto-update via snapshot
             };
 
             // Utils
@@ -657,6 +661,10 @@
             }
 
             document.getElementById('backToSchoolSelectBtn').onclick = () => {
+                // リスナー解除
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+                
                 document.getElementById('schoolAdminView').classList.add('hidden');
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
                 document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
