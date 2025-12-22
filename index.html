@@ -1333,6 +1333,11 @@
                 document.getElementById('deleteScheduleBtn').classList.add('hidden');
             }
         });
+        
+        // ★修正箇所: モーダルを閉じるイベントリスナーを追加
+        document.getElementById('closeScheduleModal').addEventListener('click', () => {
+            document.getElementById('scheduleModal').classList.add('hidden');
+        });
 
         // Admin Calendar Navigation
         document.getElementById('prevScheduleMonth').onclick = () => { adminScheduleDate.setMonth(adminScheduleDate.getMonth()-1); renderScheduleCalendar(); };
