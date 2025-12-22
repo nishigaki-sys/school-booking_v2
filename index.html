@@ -399,15 +399,18 @@
                     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div>
                             <h3 class="text-lg font-bold text-slate-700 mb-4">1. コンテンツ管理 (マスタ)</h3>
-                            <div class="bg-slate-50 p-4 rounded-lg border mb-4 text-center grid grid-cols-2 gap-2">
-                                <button type="button" id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-3 px-2 rounded-lg text-sm hover:bg-orange-600 transition flex flex-col items-center justify-center">
-                                    <span class="text-lg">+</span>
-                                    <span>[独自] 新規作成</span>
-                                </button>
-                                <button type="button" id="openImportMasterModalBtn" class="bg-indigo-500 text-white font-bold py-3 px-2 rounded-lg text-sm hover:bg-indigo-600 transition flex flex-col items-center justify-center">
-                                    <span class="text-lg">↓</span>
-                                    <span>[本部] マスタから取込</span>
-                                </button>
+                            <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 mb-4">
+                                <div class="space-y-3">
+                                    <button type="button" id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
+                                        <span class="text-2xl font-bold leading-none">+</span> 新規コンテンツを作成
+                                    </button>
+                                    <div class="text-center pt-2">
+                                        <button type="button" id="openImportMasterModalBtn" class="text-indigo-600 text-xs font-bold hover:underline inline-flex items-center gap-1">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                            本部マスタから取り込む
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                             <div id="contentsListContainer" class="space-y-2 max-h-[400px] overflow-y-auto"></div>
                         </div>
