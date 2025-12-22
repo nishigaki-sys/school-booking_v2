@@ -298,7 +298,7 @@
 
     <!-- コンテンツ作成 (校舎独自) -->
     <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-100">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
                 <span id="contentFormTitle">新規作成</span>
                 <button id="closeContentModal" class="text-slate-400 hover:text-slate-600">×</button>
@@ -306,24 +306,34 @@
             <div class="space-y-4">
                 <input type="hidden" id="editContentId">
                 <div>
-                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名</label>
-                    <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="コンテンツ名">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名 (ID設定可)</label>
+                    <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
+                </div>
+                <!-- ID入力欄の追加 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツID (任意・半角英数)</label>
+                    <input type="text" id="editContentCustomId" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="空欄の場合は自動生成">
+                    <p class="text-[10px] text-slate-400 mt-1">※指定したい場合のみ入力。作成後は変更できません。</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
-                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="画像URL">
+                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
+                    <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
                 </div>
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
-                        <select id="editContentType" class="w-full p-2 border border-slate-300 rounded text-sm"><option value="trial">体験会</option><option value="event">イベント</option></select>
+                        <select id="editContentType" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            <option value="trial">体験会</option>
+                            <option value="event">イベント</option>
+                        </select>
                     </div>
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
-                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="金額">
+                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
                     </div>
                 </div>
-                <button type="button" id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">保存</button>
+                <button type="button" id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">作成して保存</button>
             </div>
         </div>
     </div>
@@ -578,6 +588,11 @@
                 document.getElementById('contentFormTitle').textContent = isNew ? "新規作成" : "コンテンツ編集";
                 document.getElementById('editContentId').value = isNew ? 'new' : idxStr;
                 
+                // ID input reset
+                const idInput = document.getElementById('editContentCustomId');
+                idInput.value = '';
+                idInput.disabled = !isNew; 
+                
                 if (isNew) {
                     document.getElementById('editContentName').value = '';
                     document.getElementById('editContentPrice').value = '';
@@ -585,6 +600,7 @@
                 } else {
                     const c = currentSettings.contents[idxStr];
                     document.getElementById('editContentName').value = c.name;
+                    document.getElementById('editContentCustomId').value = c.id; 
                     document.getElementById('editContentType').value = c.type;
                     document.getElementById('editContentPrice').value = c.price;
                     document.getElementById('editContentImage').value = c.imageUrl || '';
@@ -600,11 +616,28 @@
                 const type = document.getElementById('editContentType').value;
                 const price = document.getElementById('editContentPrice').value;
                 const img = document.getElementById('editContentImage').value;
+                const customId = document.getElementById('editContentCustomId').value.trim();
                 
                 if(!name || !price) return alert("必須項目を入力してください");
                 
+                let newId;
+                if (idxStr === 'new') {
+                     // Check custom ID duplicate if provided
+                     if (customId) {
+                         if (currentSettings.contents.some(c => c.id === customId)) {
+                             return alert("指定されたIDは既に使用されています。");
+                         }
+                         newId = customId;
+                     } else {
+                         newId = 'c' + Date.now();
+                     }
+                } else {
+                    // Existing ID
+                    newId = currentSettings.contents[idxStr].id;
+                }
+
                 const newData = {
-                    id: idxStr === 'new' || !currentSettings.contents[idxStr] ? 'c'+Date.now() : currentSettings.contents[idxStr].id,
+                    id: newId,
                     name, type, price: parseInt(price), imageUrl: img
                 };
                 
