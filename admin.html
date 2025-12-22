@@ -237,43 +237,100 @@
         </div>
     </div>
 
-    <!-- 本部マスタ管理 -->
+    <!-- 本部マスタ管理 (一覧) -->
     <div id="hqMasterModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-lg p-6 w-full max-w-lg h-[80vh] flex flex-col">
-            <div class="flex justify-between mb-4"><h3 class="font-bold">本部コンテンツマスタ</h3><button onclick="document.getElementById('hqMasterModal').classList.add('hidden')">×</button></div>
-            <div id="hqMasterList" class="flex-1 overflow-y-auto mb-4 space-y-2"></div>
-            <div class="border-t pt-4">
-                <h4 class="text-sm font-bold mb-2">新規追加</h4>
-                <div class="space-y-2 text-sm">
-                    <input type="text" id="hqName" placeholder="名" class="w-full border p-1 rounded">
-                    <div class="flex gap-2"><select id="hqType" class="border p-1 rounded"><option value="trial">体験</option><option value="event">イベント</option></select><input type="number" id="hqPrice" placeholder="円" class="border p-1 rounded w-full"></div>
-                    <button id="hqAddBtn" class="w-full bg-indigo-600 text-white font-bold py-2 rounded">追加</button>
-                </div>
+        <div class="bg-white rounded-lg p-6 w-full max-w-lg h-[80vh] flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                <h3 class="text-lg font-bold text-indigo-700">本部コンテンツマスタ管理</h3>
+                <button onclick="document.getElementById('hqMasterModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            
+            <!-- リスト -->
+            <div class="flex-1 overflow-y-auto mb-4">
+                <div id="hqMasterList" class="space-y-2"></div>
+            </div>
+            
+            <div class="border-t pt-4 text-center">
+                 <button onclick="openHqFormModal()" class="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 shadow-md w-full sm:w-auto">
+                    + 新規マスタ作成
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- コンテンツ作成 (Local) -->
-    <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm">
-            <h3 class="font-bold mb-4" id="contentModalTitle">コンテンツ作成</h3>
-            <div class="space-y-3">
-                <input type="hidden" id="editContentId">
-                <input type="text" id="editContentName" placeholder="コンテンツ名" class="w-full p-2 border rounded">
-                <input type="text" id="editContentImage" placeholder="画像URL" class="w-full p-2 border rounded text-xs">
-                <div class="flex gap-2">
-                    <select id="editContentType" class="w-full p-2 border rounded"><option value="trial">体験会</option><option value="event">イベント</option></select>
-                    <input type="number" id="editContentPrice" placeholder="金額" class="w-full p-2 border rounded">
+    <!-- 本部マスタ登録/編集用モーダル (ご指定のデザイン) -->
+    <div id="hqContentFormModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-xl p-6 max-w-sm w-full shadow-2xl transform transition-all scale-100">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
+                <span id="hqFormTitle">新規作成</span>
+                <button id="closeHqFormModal" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            
+            <div class="space-y-4">
+                <input type="hidden" id="hqEditingId" value="">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名</label>
+                    <input type="text" id="hqContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
                 </div>
-                <button id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-2 rounded mt-2">保存</button>
-                <button onclick="document.getElementById('contentModal').classList.add('hidden')" class="w-full text-sm text-slate-400 mt-2">キャンセル</button>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
+                    <input type="text" id="hqContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
+                    <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
+                        <select id="hqContentType" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            <option value="trial">体験会</option>
+                            <option value="event">イベント</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
+                        <input type="number" id="hqContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
+                    </div>
+                </div>
+                
+                <button type="button" id="saveHqContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">作成して保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- コンテンツ作成 (校舎独自) -->
+    <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
+                <span id="contentFormTitle">新規作成</span>
+                <button id="closeContentModal" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            <div class="space-y-4">
+                <input type="hidden" id="editContentId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名</label>
+                    <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="コンテンツ名">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
+                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="画像URL">
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
+                        <select id="editContentType" class="w-full p-2 border border-slate-300 rounded text-sm"><option value="trial">体験会</option><option value="event">イベント</option></select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
+                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="金額">
+                    </div>
+                </div>
+                <button type="button" id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">保存</button>
             </div>
         </div>
     </div>
 
     <!-- マスタ取込 -->
     <div id="importModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-md h-[70vh] flex flex-col">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md h-[70vh] flex flex-col shadow-2xl">
             <h3 class="font-bold mb-4">本部マスタから取り込み</h3>
             <div id="importList" class="flex-1 overflow-y-auto space-y-2"></div>
             <button onclick="document.getElementById('importModal').classList.add('hidden')" class="w-full py-2 bg-slate-200 mt-4 rounded font-bold">閉じる</button>
@@ -282,10 +339,10 @@
 
     <!-- スケジュール登録 (Timeline) -->
     <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col">
+        <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
                 <h3 class="font-bold text-lg"><span id="schedModalDate"></span> の設定</h3>
-                <button onclick="document.getElementById('scheduleModal').classList.add('hidden')" class="text-2xl text-slate-400">&times;</button>
+                <button onclick="document.getElementById('scheduleModal').classList.add('hidden')" class="text-2xl text-slate-400">×</button>
             </div>
             <div class="flex flex-1 overflow-hidden gap-6">
                 <!-- Timeline -->
@@ -298,7 +355,10 @@
                     <div class="bg-slate-50 p-4 rounded-lg mb-6">
                         <h4 class="text-xs font-bold text-slate-500 mb-3" id="schedFormTitle">新規枠を追加</h4>
                         <input type="hidden" id="schedEditIndex" value="-1">
-                        <select id="schedContentSelect" class="w-full p-2 border rounded mb-3 text-sm"></select>
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold text-slate-400 mb-1">コンテンツ</label>
+                            <select id="schedContentSelect" class="w-full p-2 border rounded text-sm bg-white"></select>
+                        </div>
                         <div class="mb-3">
                              <label class="block text-xs font-bold text-slate-400 mb-1">対象学年</label>
                              <div class="flex flex-wrap gap-2">
@@ -308,10 +368,19 @@
                              </div>
                         </div>
                         <div class="flex gap-2 mb-3">
-                            <input type="time" id="schedStart" class="w-full p-2 border rounded text-sm">
-                            <input type="time" id="schedEnd" class="w-full p-2 border rounded text-sm">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-slate-400 mb-1">開始</label>
+                                <input type="time" id="schedStart" class="w-full p-2 border rounded text-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-slate-400 mb-1">終了</label>
+                                <input type="time" id="schedEnd" class="w-full p-2 border rounded text-sm">
+                            </div>
                         </div>
-                        <input type="number" id="schedCap" value="5" class="w-full p-2 border rounded mb-4 text-sm" placeholder="定員">
+                        <div class="mb-3 w-20">
+                             <label class="block text-xs font-bold text-slate-400 mb-1">定員</label>
+                             <input type="number" id="schedCap" value="5" class="w-full p-2 border rounded text-sm">
+                        </div>
                         <div class="flex gap-2">
                             <button id="schedDeleteBtn" class="flex-1 bg-red-100 text-red-500 font-bold py-2 rounded text-xs hidden">削除</button>
                             <button id="schedSaveBtn" class="flex-[2] bg-blue-600 text-white font-bold py-2 rounded text-sm">保存</button>
@@ -522,6 +591,8 @@
                 }
                 document.getElementById('contentModal').classList.remove('hidden');
             };
+            
+            document.getElementById('closeContentModal').onclick = () => document.getElementById('contentModal').classList.add('hidden');
 
             document.getElementById('saveContentBtn').onclick = async () => {
                 const idxStr = document.getElementById('editContentId').value;
@@ -893,13 +964,32 @@
                    if(confirm("削除しますか？")) await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'master_contents', b.dataset.id));
                 });
             };
-            document.getElementById('hqAddBtn').onclick = async () => {
-                const name = document.getElementById('hqName').value;
-                const type = document.getElementById('hqType').value;
-                const price = document.getElementById('hqPrice').value;
-                if(!name) return;
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'master_contents'), { name, type, price: parseInt(price), imageUrl: '' });
-                document.getElementById('hqName').value = '';
+            
+            // 本部マスタ登録
+            window.openHqFormModal = (id = null) => {
+                 document.getElementById('hqFormTitle').textContent = id ? "マスタ編集" : "新規作成";
+                 document.getElementById('hqEditingId').value = id || 'new';
+                 document.getElementById('hqContentName').value = '';
+                 document.getElementById('hqContentPrice').value = '';
+                 document.getElementById('hqContentImage').value = '';
+                 document.getElementById('hqContentFormModal').classList.remove('hidden');
+            };
+            document.getElementById('closeHqFormModal').onclick = () => document.getElementById('hqContentFormModal').classList.add('hidden');
+
+            document.getElementById('saveHqContentBtn').onclick = async () => {
+                const name = document.getElementById('hqContentName').value;
+                const type = document.getElementById('hqContentType').value;
+                const price = document.getElementById('hqContentPrice').value;
+                const img = document.getElementById('hqContentImage').value;
+                
+                if(!name) return alert('コンテンツ名は必須です');
+                
+                // 今回は新規作成のみ（編集もID渡せば可能だが簡易化）
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'master_contents'), { 
+                    name, type, price: parseInt(price), imageUrl: img 
+                });
+                
+                document.getElementById('hqContentFormModal').classList.add('hidden');
                 renderHqList();
             };
 
