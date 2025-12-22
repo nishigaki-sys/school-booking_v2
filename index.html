@@ -763,6 +763,9 @@
         let selectedStartTime = "";
         let selectedSlotCapacity = 0;
         let pendingBookingData = null;
+        let scheduleToCopy = null; // 複製用
+        let draggingItemIndex = null;
+        let dragStartY = 0;
 
         // Elements
         const views = {
@@ -1051,6 +1054,7 @@
             document.getElementById('newContentName').value = '';
             document.getElementById('newContentPrice').value = '';
             document.getElementById('newContentImage').value = '';
+            document.querySelectorAll('.custom-grade-chk').forEach(c=>c.checked=false);
             document.getElementById('contentModal').classList.remove('hidden');
         });
         
@@ -1085,14 +1089,13 @@
             const price = document.getElementById('newContentPrice').value;
             const type = document.getElementById('newContentType').value;
             const img = document.getElementById('newContentImage').value;
-            // Note: Grades removed from modal UI based on user request, defaulting to empty for custom content
-            // Schedule modal handles grade assignment for events.
+            const grades = Array.from(document.querySelectorAll('.custom-grade-chk:checked')).map(c=>c.value);
             
             if(!name || !price) return alert("必須項目を入力してください");
             
             const newContent = {
                 id: editingContentId || ('c'+Date.now()),
-                name, type, price: parseInt(price), imageUrl: img, grades: [] // Default empty
+                name, type, price: parseInt(price), imageUrl: img, grades
             };
             
             let newContents = [...(currentSettings.contents || [])];
@@ -1141,6 +1144,7 @@
                 document.getElementById('newContentPrice').value = c.price;
                 document.getElementById('newContentType').value = c.type;
                 document.getElementById('newContentImage').value = c.imageUrl || '';
+                document.querySelectorAll('.custom-grade-chk').forEach(chk => chk.checked = (c.grades || []).includes(chk.value));
                 document.getElementById('contentModal').classList.remove('hidden');
             });
             
@@ -1376,7 +1380,7 @@
                 list.appendChild(div);
             });
             
-            // Add copy listeners
+            // Add copy listeners using event delegation on container in future optimization, but explicit binding here for simplicity given the small list.
             list.querySelectorAll('.copy-sched-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
