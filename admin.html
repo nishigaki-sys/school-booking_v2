@@ -581,8 +581,8 @@
                 for(let d=1; d<=days; d++) {
                     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                     const cell = document.createElement('div');
-                    cell.className = "bg-white min-h-[80px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer relative";
-                    cell.innerHTML = `<div class="font-bold text-slate-400 mb-1 text-xs">${d}</div>`;
+                    cell.className = "bg-white min-h-[60px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer";
+                    cell.innerHTML = `<div class="font-bold text-slate-400 mb-1">${d}</div>`;
                     
                     if(currentSettings.schedule[dateStr]) {
                         currentSettings.schedule[dateStr].forEach(evt => {
@@ -627,10 +627,9 @@
                 const axis = document.getElementById('timelineAxis');
                 tracks.innerHTML = ''; axis.innerHTML = '';
                 
-                const startHour = 9;
-                const endHour = 20;
-                const pxPerMin = 720 / ((endHour - startHour) * 60);
-
+                // 9:00 - 20:00 = 11h = 660min. Height 720px -> ~1.09px/min
+                const pxPerMin = 720 / 660;
+                
                 for(let h=9; h<=20; h++) {
                     const top = (h-9)*60 * pxPerMin;
                     const l = document.createElement('div');
@@ -646,7 +645,7 @@
                 
                 const evts = currentSettings.schedule[selectedScheduleDateStr] || [];
                 evts.forEach((evt, idx) => {
-                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId);
                     const [sh, sm] = evt.startTime.split(':').map(Number);
                     const [eh, em] = evt.endTime.split(':').map(Number);
                     
@@ -663,20 +662,13 @@
                         else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
                     }
                     blk.className = `timeline-event-block ${col}`;
-                    blk.style.top = top+'px'; blk.style.height = `${Math.max(20, height)}px`;
-                    blk.style.left = '4px'; blk.style.right = '4px';
-                    blk.textContent = `${evt.startTime} ${c.name}`;
-                    blk.title = `${evt.startTime}-${evt.endTime} ${c.name}`;
+                    blk.style.top = top+'px'; blk.style.height = height+'px';
+                    blk.textContent = `${evt.startTime} ${c ? c.name : ''}`;
                     blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
                     
                     // Simple Drag
                     blk.draggable = true;
-                    blk.ondragstart = (e) => {
-                        e.stopPropagation();
-                        draggingItemIndex = idx;
-                        const rect = blk.getBoundingClientRect();
-                        dragStartY = e.clientY - rect.top;
-                    };
+                    blk.ondragstart = (e) => { e.dataTransfer.setData('idx', idx); };
                     
                     tracks.appendChild(blk);
                 });
@@ -686,12 +678,9 @@
                 con.ondragover = (e) => e.preventDefault();
                 con.ondrop = async (e) => {
                     e.preventDefault();
-                    if(draggingItemIndex === null) return;
-                    
-                    const idx = draggingItemIndex;
+                    const idx = e.dataTransfer.getData('idx');
                     const rect = tracks.getBoundingClientRect();
-                    const y = e.clientY - rect.top - dragStartY; // Correct offset
-                    const pxPerMin = 720 / 660;
+                    const y = e.clientY - rect.top + con.scrollTop;
                     
                     const mins = y / pxPerMin;
                     const newTotal = 9*60 + mins;
@@ -709,8 +698,6 @@
                     const eh = Math.floor(endTotal/60);
                     const em = endTotal%60;
                     
-                    if(h < 9 || eh > 20) return; // Bounds check
-
                     evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
                     evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
                     
@@ -718,16 +705,13 @@
                     renderTimeline();
                     renderDayList();
                     renderSchedCalendar();
-                    draggingItemIndex = null;
                 };
                 
                 // Click to add
                 con.onclick = (e) => {
                     if(e.target.closest('.timeline-event-block')) return;
                     const rect = tracks.getBoundingClientRect();
-                    // Fix coordinate calculation for scrolling container
-                    const y = e.clientY - rect.top; 
-                    const pxPerMin = 720 / 660;
+                    const y = e.clientY - rect.top + con.scrollTop;
                     const mins = y / pxPerMin;
                     const newTotal = 9*60 + mins;
                     const rounded = Math.round(newTotal/10)*10;
