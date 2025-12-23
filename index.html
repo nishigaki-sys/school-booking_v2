@@ -207,7 +207,8 @@
         let selectedGrade = null, selectedDate = null, selectedContent = null, selectedStartTime = "", selectedSlotCapacity = 0;
         let viewDate = new Date(); viewDate.setDate(1);
         let pendingBookingData = null;
-        let hasLoggedFormInput = false; // Flag to track if form input has been logged
+        let hasLoggedFormInput = false; 
+        let hasLoggedPageView = false; // Flag to prevent duplicate PV logs
 
         const initFirebase = async () => {
             try {
@@ -317,8 +318,11 @@
                 document.getElementById('loadingScreen').classList.add('hidden');
                 document.getElementById('userView').classList.remove('hidden');
                 
-                // [Log] Page View
-                logEvent('page_view');
+                // [Log] Page View (First load only)
+                if (!hasLoggedPageView) {
+                    logEvent('page_view');
+                    hasLoggedPageView = true;
+                }
                 
                 document.getElementById('globalNav').classList.remove('hidden');
                 if (isDirectAccess) {
@@ -344,16 +348,14 @@
         
         const setupFormTracking = () => {
             const inputs = document.querySelectorAll('#userInfoForm input');
-            hasLoggedFormInput = false;
+            // Do not reset hasLoggedFormInput here to prevent re-logging on snapshot update
             inputs.forEach(input => {
-                // Remove previous listener to avoid duplicates if re-rendered (though not re-rendered here)
-                // Since this is SPA-like, simple flag reset is enough usually
                 input.addEventListener('input', () => {
                     if (!hasLoggedFormInput) {
                         logEvent('form_input');
                         hasLoggedFormInput = true;
                     }
-                }, { once: true }); // Ensure it fires once per element, but flag controls global once
+                }, { once: true });
             });
         };
 
