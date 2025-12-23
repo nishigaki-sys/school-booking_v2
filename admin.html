@@ -153,11 +153,11 @@
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
                         <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">1. コンテンツ管理</h3>
                         <div class="mb-4 space-y-3">
-                             <button onclick="openContentModal()" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
+                             <button id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
                                 <span class="text-2xl font-bold leading-none">+</span> 新規作成
                             </button>
                             <div class="text-center">
-                                <button onclick="openImportModal()" class="text-indigo-600 text-xs font-bold hover:underline inline-flex items-center gap-1">
+                                <button id="openImportMasterModalBtn" class="text-indigo-600 text-xs font-bold hover:underline inline-flex items-center gap-1">
                                     ↓ 本部マスタから取り込む
                                 </button>
                             </div>
@@ -242,7 +242,7 @@
         <div class="bg-white rounded-lg p-6 w-full max-w-lg h-[80vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
                 <h3 class="text-lg font-bold text-indigo-700">本部コンテンツマスタ管理</h3>
-                <button onclick="document.getElementById('hqMasterModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">×</button>
+                <button id="closeHqMasterModal" class="text-slate-400 hover:text-slate-600">×</button>
             </div>
             
             <!-- リスト -->
@@ -251,7 +251,7 @@
             </div>
             
             <div class="border-t pt-4 text-center">
-                 <button onclick="openHqFormModal()" class="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 shadow-md w-full sm:w-auto">
+                 <button id="openHqFormModalBtn" class="bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 shadow-md w-full sm:w-auto">
                     + 新規マスタ作成
                 </button>
             </div>
@@ -343,7 +343,7 @@
         <div class="bg-white rounded-xl p-6 w-full max-w-md h-[70vh] flex flex-col shadow-2xl">
             <h3 class="font-bold mb-4">本部マスタから取り込み</h3>
             <div id="importList" class="flex-1 overflow-y-auto space-y-2"></div>
-            <button onclick="document.getElementById('importModal').classList.add('hidden')" class="w-full py-2 bg-slate-200 mt-4 rounded font-bold">閉じる</button>
+            <button id="closeImportModal" class="w-full py-2 bg-slate-200 mt-4 rounded font-bold">閉じる</button>
         </div>
     </div>
 
@@ -352,7 +352,7 @@
         <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
                 <h3 class="font-bold text-lg"><span id="schedModalDate"></span> の設定</h3>
-                <button onclick="document.getElementById('scheduleModal').classList.add('hidden')" class="text-2xl text-slate-400">×</button>
+                <button id="closeScheduleModal" class="text-2xl text-slate-400">×</button>
             </div>
             <div class="flex flex-1 overflow-hidden gap-6">
                 <!-- Timeline -->
@@ -412,7 +412,7 @@
             <h4 class="font-bold text-slate-700 mb-4">スケジュールの複製</h4>
             <input type="date" id="copyDate" class="w-full p-2 border rounded mb-4">
             <div class="flex justify-end gap-2">
-                <button onclick="document.getElementById('copyDialog').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
+                <button id="cancelCopyBtn" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
                 <button id="execCopyBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">複製</button>
             </div>
         </div>
@@ -432,8 +432,6 @@
             grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
         };
 
-        // 削除: DEFAULT_CONTENTS 定数は不要（自動登録ロジック削除のため）
-
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], masterContents = [], currentSettings = {}, currentSchoolId = null, allBookings = [];
@@ -441,7 +439,9 @@
             let selectedDateStr = "";
             let scheduleToCopy = null;
             let unsubscribeSettings = null; 
-            let unsubscribeBookings = null; 
+            let unsubscribeBookings = null;
+            let draggingItemIndex = null;
+            let dragStartY = 0;
 
             const initFirebase = async () => {
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
@@ -490,7 +490,6 @@
                 onSnapshot(masterRef, (snap) => {
                     masterContents = [];
                     snap.forEach(d => masterContents.push({id:d.id, ...d.data()}));
-                    // 自動追加ロジックは削除済み
                     renderHqContentList();
                 });
             };
@@ -523,7 +522,6 @@
             };
 
             const selectSchool = (id) => {
-                // リスナーの重複防止
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
 
@@ -606,6 +604,7 @@
                 document.getElementById('hqMasterModal').classList.remove('hidden');
                 renderHqContentList();
             });
+            document.getElementById('closeHqMasterModal').onclick = () => document.getElementById('hqMasterModal').classList.add('hidden');
 
             // 本部マスタ登録
             window.openHqFormModal = (id = null) => {
@@ -628,6 +627,7 @@
                  document.getElementById('hqContentFormModal').classList.remove('hidden');
             };
             document.getElementById('closeHqFormModal').onclick = () => document.getElementById('hqContentFormModal').classList.add('hidden');
+            document.getElementById('openHqFormModalBtn').onclick = () => openHqFormModal();
 
             document.getElementById('saveHqContentBtn').onclick = async () => {
                 const id = document.getElementById('hqEditingId').value;
