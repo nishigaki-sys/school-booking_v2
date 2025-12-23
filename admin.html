@@ -1632,8 +1632,23 @@
                 });
                 list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
                     e.stopPropagation();
+                    const idx = parseInt(b.dataset.idx);
+                    const evt = evts[idx];
+
+                    // 予約チェック
+                    const hasBooking = allBookings.some(booking => 
+                        booking.date === selectedDateStr && 
+                        booking.startTime === evt.startTime && 
+                        booking.contentId === evt.contentId
+                    );
+
+                    if (hasBooking) {
+                        alert("この枠には既に予約が入っているため削除できません。\n予約管理タブから予約を確認・キャンセルしてください。");
+                        return;
+                    }
+
                     if(confirm("削除しますか？")) {
-                        currentSettings.schedule[selectedDateStr].splice(b.dataset.idx, 1);
+                        currentSettings.schedule[selectedDateStr].splice(idx, 1);
                         await saveSettings();
                         renderTimeline(); renderDayList(); renderSchedCalendar();
                     }
