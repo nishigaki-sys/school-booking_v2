@@ -373,6 +373,7 @@
                                     <th class="px-6 py-4">申込者</th>
                                     <th class="px-6 py-4">連絡先</th>
                                     <th class="px-6 py-4 text-center">種別</th>
+                                    <th class="px-6 py-4 text-center">流入経路</th>
                                     <th class="px-6 py-4 text-center">操作</th>
                                 </tr>
                             </thead>
@@ -781,6 +782,17 @@
         let globalAllowedIps = [];
         let commonContents = []; // Store fetched common contents
 
+        // Definition moved up
+        const loadAllowedIps = (db, appId) => {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
+                if (snap.exists()) {
+                    globalAllowedIps = snap.data().list || [];
+                } else {
+                    globalAllowedIps = [];
+                }
+            });
+        };
+
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
@@ -815,17 +827,6 @@
                     return null;
                 }
             };
-            
-            // Move loadAllowedIps definition up
-            const loadAllowedIps = () => {
-                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
-                    if (snap.exists()) {
-                        globalAllowedIps = snap.data().list || [];
-                    } else {
-                        globalAllowedIps = [];
-                    }
-                });
-            };
 
             const initFirebase = async () => {
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
@@ -834,7 +835,7 @@
                 db = getFirestore(app);
                 
                 await signInAnonymously(auth);
-                loadAllowedIps();
+                loadAllowedIps(db, appId); // Pass db and appId
                 fetchIpAddress();
                 loadCommonContents(); // Load Common Contents on init
 
@@ -949,6 +950,7 @@
                         email: document.getElementById('newEmail').value,
                         phone: document.getElementById('newPhone').value,
                         grade: document.getElementById('newGrade').value,
+                        sourceType: 'admin', // Source Type
                         createdAt: serverTimestamp()
                     });
                     document.getElementById('addBookingModal').classList.add('hidden');
@@ -2343,12 +2345,26 @@
                 allBookings.sort((a,b) => b.date.localeCompare(a.date)).forEach(b => {
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50";
+                    
+                    let sourceBadge = '';
+                    if (b.sourceType === 'admin') {
+                        sourceBadge = '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200">管理画面</span>';
+                    } else {
+                        if (b.utmSource) {
+                            sourceBadge = `<span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs border border-indigo-100 block w-fit mb-1">${b.utmSource}</span>`;
+                            if(b.utmMedium) sourceBadge += `<span class="text-[10px] text-slate-400">${b.utmMedium}</span>`;
+                        } else {
+                            sourceBadge = '<span class="text-xs text-slate-400">Web予約</span>';
+                        }
+                    }
+
                     tr.innerHTML = `
                         <td class="px-6 py-4">${b.date} ${b.startTime}</td>
                         <td class="px-6 py-4">${b.courseName}</td>
                         <td class="px-6 py-4 font-bold">${b.childName} <span class="text-xs font-normal">(${b.parentName})</span></td>
                         <td class="px-6 py-4 text-xs">${b.email}<br>${b.phone}</td>
                         <td class="px-6 py-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">確定</span></td>
+                        <td class="px-6 py-4 text-center">${sourceBadge}</td>
                         <td class="px-6 py-4 text-center">
                             <div class="flex flex-col gap-2">
                                 <button onclick="openBookingEditModal('${b.id}')" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 font-bold">編集</button>
