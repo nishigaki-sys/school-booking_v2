@@ -146,11 +146,19 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                             期間指定分析
                         </h3>
-                        <div class="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded-lg border border-slate-100">
-                            <input type="date" id="gStatsStartDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <span class="text-slate-400 font-bold">～</span>
-                            <input type="date" id="gStatsEndDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
-                            <button id="calcGlobalStatsBtn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded hover:bg-indigo-700 transition shadow-sm">集計実行</button>
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <!-- 集計基準切り替えタブ (New) -->
+                            <div class="flex bg-slate-100 rounded p-1">
+                                <button id="gTabCreated" class="px-4 py-2 text-xs font-bold rounded bg-white text-indigo-600 shadow-sm transition g-chart-tab-btn" data-type="created">予約受付日ベース</button>
+                                <button id="gTabEvent" class="px-4 py-2 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition g-chart-tab-btn" data-type="event">予約参加日ベース</button>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded-lg border border-slate-100">
+                                <input type="date" id="gStatsStartDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <span class="text-slate-400 font-bold">～</span>
+                                <input type="date" id="gStatsEndDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+                                <button id="calcGlobalStatsBtn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded hover:bg-indigo-700 transition shadow-sm">集計実行</button>
+                            </div>
                         </div>
                     </div>
                     
@@ -608,6 +616,7 @@
             let funnelChart = null; // Funnel Chart
             let schoolComparisonChart = null; // Global Chart
             let chartMode = 'created'; // 'created' or 'event'
+            let globalChartMode = 'created'; // 'created' or 'event' for Global Dashboard
 
             const fetchIpAddress = async () => {
                 try {
@@ -709,6 +718,19 @@
 
             document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
 
+            document.querySelectorAll('.g-chart-tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.g-chart-tab-btn').forEach(b => {
+                        b.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                        b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                    globalChartMode = e.target.dataset.type;
+                    updateGlobalStats();
+                };
+            });
+
             function updateGlobalStats() {
                 const sDate = document.getElementById('gStatsStartDate').value;
                 const eDate = document.getElementById('gStatsEndDate').value;
@@ -723,8 +745,19 @@
                 // Period Filtered Data
                 let periodBookings = globalAllBookings;
                 if(sDate && eDate) {
-                    // Filter by Event Date (b.date is YYYY-MM-DD string)
-                    periodBookings = globalAllBookings.filter(b => b.date >= sDate && b.date <= eDate);
+                    periodBookings = globalAllBookings.filter(b => {
+                        let targetDate = '';
+                        if (globalChartMode === 'event') {
+                            targetDate = b.date;
+                        } else {
+                            // created
+                            if (b.createdAt && b.createdAt.toDate) {
+                                const d = b.createdAt.toDate();
+                                targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                            }
+                        }
+                        return targetDate >= sDate && targetDate <= eDate;
+                    });
                 }
 
                 // 1. Period KPIs
@@ -734,7 +767,19 @@
                 
                 // Find Peak Day
                 const dateCounts = {};
-                periodBookings.forEach(b => dateCounts[b.date] = (dateCounts[b.date] || 0) + 1);
+                periodBookings.forEach(b => {
+                    // ピーク日も選択された基準で集計する
+                    let targetDate = '';
+                    if (globalChartMode === 'event') {
+                        targetDate = b.date;
+                    } else {
+                        if (b.createdAt && b.createdAt.toDate) {
+                            const d = b.createdAt.toDate();
+                            targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        }
+                    }
+                    if(targetDate) dateCounts[targetDate] = (dateCounts[targetDate] || 0) + 1;
+                });
                 const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
                 document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
 
@@ -1735,4 +1780,3 @@
     </script>
 </body>
 </html>
-
