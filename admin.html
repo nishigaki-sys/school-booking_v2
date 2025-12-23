@@ -1177,7 +1177,7 @@
                 document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
                 document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
                 document.getElementById('previewPageBtn').classList.remove('hidden');
-                document.getElementById('previewPageBtn').href = `html_page.html?school=${id}`;
+                document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
                 // Load Settings
                 unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
@@ -1735,3 +1735,4 @@
     </script>
 </body>
 </html>
+
