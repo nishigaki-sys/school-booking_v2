@@ -195,6 +195,13 @@
     import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import { getFirestore, doc, getDoc, addDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+    // --- 設定エリア: 除外したいIPアドレス ---
+    // カウントしたくないIPアドレスをここに追加してください
+    const EXCLUDED_IPS = [
+        "192.168.0.1",   // 例: 社内
+        "203.0.113.10"   // 例: 自宅
+    ];
+
     const GRADE_CONFIG = {
         preschool: { bg: 'bg-[#ff91aa]', text: 'text-white', btnBorder: 'border-[#ff91aa]', btnText: 'text-[#ff91aa]', btnHover: 'hover:bg-pink-50' },
         grade1_2: { bg: 'bg-[#ffac2d]', text: 'text-white', btnBorder: 'border-[#ffac2d]', btnText: 'text-[#ffac2d]', btnHover: 'hover:bg-orange-50' },
@@ -208,10 +215,31 @@
         let viewDate = new Date(); viewDate.setDate(1);
         let pendingBookingData = null;
         let hasLoggedFormInput = false; 
-        let hasLoggedPageView = false; // Flag to prevent duplicate PV logs
+        let hasLoggedPageView = false;
+        
+        // IP判定用のPromise
+        let ipCheckPromise = null;
+
+        // 外部サービスを使ってIPを取得する関数
+        const getIpPromise = () => {
+             if (!ipCheckPromise) {
+                 // 外部API (api.ipify.org) を使用してIPアドレスを取得
+                 ipCheckPromise = fetch('https://api.ipify.org?format=json')
+                    .then(res => res.json())
+                    .then(data => data.ip)
+                    .catch(e => {
+                        console.warn("IP取得失敗:", e);
+                        return null; // 失敗時はnullを返す
+                    });
+             }
+             return ipCheckPromise;
+        };
 
         const initFirebase = async () => {
             try {
+                // すぐにIP取得を開始（非同期）
+                getIpPromise();
+
                 let firebaseConfig = {
                     apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", 
                     authDomain: "robot-school-booking.firebaseapp.com", 
@@ -255,10 +283,21 @@
             }
         };
 
-        // --- Logger Function ---
+        // --- Logger Function (IP除外機能付き) ---
         const logEvent = async (eventName, details = {}) => {
             if (!currentSchoolId) return;
+            
             try {
+                // IPアドレスの判定が終わるまで待機
+                const currentIp = await getIpPromise();
+
+                // 除外リストに含まれていたらログ送信をスキップ
+                if (currentIp && EXCLUDED_IPS.includes(currentIp)) {
+                    console.log(`[Log Skipped] Access from excluded IP: ${currentIp} (Event: ${eventName})`);
+                    return;
+                }
+
+                // ログ送信
                 await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), {
                     schoolId: currentSchoolId,
                     event: eventName,
@@ -340,7 +379,7 @@
                 snap.forEach(doc => { if(doc.data().schoolId === schoolId) allBookings.push(doc.data()); });
                 // Re-render calendar if bookings update to refresh availability marks
                 if(document.getElementById('calendarContainer').style.display !== 'none') {
-                     renderUserCalendar();
+                      renderUserCalendar();
                 }
                 if(selectedDate) renderTimeSlots(selectedDate);
             });
