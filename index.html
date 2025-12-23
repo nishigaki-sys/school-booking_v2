@@ -607,6 +607,13 @@
         // Booking Logic
         document.getElementById('userInfoForm').onsubmit = (e) => {
             e.preventDefault();
+            
+            // UTMパラメータ取得
+            const urlParams = new URLSearchParams(window.location.search);
+            const utmSource = urlParams.get('utm_source');
+            const utmMedium = urlParams.get('utm_medium');
+            const utmCampaign = urlParams.get('utm_campaign');
+
             pendingBookingData = {
                 schoolId: currentSchoolId,
                 schoolName: currentSettings.schoolName,
@@ -619,7 +626,12 @@
                 childName: document.getElementById('childName').value,
                 email: document.getElementById('email').value,
                 phone: document.getElementById('phone').value,
-                grade: selectedGrade
+                grade: selectedGrade,
+                // 流入経路情報
+                sourceType: 'web',
+                utmSource: utmSource || null,
+                utmMedium: utmMedium || null,
+                utmCampaign: utmCampaign || null
             };
             document.getElementById('confirmParentName').textContent = pendingBookingData.parentName;
             document.getElementById('confirmEmail').textContent = pendingBookingData.email;
