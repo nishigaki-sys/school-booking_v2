@@ -179,6 +179,19 @@
                     </div>
                 </div>
 
+                <!-- 予約実績推移 (積み上げグラフ) - 追加 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+                    <div class="flex flex-wrap items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-700 flex items-center">
+                            <span class="w-2 h-6 bg-blue-500 rounded mr-2"></span>
+                            全校舎 予約実績推移 (日別・校舎別積み上げ)
+                        </h3>
+                    </div>
+                    <div class="relative w-full h-[350px]">
+                        <canvas id="globalBookingChart"></canvas>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Chart: Bookings by School -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -615,6 +628,7 @@
             let bookingChart = null; // Stacked Chart
             let funnelChart = null; // Funnel Chart
             let schoolComparisonChart = null; // Global Chart
+            let globalBookingChart = null; // Global Stacked Chart (NEW)
             let chartMode = 'created'; // 'created' or 'event'
             let globalChartMode = 'created'; // 'created' or 'event' for Global Dashboard
 
@@ -814,7 +828,69 @@
                     }
                 });
 
-                // 3. Recent List Stream (Global, always show latest 50 regardless of filter)
+                // 3. Global Stacked Chart (NEW) - School by Date
+                if (sDate && eDate) {
+                    const schoolMap = {};
+                    schools.forEach(s => {
+                        schoolMap[s.id] = { label: s.name, data: {}, color: getColorForId(s.id) };
+                    });
+                    
+                    const labels = [];
+                    let d = new Date(sDate);
+                    const end = new Date(eDate);
+                    while(d <= end) {
+                        const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        labels.push(dStr);
+                        for(let sid in schoolMap) schoolMap[sid].data[dStr] = 0;
+                        d.setDate(d.getDate() + 1);
+                    }
+
+                    globalAllBookings.forEach(b => {
+                        let targetDate = '';
+                        if(globalChartMode === 'event') {
+                            targetDate = b.date;
+                        } else {
+                            if(b.createdAt && b.createdAt.toDate) {
+                                const cd = b.createdAt.toDate();
+                                targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+                            }
+                        }
+                        if(targetDate >= sDate && targetDate <= eDate) {
+                            if(schoolMap[b.schoolId] && schoolMap[b.schoolId].data[targetDate] !== undefined) {
+                                schoolMap[b.schoolId].data[targetDate]++;
+                            }
+                        }
+                    });
+
+                    const datasets = Object.values(schoolMap).map(s => ({
+                        label: s.label,
+                        data: labels.map(l => s.data[l]),
+                        backgroundColor: s.color,
+                    })).filter(ds => ds.data.some(v => v > 0));
+
+                    if(globalBookingChart) globalBookingChart.destroy();
+                    const ctx2 = document.getElementById('globalBookingChart').getContext('2d');
+                    globalBookingChart = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: labels.map(l => l.substring(5)),
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { stacked: true },
+                                y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                            },
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                            }
+                        }
+                    });
+                }
+
+                // 4. Recent List Stream (Global, always show latest 50 regardless of filter)
                 const list = document.getElementById('globalRecentBookings');
                 list.innerHTML = '';
                 // Sort by CreatedAt Desc
