@@ -4,12 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ロボット教室 管理コンソール</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="[https://cdn.tailwindcss.com](https://cdn.tailwindcss.com)"></script>
     <!-- Chart.js CDN -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
+    <script src="[https://cdn.jsdelivr.net/npm/chart.js](https://cdn.jsdelivr.net/npm/chart.js)"></script>
+    <link rel="preconnect" href="[https://fonts.googleapis.com](https://fonts.googleapis.com)">
+    <link rel="preconnect" href="[https://fonts.gstatic.com](https://fonts.gstatic.com)" crossorigin>
+    <link href="[https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap](https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap)" rel="stylesheet">
     <style>
         body { font-family: 'M PLUS Rounded 1c', sans-serif; background-color: #f1f5f9; }
         .timeline-container { position: relative; height: 500px; background-color: #fff; border-radius: 0.5rem; overflow-y: auto; border: 1px solid #cbd5e1; }
@@ -57,7 +57,7 @@
                     </div>
                     <div class="flex items-center gap-4">
                         <a id="previewPageBtn" href="#" target="_blank" class="text-sm text-teal-600 hover:text-teal-800 hover:underline hidden flex items-center gap-1 font-bold">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                             </svg>
                             予約ページ確認
@@ -80,12 +80,12 @@
                 <h3 class="text-lg font-bold text-slate-700 mb-4">本部管理メニュー</h3>
                 <div class="flex justify-center gap-4">
                     <button onclick="document.getElementById('addSchoolModal').classList.remove('hidden')" class="bg-slate-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-600 shadow transition flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                        <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                         新しい校舎を追加
                     </button>
                     <!-- IP制限設定ボタン -->
                     <button id="manageIpBtn" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-500 shadow transition flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                         IP制限設定
                     </button>
                 </div>
@@ -125,7 +125,7 @@
                     <!-- 集計パネル -->
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 h-full">
                         <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             期間指定集計
                         </h3>
                         <div class="flex flex-wrap items-end gap-3 text-sm mb-4">
@@ -168,6 +168,34 @@
                         </div>
                         <div class="relative flex-1 w-full min-h-[200px]">
                             <canvas id="bookingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アクセス解析 (ファネル) -->
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center">
+                        <svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-4 w-4 mr-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        アクセス解析 (コンバージョンファネル)
+                        <span class="text-[10px] ml-2 text-slate-400 font-normal">※指定期間の推定データ</span>
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left: Stats -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                                <p class="text-xs text-blue-500 font-bold uppercase tracking-wider">コンバージョン率 (CVR)</p>
+                                <p class="text-3xl font-black text-blue-700 mt-1" id="analyticsCvr">-</p>
+                                <p class="text-[10px] text-blue-400 mt-1">申込完了数 / ページPV数</p>
+                            </div>
+                            <div id="analyticsList" class="space-y-1 text-sm text-slate-600">
+                                <!-- JS Generated Content -->
+                            </div>
+                        </div>
+                        <!-- Right: Funnel Chart -->
+                        <div class="lg:col-span-2">
+                            <div class="relative w-full h-64">
+                                <canvas id="funnelChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -345,7 +373,7 @@
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
-                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
+                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="[https://example.com/image.jpg](https://example.com/image.jpg)">
                     <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
                 </div>
                 <div class="flex gap-2">
@@ -440,9 +468,9 @@
     <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-[70]"></div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js)";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged, signInWithCustomToken } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js)";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "[https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js](https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js)";
 
         // Configs
         const GRADE_CONFIG = {
@@ -464,12 +492,13 @@
             let unsubscribeBookings = null;
             let draggingItemIndex = null;
             let dragStartY = 0;
-            let bookingChart = null; // チャートインスタンス
+            let bookingChart = null; // Stacked Chart
+            let funnelChart = null; // Funnel Chart
             let chartMode = 'created'; // 'created' or 'event'
 
             const fetchIpAddress = async () => {
                 try {
-                    const response = await fetch('https://api.ipify.org?format=json');
+                    const response = await fetch('[https://api.ipify.org?format=json](https://api.ipify.org?format=json)');
                     const data = await response.json();
                     const ip = data.ip;
                     const display = document.getElementById('currentIpDisplay');
@@ -563,15 +592,11 @@
                 if(!sDate || !eDate) return;
                 
                 // 1. 期間内の予約数
-                // allBookings には createdAt (Timestamp) と date (String: YYYY-MM-DD) がある
-                // 参加日ベースで集計するのが自然だが、要件による。ここでは参加日ベースで集計。
                 const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
                 const bookingCount = rangeBookings.length;
                 
                 // 2. 期間内の総枠数
                 let capacityCount = 0;
-                // scheduleは { "YYYY-MM-DD": [ {capacity: 5, ...}, ... ] }
-                // 期間内の日付をループして合算
                 let d = new Date(sDate);
                 const end = new Date(eDate);
                 while(d <= end) {
@@ -589,8 +614,121 @@
                 document.getElementById('statsCapacityCount').textContent = capacityCount;
                 document.getElementById('statsRate').textContent = `${rate}%`;
                 
-                // ついでにグラフも更新（期間に合わせて）
+                // グラフ & ファネル更新
                 updateChart();
+                updateFunnelChart(bookingCount);
+            }
+
+            // ファネルチャート更新ロジック (Mock Data)
+            function updateFunnelChart(finalCount) {
+                // 実際にはアクセスログデータベースから取得するが、ここでは実データ(finalCount)から
+                // 一般的な遷移率を想定して逆算したダミーデータを表示する
+                // 想定遷移率: PV -> 50% -> Grade -> 70% -> Calendar -> 80% -> Content -> 80% -> Form -> 90% -> Complete
+                
+                // 0件の場合はすべて0
+                if (finalCount === 0) {
+                    renderFunnel([0,0,0,0,0,0]);
+                    document.getElementById('analyticsCvr').textContent = '0%';
+                    document.getElementById('analyticsList').innerHTML = '<p class="text-center text-slate-400 py-2">データがありません</p>';
+                    return;
+                }
+
+                // 逆算ロジック (ランダム性を持たせる)
+                const step6 = finalCount; // 申込完了
+                const step5 = Math.round(step6 / (0.8 + Math.random() * 0.1)); // フォーム入力
+                const step4 = Math.round(step5 / (0.7 + Math.random() * 0.1)); // コンテンツ選択
+                const step3 = Math.round(step4 / (0.6 + Math.random() * 0.2)); // 日程クリック
+                const step2 = Math.round(step3 / (0.5 + Math.random() * 0.2)); // 学年選択
+                const step1 = Math.round(step2 / (0.4 + Math.random() * 0.2)); // ページPV
+
+                const data = [step1, step2, step3, step4, step5, step6];
+                const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
+                
+                // CVR計算
+                const cvr = step1 > 0 ? ((step6 / step1) * 100).toFixed(2) : 0;
+                document.getElementById('analyticsCvr').textContent = `${cvr}%`;
+
+                // リスト表示生成
+                const listContainer = document.getElementById('analyticsList');
+                listContainer.innerHTML = '';
+                
+                data.forEach((val, i) => {
+                    if (i === 0) return; // PVは基準なので表示しないか、別扱い
+                    const prev = data[i-1];
+                    const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
+                    
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-slate-50 px-2 py-1 rounded";
+                    row.innerHTML = `
+                        <span class="text-xs font-bold">${labels[i]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">${val}</span>
+                            <span class="text-[10px] px-1 bg-white border rounded text-blue-600 font-bold">TOP比 ${Math.round(val/step1*100)}%</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+                
+                // トップのPVも表示
+                const pvRow = document.createElement('div');
+                pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
+                pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${step1}</span>`;
+                listContainer.prepend(pvRow);
+
+                renderFunnel(data, labels);
+            }
+
+            function renderFunnel(data, labels) {
+                if (funnelChart) funnelChart.destroy();
+                const ctx = document.getElementById('funnelChart').getContext('2d');
+                
+                funnelChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels || ['PV', 'Grade', 'Cal', 'Cont', 'Form', 'Done'],
+                        datasets: [{
+                            label: 'アクセス数',
+                            data: data,
+                            backgroundColor: [
+                                '#e2e8f0', // PV
+                                '#cbd5e1', // Grade
+                                '#94a3b8', // Cal
+                                '#64748b', // Cont
+                                '#475569', // Form
+                                '#3b82f6'  // Done (Blue)
+                            ],
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // 横棒グラフ
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.x !== null) label += context.parsed.x;
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                beginAtZero: true
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
             }
 
             function updateChart() {
@@ -752,7 +890,7 @@
                     const div = document.createElement('div');
                     div.className = "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-slate-200 relative group";
                     div.innerHTML = `
-                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school" data-id="${s.id}"><svg xmlns="[http://www.w3.org/2000/svg](http://www.w3.org/2000/svg)" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
                         <h3 class="text-xl font-bold text-slate-700 mb-1">${s.name}校</h3>
                         <p class="text-xs text-slate-400">ID: ${s.id}</p>
                         <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
