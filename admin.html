@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ロボット教室 管理コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN (使われていませんが残しています) -->
+    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -104,6 +104,7 @@
 
             <!-- Tab: Dashboard -->
             <div id="tab-dashboard" class="tab-content">
+                <!-- KPI Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-xs font-bold text-slate-400 uppercase">現在の予約総数</h3>
@@ -118,12 +119,65 @@
                         <p class="text-lg font-bold text-slate-700 mt-2 truncate" id="latestBooking">-</p>
                     </div>
                 </div>
+
+                <!-- 期間指定集計 & グラフ -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- 集計パネル -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 h-full">
+                        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            期間指定集計
+                        </h3>
+                        <div class="flex flex-wrap items-end gap-3 text-sm mb-4">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">開始日</label>
+                                <input type="date" id="statsStartDate" class="p-2 border border-slate-300 rounded">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">終了日</label>
+                                <input type="date" id="statsEndDate" class="p-2 border border-slate-300 rounded">
+                            </div>
+                            <button id="calcStatsBtn" class="bg-slate-700 text-white font-bold py-2 px-4 rounded hover:bg-slate-600">集計</button>
+                        </div>
+                        <div id="periodStatsResult" class="p-3 bg-white border border-slate-100 rounded text-sm mb-4">
+                            <div class="flex justify-around items-center">
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">予約数</p>
+                                    <p class="text-lg font-bold text-slate-700" id="statsBookingCount">-</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">総枠数</p>
+                                    <p class="text-lg font-bold text-slate-700" id="statsCapacityCount">-</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">予約率</p>
+                                    <p class="text-lg font-bold text-blue-600" id="statsRate">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- グラフエリア -->
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-sm font-bold text-slate-700">予約実績推移 (積み上げ)</h3>
+                            <div class="flex bg-slate-100 rounded p-1">
+                                <button id="chartTabCreated" class="px-3 py-1 text-xs font-bold rounded bg-white text-blue-600 shadow-sm transition chart-tab-btn" data-type="created">受付日</button>
+                                <button id="chartTabEvent" class="px-3 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition chart-tab-btn" data-type="event">参加日</button>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 w-full min-h-[200px]">
+                            <canvas id="bookingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
                 
+                <!-- Calendar Section -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                    <div class="flex justify-between items-center mb-4">
-                        <button id="dashPrev" class="px-3 py-1 border rounded text-sm">&lt;</button>
-                        <h3 class="font-bold text-lg" id="dashTitle"></h3>
-                        <button id="dashNext" class="px-3 py-1 border rounded text-sm">&gt;</button>
+                    <div class="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg">
+                        <button id="prevDashboardMonth" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-600">&lt; 前月</button>
+                        <h3 id="dashboardCalendarTitle" class="text-lg font-bold text-slate-800"></h3>
+                        <button id="nextDashboardMonth" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-600">翌月 &gt;</button>
                     </div>
                     <div class="overflow-x-auto">
                         <div class="min-w-[800px] border rounded-lg">
@@ -403,13 +457,15 @@
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [];
             let adminDate = new Date();
-            let adminDashboardDate = new Date(); // 【修正】変数を追加
-            let selectedDateStr = ""; // 【修正】変数名を統一
+            let adminDashboardDate = new Date(); 
+            let selectedDateStr = "";
             let scheduleToCopy = null;
             let unsubscribeSettings = null; 
             let unsubscribeBookings = null;
             let draggingItemIndex = null;
             let dragStartY = 0;
+            let bookingChart = null; // チャートインスタンス
+            let chartMode = 'created'; // 'created' or 'event'
 
             const fetchIpAddress = async () => {
                 try {
@@ -463,12 +519,166 @@
                         document.getElementById('loginView').classList.add('hidden');
                         document.getElementById('adminMain').classList.remove('hidden');
                         loadSchools();
+                        initStatsDate(); // 初期日付設定
                     } else {
                         document.getElementById('loginView').classList.remove('hidden');
                         document.getElementById('adminMain').classList.add('hidden');
                     }
                 });
             };
+            
+            // Stats & Chart Logic
+            const initStatsDate = () => {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const firstDay = new Date(y, m, 1);
+                const lastDay = new Date(y, m + 1, 0);
+                
+                // YYYY-MM-DD
+                const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                document.getElementById('statsStartDate').value = fmt(firstDay);
+                document.getElementById('statsEndDate').value = fmt(lastDay);
+            };
+
+            document.getElementById('calcStatsBtn').onclick = () => updateStats();
+            
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.chart-tab-btn').forEach(b => {
+                        b.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                        b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                    chartMode = e.target.dataset.type;
+                    updateChart();
+                };
+            });
+
+            function updateStats() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
+                
+                // 1. 期間内の予約数
+                // allBookings には createdAt (Timestamp) と date (String: YYYY-MM-DD) がある
+                // 参加日ベースで集計するのが自然だが、要件による。ここでは参加日ベースで集計。
+                const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
+                const bookingCount = rangeBookings.length;
+                
+                // 2. 期間内の総枠数
+                let capacityCount = 0;
+                // scheduleは { "YYYY-MM-DD": [ {capacity: 5, ...}, ... ] }
+                // 期間内の日付をループして合算
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if(currentSettings.schedule && currentSettings.schedule[dStr]) {
+                        currentSettings.schedule[dStr].forEach(s => capacityCount += parseInt(s.capacity || 0));
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+                
+                // 3. 予約率
+                const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
+                
+                document.getElementById('statsBookingCount').textContent = bookingCount;
+                document.getElementById('statsCapacityCount').textContent = capacityCount;
+                document.getElementById('statsRate').textContent = `${rate}%`;
+                
+                // ついでにグラフも更新（期間に合わせて）
+                updateChart();
+            }
+
+            function updateChart() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
+
+                // コンテンツIDごとにデータセットを作る（積み上げ）
+                const contentMap = {};
+                (currentSettings.contents || []).forEach(c => {
+                    contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
+                });
+                // 未定義コンテンツ用
+                contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
+                
+                // ラベル（日付）生成
+                const labels = [];
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    labels.push(dStr);
+                    // 初期化
+                    for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
+                    d.setDate(d.getDate() + 1);
+                }
+
+                // データ集計
+                allBookings.forEach(b => {
+                    let targetDate = '';
+                    if(chartMode === 'event') {
+                        targetDate = b.date;
+                    } else {
+                        // created (Timestamp) -> YYYY-MM-DD
+                        if(b.createdAt && b.createdAt.toDate) {
+                            const cd = b.createdAt.toDate();
+                            targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+                        }
+                    }
+                    
+                    if(targetDate >= sDate && targetDate <= eDate) {
+                        const cid = (currentSettings.contents || []).find(c => c.id === b.contentId) ? b.contentId : 'unknown';
+                        if(contentMap[cid] && contentMap[cid].data[targetDate] !== undefined) {
+                            contentMap[cid].data[targetDate]++;
+                        }
+                    }
+                });
+
+                // Chart.js データ形式に変換
+                const datasets = Object.values(contentMap).map(c => ({
+                    label: c.label,
+                    data: labels.map(l => c.data[l]),
+                    backgroundColor: c.color,
+                })).filter(ds => ds.data.some(v => v > 0)); // データがあるものだけ表示
+
+                // 描画
+                if(bookingChart) bookingChart.destroy();
+                const ctx = document.getElementById('bookingChart').getContext('2d');
+                bookingChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.map(l => l.substring(5)), // MM-DD
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+            
+            // 色生成ヘルパー
+            function getColorForId(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                return '#' + "00000".substring(0, 6 - c.length) + c;
+            }
+
 
             const loadAllowedIps = () => {
                 onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
@@ -594,6 +804,7 @@
                     
                     renderLocalContents();
                     renderSchedCalendar();
+                    updateStats(); // 集計更新
                 });
                 
                 // Load Bookings
@@ -602,6 +813,7 @@
                     snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
                     renderDashboard();
                     renderBookingTable();
+                    updateStats(); // 集計更新
                 });
             }
 
@@ -735,7 +947,7 @@
             }
 
             function openScheduleModal(dateStr) {
-                selectedDateStr = dateStr; // 【修正】正しい変数名に変更
+                selectedDateStr = dateStr; 
                 document.getElementById('modalDateDisplay').textContent = dateStr;
                 document.getElementById('scheduleModal').classList.remove('hidden');
                 
@@ -774,7 +986,6 @@
                     tracks.appendChild(line);
                 }
                 
-                // 【修正】変数名をselectedDateStrに修正
                 const evts = currentSettings.schedule[selectedDateStr] || [];
                 evts.forEach((evt, idx) => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
@@ -875,7 +1086,6 @@
             function renderDayList() {
                 const list = document.getElementById('daySchedList');
                 list.innerHTML = '';
-                // 【修正】変数名をselectedDateStrに修正
                 const evts = currentSettings.schedule[selectedDateStr] || [];
                 evts.forEach((evt, idx) => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
@@ -899,7 +1109,6 @@
                 list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
                     e.stopPropagation();
                     if(confirm("削除しますか？")) {
-                        // 【修正】変数名をselectedDateStrに修正
                         currentSettings.schedule[selectedDateStr].splice(b.dataset.idx, 1);
                         await saveSettings();
                         renderTimeline(); renderDayList(); renderSchedCalendar();
@@ -908,7 +1117,6 @@
             }
 
             window.editSched = (idx) => {
-                // 【修正】変数名をselectedDateStrに修正
                 const evt = currentSettings.schedule[selectedDateStr][idx];
                 document.getElementById('schedEditIndex').value = idx;
                 document.getElementById('schedContentSelect').value = evt.contentId;
@@ -946,12 +1154,10 @@
                 if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
                 
                 const newEvt = {
-                    // 【修正】変数名をselectedDateStrに修正
                     id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
                     contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
                 };
                 
-                // 【修正】変数名をselectedDateStrに修正
                 if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
                 
                 if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
@@ -1006,16 +1212,16 @@
                     document.getElementById('latestBooking').textContent = `${last.childName}様 (${last.date})`;
                 }
                 
-                // 【修正】HTMLのIDに合わせて修正 (dashPrev, dashNext)
-                document.getElementById('dashPrev').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
-                document.getElementById('dashNext').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
+                // 【修正】HTMLのIDに合わせて修正 (prevDashboardMonth, nextDashboardMonth)
+                document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
+                document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
                 renderAdminDashboard();
             }
 
             function renderAdminDashboard() {
                  const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
-                 // 【修正】HTMLのIDに合わせて修正 (dashTitle)
-                 document.getElementById('dashTitle').textContent = `${y}年 ${m+1}月`;
+                 // 【修正】HTMLのIDに合わせて修正 (dashboardCalendarTitle)
+                 document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
                  // 【修正】HTMLのIDに合わせて修正 (dashGrid)
                  const grid = document.getElementById('dashGrid');
                  grid.innerHTML = '';
