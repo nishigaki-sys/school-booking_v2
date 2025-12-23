@@ -171,6 +171,34 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- アクセス解析 (ファネル) -->
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        アクセス解析 (コンバージョンファネル)
+                        <span class="text-[10px] ml-2 text-slate-400 font-normal">※指定期間のログ集計値</span>
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left: Stats -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                                <p class="text-xs text-blue-500 font-bold uppercase tracking-wider">コンバージョン率 (CVR)</p>
+                                <p class="text-3xl font-black text-blue-700 mt-1" id="analyticsCvr">-</p>
+                                <p class="text-[10px] text-blue-400 mt-1">申込完了数 / ページPV数</p>
+                            </div>
+                            <div id="analyticsList" class="space-y-1 text-sm text-slate-600">
+                                <!-- JS Generated Content -->
+                            </div>
+                        </div>
+                        <!-- Right: Funnel Chart -->
+                        <div class="lg:col-span-2">
+                            <div class="relative w-full h-64">
+                                <canvas id="funnelChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
                 <!-- Calendar Section -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
@@ -455,16 +483,18 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
-            let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [];
+            let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
             let selectedDateStr = "";
             let scheduleToCopy = null;
             let unsubscribeSettings = null; 
             let unsubscribeBookings = null;
+            let unsubscribeLogs = null;
             let draggingItemIndex = null;
             let dragStartY = 0;
-            let bookingChart = null; // チャートインスタンス
+            let bookingChart = null; // Stacked Chart
+            let funnelChart = null; // Funnel Chart
             let chartMode = 'created'; // 'created' or 'event'
 
             const fetchIpAddress = async () => {
@@ -563,15 +593,11 @@
                 if(!sDate || !eDate) return;
                 
                 // 1. 期間内の予約数
-                // allBookings には createdAt (Timestamp) と date (String: YYYY-MM-DD) がある
-                // 参加日ベースで集計するのが自然だが、要件による。ここでは参加日ベースで集計。
                 const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
                 const bookingCount = rangeBookings.length;
                 
                 // 2. 期間内の総枠数
                 let capacityCount = 0;
-                // scheduleは { "YYYY-MM-DD": [ {capacity: 5, ...}, ... ] }
-                // 期間内の日付をループして合算
                 let d = new Date(sDate);
                 const end = new Date(eDate);
                 while(d <= end) {
@@ -589,8 +615,136 @@
                 document.getElementById('statsCapacityCount').textContent = capacityCount;
                 document.getElementById('statsRate').textContent = `${rate}%`;
                 
-                // ついでにグラフも更新（期間に合わせて）
+                // グラフ & ファネル更新
                 updateChart();
+                updateFunnelChart(sDate, eDate);
+            }
+
+            // ファネルチャート更新ロジック (実際のログデータ使用)
+            function updateFunnelChart(sDate, eDate) {
+                // 期間内のログをフィルタリング
+                const rangeLogs = allLogs.filter(log => {
+                    if (log.timestamp && log.timestamp.toDate) {
+                        const d = log.timestamp.toDate();
+                        const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        return dStr >= sDate && dStr <= eDate;
+                    }
+                    return false;
+                });
+
+                // イベント集計
+                const counts = {
+                    page_view: 0,
+                    grade_selection: 0,
+                    date_click: 0,
+                    content_selection: 0,
+                    form_input: 0,
+                    conversion: 0
+                };
+
+                rangeLogs.forEach(log => {
+                    if (counts[log.event] !== undefined) {
+                        counts[log.event]++;
+                    }
+                });
+
+                const data = [
+                    counts.page_view,
+                    counts.grade_selection,
+                    counts.date_click,
+                    counts.content_selection,
+                    counts.form_input,
+                    counts.conversion
+                ];
+                
+                const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
+                
+                // CVR計算 (PV -> Conversion)
+                const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
+                document.getElementById('analyticsCvr').textContent = `${cvr}%`;
+
+                // リスト表示生成
+                const listContainer = document.getElementById('analyticsList');
+                listContainer.innerHTML = '';
+                
+                data.forEach((val, i) => {
+                    if (i === 0) return; // PVは基準なので別表示
+                    const prev = data[i-1];
+                    // 直前ステップからの遷移率
+                    const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
+                    
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-slate-50 px-2 py-1 rounded";
+                    row.innerHTML = `
+                        <span class="text-xs font-bold">${labels[i]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">${val}</span>
+                            <span class="text-[10px] px-1 bg-white border rounded text-blue-600 font-bold">TOP比 ${Math.round(counts.page_view > 0 ? val/counts.page_view*100 : 0)}%</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+                
+                // トップのPVも表示
+                const pvRow = document.createElement('div');
+                pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
+                pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${counts.page_view}</span>`;
+                listContainer.prepend(pvRow);
+
+                renderFunnel(data, labels);
+            }
+
+            function renderFunnel(data, labels) {
+                if (funnelChart) funnelChart.destroy();
+                const ctx = document.getElementById('funnelChart').getContext('2d');
+                
+                funnelChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'アクセス数',
+                            data: data,
+                            backgroundColor: [
+                                '#e2e8f0', // PV
+                                '#cbd5e1', // Grade
+                                '#94a3b8', // Cal
+                                '#64748b', // Cont
+                                '#475569', // Form
+                                '#3b82f6'  // Done (Blue)
+                            ],
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // 横棒グラフ
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.x !== null) label += context.parsed.x;
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                beginAtZero: true
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
             }
 
             function updateChart() {
@@ -775,6 +929,7 @@
             function selectSchool(id) {
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
 
                 currentSchoolId = id;
                 document.getElementById('schoolSelectionView').classList.add('hidden');
@@ -813,6 +968,14 @@
                     snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
                     renderDashboard();
                     renderBookingTable();
+                    updateStats(); // 集計更新
+                });
+
+                // Load Logs (Access Analytics)
+                const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
+                unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
+                    allLogs = [];
+                    snap.forEach(d => allLogs.push(d.data()));
                     updateStats(); // 集計更新
                 });
             }
@@ -1212,7 +1375,6 @@
                     document.getElementById('latestBooking').textContent = `${last.childName}様 (${last.date})`;
                 }
                 
-                // 【修正】HTMLのIDに合わせて修正 (prevDashboardMonth, nextDashboardMonth)
                 document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
                 document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
                 renderAdminDashboard();
@@ -1220,9 +1382,7 @@
 
             function renderAdminDashboard() {
                  const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
-                 // 【修正】HTMLのIDに合わせて修正 (dashboardCalendarTitle)
                  document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
-                 // 【修正】HTMLのIDに合わせて修正 (dashGrid)
                  const grid = document.getElementById('dashGrid');
                  grid.innerHTML = '';
                  
@@ -1291,6 +1451,7 @@
             document.getElementById('backToSchoolSelectBtn').onclick = () => {
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
                 
                 document.getElementById('schoolAdminView').classList.add('hidden');
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
