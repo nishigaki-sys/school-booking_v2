@@ -1455,7 +1455,8 @@
                             const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
                             let col = "bg-blue-500";
                             if(evt.grades && evt.grades.length > 0) {
-                                if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
+                                if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
+                                else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
                                 else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d] text-white";
                                 else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc] text-white";
                             }
@@ -1524,7 +1525,8 @@
                     const blk = document.createElement('div');
                     let col = "bg-blue-500";
                     if(evt.grades && evt.grades.length > 0) {
-                        if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                        if(evt.grades.length === 3) col = "bg-[#5abe50]";
+                        else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
                         else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
                         else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
                     }
@@ -1575,6 +1577,25 @@
                     const em = endTotal%60;
                     
                     if(h < 9 || eh > 20) return; // Bounds check
+
+                    // Overlap check
+                    const newStartMins = h * 60 + m;
+                    const newEndMins = eh * 60 + em;
+                    const existingEvents = currentSettings.schedule[selectedDateStr] || [];
+                    for (let i = 0; i < existingEvents.length; i++) {
+                        if (i === idx) continue; // Skip self
+                        const ex = existingEvents[i];
+                        const [exSh, exSm] = ex.startTime.split(':').map(Number);
+                        const [exEh, exEm] = ex.endTime.split(':').map(Number);
+                        const exStartMins = exSh * 60 + exSm;
+                        const exEndMins = exEh * 60 + exEm;
+
+                        if (newStartMins < exEndMins && newEndMins > exStartMins) {
+                            alert("時間が重複しているため変更できません。");
+                            draggingItemIndex = null;
+                            return;
+                        }
+                    }
 
                     evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
                     evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
@@ -1691,6 +1712,28 @@
                 const gr = Array.from(document.querySelectorAll('.sched-grade:checked')).map(c=>c.value);
                 
                 if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
+
+                // Overlap Check Logic
+                const [nh, nm] = start.split(':').map(Number);
+                const [neh, nem] = end.split(':').map(Number);
+                const newStartMins = nh * 60 + nm;
+                const newEndMins = neh * 60 + nem;
+
+                const existingEvents = currentSettings.schedule[selectedDateStr] || [];
+                for (let i = 0; i < existingEvents.length; i++) {
+                    if (idx !== -1 && i === idx) continue; // Skip self if editing
+
+                    const ex = existingEvents[i];
+                    const [exSh, exSm] = ex.startTime.split(':').map(Number);
+                    const [exEh, exEm] = ex.endTime.split(':').map(Number);
+                    const exStartMins = exSh * 60 + exSm;
+                    const exEndMins = exEh * 60 + exEm;
+
+                    // Check for overlap: (StartA < EndB) and (EndA > StartB)
+                    if (newStartMins < exEndMins && newEndMins > exStartMins) {
+                        return alert("時間が重複しているため登録できません。");
+                    }
+                }
                 
                 const newEvt = {
                     id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
@@ -1782,7 +1825,8 @@
                              const item = document.createElement('div');
                              let col = "bg-gray-400";
                              if(evt.grades && evt.grades.length > 0) {
-                                 if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                                 if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
+                                 else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
                                  else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
                                  else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
                              }
