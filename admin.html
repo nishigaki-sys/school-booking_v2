@@ -432,6 +432,8 @@
             grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
         };
 
+        // 削除: DEFAULT_CONTENTS 定数は不要（自動登録ロジック削除のため）
+
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], masterContents = [], currentSettings = {}, currentSchoolId = null, allBookings = [];
@@ -488,6 +490,7 @@
                 onSnapshot(masterRef, (snap) => {
                     masterContents = [];
                     snap.forEach(d => masterContents.push({id:d.id, ...d.data()}));
+                    // 自動追加ロジックは削除済み
                     renderHqContentList();
                 });
             };
@@ -520,6 +523,7 @@
             };
 
             const selectSchool = (id) => {
+                // リスナーの重複防止
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
 
