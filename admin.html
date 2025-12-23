@@ -114,7 +114,7 @@
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
                         <div class="flex items-center gap-2">
-                            <span class="bg-indigo-100 text-indigo-700 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg></span>
+                            <span class="bg-indigo-100 text-indigo-700 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg></span>
                             <span class="text-xl font-extrabold text-slate-800">全校舎集計ダッシュボード</span>
                         </div>
                         <div class="flex items-center">
@@ -356,20 +356,29 @@
 
             <!-- Tab: Booking Management -->
             <div id="tab-booking-management" class="tab-content hidden">
-                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-                    <table class="w-full text-sm text-left text-slate-600">
-                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b">
-                            <tr>
-                                <th class="px-6 py-4">開催日時</th>
-                                <th class="px-6 py-4">コンテンツ</th>
-                                <th class="px-6 py-4">申込者</th>
-                                <th class="px-6 py-4">連絡先</th>
-                                <th class="px-6 py-4 text-center">種別</th>
-                                <th class="px-6 py-4 text-center">操作</th>
-                            </tr>
-                        </thead>
-                        <tbody id="bookingTableBody" class="divide-y divide-slate-100"></tbody>
-                    </table>
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-lg font-bold text-slate-700">予約一覧</h3>
+                        <button id="openAddBookingModalBtn" class="bg-teal-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-700 shadow flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                            新規予約登録
+                        </button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-600">
+                            <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b">
+                                <tr>
+                                    <th class="px-6 py-4">開催日時</th>
+                                    <th class="px-6 py-4">コンテンツ</th>
+                                    <th class="px-6 py-4">申込者</th>
+                                    <th class="px-6 py-4">連絡先</th>
+                                    <th class="px-6 py-4 text-center">種別</th>
+                                    <th class="px-6 py-4 text-center">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bookingTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -383,7 +392,7 @@
                              <button id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
                                 <span class="text-2xl font-bold leading-none">+</span> 新規作成
                             </button>
-                             <!-- 共通コンテンツからのコピーボタン (NEW) -->
+                             <!-- 共通コンテンツからのコピーボタン -->
                              <button id="openImportCommonModalBtn" class="bg-slate-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition w-full shadow-md flex items-center justify-center gap-2 text-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 共通コンテンツからコピー
@@ -451,12 +460,85 @@
 
     <!-- === Modals === -->
 
-    <!-- 予約編集モーダル (NEW) -->
+    <!-- 新規予約登録モーダル (NEW) -->
+    <div id="addBookingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[80]">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h3 class="font-bold text-lg mb-4 text-slate-700">新規予約登録</h3>
+            <p class="text-xs text-slate-500 mb-4">管理者が直接予約を登録します。</p>
+            <form id="addBookingForm" class="space-y-4">
+                <div class="bg-teal-50 p-3 rounded border border-teal-100">
+                    <div class="mb-3">
+                        <label class="block text-xs font-bold text-teal-700 mb-1">参加日を選択</label>
+                        <input type="date" id="newBookingDate" class="w-full p-2 border rounded text-sm" required>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-teal-700 mb-1">体験会コース・時間を選択</label>
+                        <select id="newBookingScheduleId" class="w-full p-2 border rounded text-sm" required>
+                            <option value="">先に日付を選択してください</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">お子様のお名前</label>
+                    <input type="text" id="newChildName" class="w-full p-2 border rounded text-sm" required placeholder="例: ロボット 太郎">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">保護者様のお名前</label>
+                    <input type="text" id="newParentName" class="w-full p-2 border rounded text-sm" required placeholder="例: ロボット 花子">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">メールアドレス</label>
+                    <input type="email" id="newEmail" class="w-full p-2 border rounded text-sm" required placeholder="sample@email.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">電話番号</label>
+                    <input type="tel" id="newPhone" class="w-full p-2 border rounded text-sm" required placeholder="090-0000-0000">
+                </div>
+                 <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">学年</label>
+                    <select id="newGrade" class="w-full p-2 border rounded text-sm">
+                        <option value="preschool">年中・年長</option>
+                        <option value="grade1_2">小1～小2</option>
+                        <option value="grade3_plus">小3以上</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('addBookingModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm font-bold text-slate-600">キャンセル</button>
+                    <button type="submit" class="px-4 py-2 bg-teal-600 text-white rounded text-sm font-bold hover:bg-teal-700">登録する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 予約編集モーダル (UPDATED) -->
     <div id="bookingEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[70]">
-        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="font-bold text-lg mb-4 text-slate-700">予約情報の変更</h3>
             <form id="bookingEditForm" class="space-y-4">
                 <input type="hidden" id="editBookingId">
+                <input type="hidden" id="originalDate">
+                <input type="hidden" id="originalStartTime">
+                <input type="hidden" id="originalContentId">
+                
+                <!-- 予約内容の変更エリア -->
+                <div class="bg-yellow-50 p-3 rounded border border-yellow-200 mb-2">
+                    <p class="text-xs font-bold text-yellow-800 mb-2 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        予約日時の変更（必要な場合のみ）
+                    </p>
+                    <div class="mb-2">
+                        <label class="block text-[10px] font-bold text-yellow-700 mb-1">変更後の日付</label>
+                        <input type="date" id="editBookingDate" class="w-full p-2 border border-yellow-300 rounded text-sm bg-white">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-bold text-yellow-700 mb-1">変更後の枠</label>
+                        <select id="editBookingScheduleId" class="w-full p-2 border border-yellow-300 rounded text-sm bg-white">
+                            <option value="">変更しない（現在の日時のまま）</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">お子様のお名前</label>
                     <input type="text" id="editChildName" class="w-full p-2 border rounded text-sm" required>
@@ -733,6 +815,17 @@
                     return null;
                 }
             };
+            
+            // Move loadAllowedIps definition up
+            const loadAllowedIps = () => {
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
+                    if (snap.exists()) {
+                        globalAllowedIps = snap.data().list || [];
+                    } else {
+                        globalAllowedIps = [];
+                    }
+                });
+            };
 
             const initFirebase = async () => {
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
@@ -779,6 +872,92 @@
                 });
             };
             
+            // Helper: Update Schedule Select Options
+            const updateScheduleSelect = (dateStr, selectElementId, currentVal = "") => {
+                const sel = document.getElementById(selectElementId);
+                sel.innerHTML = '<option value="">選択してください</option>';
+                
+                if (!dateStr || !currentSettings.schedule || !currentSettings.schedule[dateStr]) {
+                    if (dateStr) {
+                         const opt = document.createElement('option');
+                         opt.text = "開催予定がありません";
+                         sel.add(opt);
+                    }
+                    return;
+                }
+
+                currentSettings.schedule[dateStr].forEach(evt => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
+                    // Count existing bookings for this slot
+                    const bookedCount = allBookings.filter(b => 
+                        b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
+                    ).length;
+                    const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
+
+                    const opt = document.createElement('option');
+                    // Value format: contentId|startTime|courseName
+                    opt.value = JSON.stringify({
+                        contentId: evt.contentId,
+                        startTime: evt.startTime,
+                        courseName: c.name
+                    });
+                    opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
+                    
+                    // Check if selected
+                    if (currentVal) {
+                        try {
+                            const currentObj = JSON.parse(currentVal);
+                             if (currentObj.contentId === evt.contentId && currentObj.startTime === evt.startTime) {
+                                opt.selected = true;
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    sel.appendChild(opt);
+                });
+            };
+
+            // --- Add Booking Logic ---
+            document.getElementById('openAddBookingModalBtn').onclick = () => {
+                document.getElementById('addBookingModal').classList.remove('hidden');
+                document.getElementById('addBookingForm').reset();
+                document.getElementById('newBookingScheduleId').innerHTML = '<option value="">先に日付を選択してください</option>';
+            };
+
+            document.getElementById('newBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'newBookingScheduleId');
+            });
+
+            document.getElementById('addBookingForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const date = document.getElementById('newBookingDate').value;
+                const scheduleVal = document.getElementById('newBookingScheduleId').value;
+                if (!date || !scheduleVal) return alert("日時とコースを選択してください");
+
+                const scheduleData = JSON.parse(scheduleVal);
+
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), {
+                        schoolId: currentSchoolId,
+                        schoolName: currentSettings.schoolName,
+                        date: date,
+                        startTime: scheduleData.startTime,
+                        contentId: scheduleData.contentId,
+                        courseName: scheduleData.courseName,
+                        childName: document.getElementById('newChildName').value,
+                        parentName: document.getElementById('newParentName').value,
+                        email: document.getElementById('newEmail').value,
+                        phone: document.getElementById('newPhone').value,
+                        grade: document.getElementById('newGrade').value,
+                        createdAt: serverTimestamp()
+                    });
+                    document.getElementById('addBookingModal').classList.add('hidden');
+                    showToast("予約を登録しました");
+                } catch (err) {
+                    alert("登録失敗: " + err.message);
+                }
+            };
+            
             // Booking Edit & Cancel Logic
             window.openBookingEditModal = (bookingId) => {
                 const booking = allBookings.find(b => b.id === bookingId);
@@ -790,21 +969,65 @@
                 document.getElementById('editEmail').value = booking.email || '';
                 document.getElementById('editPhone').value = booking.phone || '';
                 
+                // Set original values
+                document.getElementById('originalDate').value = booking.date;
+                document.getElementById('originalStartTime').value = booking.startTime;
+                document.getElementById('originalContentId').value = booking.contentId;
+                
+                // Reset edit date/time
+                const dInput = document.getElementById('editBookingDate');
+                dInput.value = booking.date; // Default to current date
+                
+                // Populate schedule select for the current date
+                // We need to construct the current value object to pre-select it
+                const currentValObj = {
+                    contentId: booking.contentId,
+                    startTime: booking.startTime,
+                    courseName: booking.courseName
+                };
+                updateScheduleSelect(booking.date, 'editBookingScheduleId', JSON.stringify(currentValObj));
+                
                 document.getElementById('bookingEditModal').classList.remove('hidden');
             };
+
+            document.getElementById('editBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'editBookingScheduleId');
+            });
 
             document.getElementById('bookingEditForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const bookingId = document.getElementById('editBookingId').value;
                 if (!bookingId) return;
+                
+                const updateData = {
+                    childName: document.getElementById('editChildName').value,
+                    parentName: document.getElementById('editParentName').value,
+                    email: document.getElementById('editEmail').value,
+                    phone: document.getElementById('editPhone').value
+                };
+
+                // Check for schedule change
+                const newDate = document.getElementById('editBookingDate').value;
+                const newScheduleVal = document.getElementById('editBookingScheduleId').value;
+                
+                // If a schedule is selected (it's not empty)
+                if (newScheduleVal) {
+                     const schedData = JSON.parse(newScheduleVal);
+                     // If date OR content/time changed from original
+                     const origDate = document.getElementById('originalDate').value;
+                     const origStart = document.getElementById('originalStartTime').value;
+                     const origContent = document.getElementById('originalContentId').value;
+
+                     if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                         updateData.date = newDate;
+                         updateData.startTime = schedData.startTime;
+                         updateData.contentId = schedData.contentId;
+                         updateData.courseName = schedData.courseName;
+                     }
+                }
 
                 try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), {
-                        childName: document.getElementById('editChildName').value,
-                        parentName: document.getElementById('editParentName').value,
-                        email: document.getElementById('editEmail').value,
-                        phone: document.getElementById('editPhone').value
-                    });
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), updateData);
                     document.getElementById('bookingEditModal').classList.add('hidden');
                     showToast("予約情報を更新しました");
                 } catch (err) {
@@ -1480,16 +1703,6 @@
             }
 
 
-            const loadAllowedIps = () => {
-                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
-                    if (snap.exists()) {
-                        globalAllowedIps = snap.data().list || [];
-                    } else {
-                        globalAllowedIps = [];
-                    }
-                });
-            };
-
             // IP Settings Modal Logic
             function renderIpList() {
                 const list = document.getElementById('ipListContainer');
@@ -2146,50 +2359,6 @@
                     tbody.appendChild(tr);
                 });
             }
-            
-            // Booking Edit & Cancel Logic
-            window.openBookingEditModal = (bookingId) => {
-                const booking = allBookings.find(b => b.id === bookingId);
-                if (!booking) return;
-
-                document.getElementById('editBookingId').value = booking.id;
-                document.getElementById('editChildName').value = booking.childName || '';
-                document.getElementById('editParentName').value = booking.parentName || '';
-                document.getElementById('editEmail').value = booking.email || '';
-                document.getElementById('editPhone').value = booking.phone || '';
-                
-                document.getElementById('bookingEditModal').classList.remove('hidden');
-            };
-
-            document.getElementById('bookingEditForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const bookingId = document.getElementById('editBookingId').value;
-                if (!bookingId) return;
-
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), {
-                        childName: document.getElementById('editChildName').value,
-                        parentName: document.getElementById('editParentName').value,
-                        email: document.getElementById('editEmail').value,
-                        phone: document.getElementById('editPhone').value
-                    });
-                    document.getElementById('bookingEditModal').classList.add('hidden');
-                    showToast("予約情報を更新しました");
-                } catch (err) {
-                    alert("更新に失敗しました: " + err.message);
-                }
-            };
-
-            window.cancelBooking = async (bookingId) => {
-                if (!confirm("本当にこの予約をキャンセル（削除）しますか？\nこの操作は取り消せません。")) return;
-                
-                try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
-                    showToast("予約をキャンセルしました");
-                } catch (err) {
-                    alert("削除に失敗しました: " + err.message);
-                }
-            };
 
             // Utils
             async function saveSettings() {
