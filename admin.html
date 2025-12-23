@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ロボット教室 管理コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
+    <!-- Chart.js CDN (使われていませんが残しています) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -316,7 +316,7 @@
     <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
-                <h3 class="font-bold text-lg"><span id="schedModalDate"></span> の設定</h3>
+                <h3 class="font-bold text-lg"><span id="modalDateDisplay"></span> の設定</h3>
                 <button id="closeScheduleModal" class="text-2xl text-slate-400">×</button>
             </div>
             <div class="flex flex-1 overflow-hidden gap-6">
@@ -403,7 +403,8 @@
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [];
             let adminDate = new Date();
-            let selectedDateStr = "";
+            let adminDashboardDate = new Date(); // 【修正】変数を追加
+            let selectedDateStr = ""; // 【修正】変数名を統一
             let scheduleToCopy = null;
             let unsubscribeSettings = null; 
             let unsubscribeBookings = null;
@@ -734,7 +735,7 @@
             }
 
             function openScheduleModal(dateStr) {
-                selectedDateStr = dateStr;
+                selectedDateStr = dateStr; // 【修正】正しい変数名に変更
                 document.getElementById('modalDateDisplay').textContent = dateStr;
                 document.getElementById('scheduleModal').classList.remove('hidden');
                 
@@ -773,7 +774,8 @@
                     tracks.appendChild(line);
                 }
                 
-                const evts = currentSettings.schedule[selectedScheduleDateStr] || [];
+                // 【修正】変数名をselectedDateStrに修正
+                const evts = currentSettings.schedule[selectedDateStr] || [];
                 evts.forEach((evt, idx) => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
                     const [sh, sm] = evt.startTime.split(':').map(Number);
@@ -873,7 +875,8 @@
             function renderDayList() {
                 const list = document.getElementById('daySchedList');
                 list.innerHTML = '';
-                const evts = currentSettings.schedule[selectedScheduleDateStr] || [];
+                // 【修正】変数名をselectedDateStrに修正
+                const evts = currentSettings.schedule[selectedDateStr] || [];
                 evts.forEach((evt, idx) => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
                     const d = document.createElement('div');
@@ -896,7 +899,8 @@
                 list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
                     e.stopPropagation();
                     if(confirm("削除しますか？")) {
-                        currentSettings.schedule[selectedScheduleDateStr].splice(b.dataset.idx, 1);
+                        // 【修正】変数名をselectedDateStrに修正
+                        currentSettings.schedule[selectedDateStr].splice(b.dataset.idx, 1);
                         await saveSettings();
                         renderTimeline(); renderDayList(); renderSchedCalendar();
                     }
@@ -904,7 +908,8 @@
             }
 
             window.editSched = (idx) => {
-                const evt = currentSettings.schedule[selectedScheduleDateStr][idx];
+                // 【修正】変数名をselectedDateStrに修正
+                const evt = currentSettings.schedule[selectedDateStr][idx];
                 document.getElementById('schedEditIndex').value = idx;
                 document.getElementById('schedContentSelect').value = evt.contentId;
                 document.getElementById('schedStart').value = evt.startTime;
@@ -941,21 +946,25 @@
                 if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
                 
                 const newEvt = {
-                    id: idx !== -1 ? currentSettings.schedule[selectedScheduleDateStr][idx].id : 's'+Date.now(),
+                    // 【修正】変数名をselectedDateStrに修正
+                    id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
                     contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
                 };
                 
-                if(!currentSettings.schedule[selectedScheduleDateStr]) currentSettings.schedule[selectedScheduleDateStr] = [];
+                // 【修正】変数名をselectedDateStrに修正
+                if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
                 
-                if(idx !== -1) currentSettings.schedule[selectedScheduleDateStr][idx] = newEvt;
-                else currentSettings.schedule[selectedScheduleDateStr].push(newEvt);
+                if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
+                else currentSettings.schedule[selectedDateStr].push(newEvt);
                 
-                currentSettings.schedule[selectedScheduleDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
+                currentSettings.schedule[selectedDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
                 
                 await saveSettings();
                 renderTimeline(); renderDayList(); renderSchedCalendar();
                 resetSchedForm();
             };
+            
+            document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
             
             document.getElementById('execCopyBtn').onclick = async () => {
                 const d = document.getElementById('copyDate').value;
@@ -997,15 +1006,18 @@
                     document.getElementById('latestBooking').textContent = `${last.childName}様 (${last.date})`;
                 }
                 
-                document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
-                document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
+                // 【修正】HTMLのIDに合わせて修正 (dashPrev, dashNext)
+                document.getElementById('dashPrev').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
+                document.getElementById('dashNext').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
                 renderAdminDashboard();
             }
 
             function renderAdminDashboard() {
                  const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
-                 document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
-                 const grid = document.getElementById('dashboardCalendarGrid');
+                 // 【修正】HTMLのIDに合わせて修正 (dashTitle)
+                 document.getElementById('dashTitle').textContent = `${y}年 ${m+1}月`;
+                 // 【修正】HTMLのIDに合わせて修正 (dashGrid)
+                 const grid = document.getElementById('dashGrid');
                  grid.innerHTML = '';
                  
                  const firstDay = new Date(y, m, 1).getDay();
@@ -1016,7 +1028,7 @@
                  for(let d=1; d<=days; d++) {
                      const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
                      const cell = document.createElement('div');
-                     cell.className = "bg-white dashboard-calendar-cell";
+                     cell.className = "bg-white dashboard-calendar-cell min-h-[50px] border-r border-b p-1";
                      cell.innerHTML = `<div class="text-xs font-bold text-slate-500 mb-1">${d}</div>`;
                      
                      if(currentSettings.schedule[dateStr]) {
