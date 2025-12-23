@@ -115,7 +115,7 @@
                 
                 <!-- 入力フォーム -->
                 <div id="bookingForm" class="mt-10 pt-6 border-t border-slate-100">
-                     <div class="bg-teal-50 p-5 rounded-xl mb-6 border border-teal-100 flex flex-col sm:flex-row gap-4 items-center">
+                      <div class="bg-teal-50 p-5 rounded-xl mb-6 border border-teal-100 flex flex-col sm:flex-row gap-4 items-center">
                         <img id="bookingContentImage" src="" alt="体験イメージ" class="w-24 h-24 object-cover rounded-lg bg-slate-200 hidden sm:block" onerror="this.style.display='none'">
                         <div class="flex-1 text-center sm:text-left">
                             <h3 class="font-bold text-teal-800 mb-1">選択中の体験会</h3>
@@ -207,10 +207,10 @@
         let selectedGrade = null, selectedDate = null, selectedContent = null, selectedStartTime = "", selectedSlotCapacity = 0;
         let viewDate = new Date(); viewDate.setDate(1);
         let pendingBookingData = null;
+        let hasLoggedFormInput = false; // Flag to track if form input has been logged
 
         const initFirebase = async () => {
             try {
-                // デモ用Firebase設定
                 let firebaseConfig = {
                     apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", 
                     authDomain: "robot-school-booking.firebaseapp.com", 
@@ -218,7 +218,6 @@
                     appId: "1:443474003538:web:e3a17bd422bcee23f6418b"
                 };
 
-                // Canvasプレビュー用の自動設定
                 if (typeof __firebase_config !== 'undefined') {
                     firebaseConfig = JSON.parse(__firebase_config);
                 }
@@ -252,6 +251,22 @@
             } catch (e) {
                 console.error("Firebase Init Error:", e);
                 document.getElementById('loadingText').textContent = "エラーが発生しました。リロードしてください。";
+            }
+        };
+
+        // --- Logger Function ---
+        const logEvent = async (eventName, details = {}) => {
+            if (!currentSchoolId) return;
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), {
+                    schoolId: currentSchoolId,
+                    event: eventName,
+                    ...details,
+                    userAgent: navigator.userAgent,
+                    timestamp: serverTimestamp()
+                });
+            } catch (e) {
+                console.warn("Logging failed", e);
             }
         };
 
@@ -302,12 +317,18 @@
                 document.getElementById('loadingScreen').classList.add('hidden');
                 document.getElementById('userView').classList.remove('hidden');
                 
+                // [Log] Page View
+                logEvent('page_view');
+                
                 document.getElementById('globalNav').classList.remove('hidden');
                 if (isDirectAccess) {
                     document.getElementById('navBackBtn').classList.add('hidden');
                 } else {
                     document.getElementById('navBackBtn').classList.remove('hidden');
                 }
+                
+                // Setup Form Input Tracking
+                setupFormTracking();
             });
             // Load Bookings for capacity check
             onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
@@ -318,6 +339,21 @@
                      renderUserCalendar();
                 }
                 if(selectedDate) renderTimeSlots(selectedDate);
+            });
+        };
+        
+        const setupFormTracking = () => {
+            const inputs = document.querySelectorAll('#userInfoForm input');
+            hasLoggedFormInput = false;
+            inputs.forEach(input => {
+                // Remove previous listener to avoid duplicates if re-rendered (though not re-rendered here)
+                // Since this is SPA-like, simple flag reset is enough usually
+                input.addEventListener('input', () => {
+                    if (!hasLoggedFormInput) {
+                        logEvent('form_input');
+                        hasLoggedFormInput = true;
+                    }
+                }, { once: true }); // Ensure it fires once per element, but flag controls global once
             });
         };
 
@@ -340,6 +376,10 @@
         document.getElementById('gradeSelector').addEventListener('click', (e) => {
             if (e.target.tagName === 'BUTTON') {
                 selectedGrade = e.target.dataset.grade;
+                
+                // [Log] Grade Selection
+                logEvent('grade_selection', { grade: selectedGrade });
+
                 document.querySelectorAll('#gradeSelector button').forEach(btn => {
                     const c = GRADE_CONFIG[btn.dataset.grade];
                     btn.className = `grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 ${c.btnBorder} ${c.btnText} rounded-xl ${c.btnHover} transition-transform hover:scale-105`;
@@ -433,6 +473,10 @@
                 if (isClickable) {
                     cell.onclick = () => {
                         selectedDate = dateObj;
+                        
+                        // [Log] Date Click
+                        logEvent('date_click', { date: dateStr });
+
                         document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected-day'));
                         cell.classList.add('selected-day');
                         renderTimeSlots(selectedDate);
@@ -484,6 +528,10 @@
                         btn.innerHTML = `<span class="font-bold text-lg">${evt.startTime}</span> <span class="text-sm font-bold">${content.name}</span> <span class="float-right text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">残 ${remaining}</span>`;
                         btn.onclick = () => {
                             selectedContent = content; selectedStartTime = evt.startTime; selectedSlotCapacity = evt.capacity;
+                            
+                            // [Log] Content Selection
+                            logEvent('content_selection', { contentId: content.id, name: content.name });
+
                             document.getElementById('bookingForm').style.display = 'block';
                             document.getElementById('bookingForm').scrollIntoView({behavior:'smooth'});
                             document.getElementById('selectedSlotInfo').textContent = `${dateStr.replace(/-/g,'/')} ${evt.startTime}`;
@@ -559,8 +607,11 @@
                 return;
             }
 
-            await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), { ...pendingBookingData, createdAt: serverTimestamp() });
+            const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), { ...pendingBookingData, createdAt: serverTimestamp() });
             
+            // [Log] Conversion
+            logEvent('conversion', { bookingId: docRef.id });
+
             document.getElementById('modal-summary').innerHTML = `
                 <p><strong>教室:</strong> ${pendingBookingData.schoolName}</p>
                 <p><strong>日時:</strong> ${pendingBookingData.date.replace(/-/g,'年').replace(/-/,'月').replace(/-/,'日')} ${pendingBookingData.startTime} [${pendingBookingData.courseName}]</p>
