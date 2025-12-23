@@ -82,10 +82,16 @@
                     本部管理メニュー
                 </h3>
                 <div class="flex justify-center gap-4 flex-wrap">
-                    <!-- 全校舎ダッシュボードボタン (NEW) -->
+                    <!-- 全校舎ダッシュボードボタン -->
                     <button id="openGlobalDashBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                         全校舎集計ダッシュボード
+                    </button>
+
+                    <!-- 共通コンテンツ設定ボタン (NEW) -->
+                    <button id="manageCommonContentsBtn" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 shadow transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        共通コンテンツ設定
                     </button>
 
                     <button onclick="document.getElementById('addSchoolModal').classList.remove('hidden')" class="bg-slate-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-600 shadow transition flex items-center gap-2">
@@ -101,7 +107,7 @@
             </div>
         </div>
 
-        <!-- 2. 全校舎集計ダッシュボード (NEW) -->
+        <!-- 2. 全校舎集計ダッシュボード -->
         <div id="globalDashboardView" class="hidden min-h-screen bg-slate-100">
             <!-- Header -->
             <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
@@ -147,7 +153,7 @@
                             期間指定分析
                         </h3>
                         <div class="flex items-center gap-4 flex-wrap">
-                            <!-- 集計基準切り替えタブ (New) -->
+                            <!-- 集計基準切り替えタブ -->
                             <div class="flex bg-slate-100 rounded p-1">
                                 <button id="gTabCreated" class="px-4 py-2 text-xs font-bold rounded bg-white text-indigo-600 shadow-sm transition g-chart-tab-btn" data-type="created">予約受付日ベース</button>
                                 <button id="gTabEvent" class="px-4 py-2 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition g-chart-tab-btn" data-type="event">予約参加日ベース</button>
@@ -179,7 +185,7 @@
                     </div>
                 </div>
 
-                <!-- 予約実績推移 (積み上げグラフ) - 追加 -->
+                <!-- 予約実績推移 (積み上げグラフ) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <div class="flex flex-wrap items-center justify-between mb-4">
                         <h3 class="font-bold text-slate-700 flex items-center">
@@ -376,6 +382,11 @@
                              <button id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
                                 <span class="text-2xl font-bold leading-none">+</span> 新規作成
                             </button>
+                             <!-- 共通コンテンツからのコピーボタン (NEW) -->
+                             <button id="openImportCommonModalBtn" class="bg-slate-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition w-full shadow-md flex items-center justify-center gap-2 text-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                共通コンテンツからコピー
+                            </button>
                         </div>
                         <div id="localContentList" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                     </div>
@@ -478,6 +489,51 @@
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('ipSettingsModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">閉じる</button>
                 <button id="saveIpSettingsBtn" class="px-4 py-2 bg-slate-800 text-white rounded text-sm font-bold">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共通コンテンツ管理モーダル (NEW) -->
+    <div id="commonContentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl h-[80vh] flex flex-col">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b pb-2">
+                <span>共通コンテンツ管理</span>
+                <button onclick="document.getElementById('commonContentsModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            <div class="flex-1 overflow-y-auto mb-4">
+                <div id="commonContentListContainer" class="space-y-2"></div>
+            </div>
+            <div class="border-t pt-4">
+                <h4 class="text-sm font-bold text-slate-700 mb-2">新規追加 / 編集</h4>
+                <div class="space-y-3">
+                    <input type="hidden" id="editCommonIdx" value="-1">
+                    <input type="text" id="commonName" placeholder="コンテンツ名" class="w-full p-2 border rounded text-sm">
+                    <div class="flex gap-2">
+                        <input type="text" id="commonId" placeholder="ID (任意)" class="flex-1 p-2 border rounded text-sm">
+                        <select id="commonType" class="flex-1 p-2 border rounded text-sm">
+                            <option value="trial">体験会</option>
+                            <option value="event">イベント</option>
+                        </select>
+                        <input type="number" id="commonPrice" placeholder="金額" class="w-24 p-2 border rounded text-sm">
+                    </div>
+                    <input type="text" id="commonImage" placeholder="画像URL" class="w-full p-2 border rounded text-sm">
+                    <button id="saveCommonContentBtn" class="w-full bg-orange-600 text-white font-bold py-2 rounded">保存</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 共通コンテンツ取り込みモーダル (NEW) -->
+    <div id="importCommonModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
+            <h3 class="text-lg font-bold mb-4">共通コンテンツから取り込み</h3>
+            <p class="text-xs text-slate-500 mb-4">以下のリストから取り込むコンテンツを選択してください。</p>
+            <div id="importListContainer" class="space-y-2 max-h-64 overflow-y-auto border p-2 rounded mb-4">
+                <!-- JS Generated -->
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('importCommonModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
+                <button id="execImportBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">選択した項目を取り込む</button>
             </div>
         </div>
     </div>
@@ -610,11 +666,12 @@
         };
         
         let globalAllowedIps = [];
+        let commonContents = []; // Store fetched common contents
 
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
-            let globalAllBookings = []; // Added for Global Dashboard
+            let globalAllBookings = []; 
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
             let selectedDateStr = "";
@@ -625,12 +682,12 @@
             let unsubscribeGlobal = null;
             let draggingItemIndex = null;
             let dragStartY = 0;
-            let bookingChart = null; // Stacked Chart
-            let funnelChart = null; // Funnel Chart
-            let schoolComparisonChart = null; // Global Chart
-            let globalBookingChart = null; // Global Stacked Chart (NEW)
-            let chartMode = 'created'; // 'created' or 'event'
-            let globalChartMode = 'created'; // 'created' or 'event' for Global Dashboard
+            let bookingChart = null; 
+            let funnelChart = null; 
+            let schoolComparisonChart = null; 
+            let globalBookingChart = null; 
+            let chartMode = 'created'; 
+            let globalChartMode = 'created'; 
 
             const fetchIpAddress = async () => {
                 try {
@@ -655,11 +712,11 @@
                 await signInAnonymously(auth);
                 loadAllowedIps();
                 fetchIpAddress();
+                loadCommonContents(); // Load Common Contents on init
 
                 // Login Flow
                 document.getElementById('loginForm').onsubmit = async (e) => {
                     e.preventDefault();
-                    
                     if (globalAllowedIps.length > 0) {
                         const currentIp = await fetchIpAddress();
                         if (!currentIp || !globalAllowedIps.includes(currentIp)) {
@@ -667,7 +724,6 @@
                             return;
                         }
                     }
-
                     try {
                         await signInWithEmailAndPassword(auth, document.getElementById('adminEmail').value, document.getElementById('adminPassword').value);
                     } catch(err) { alert("ログイン失敗: " + err.message); }
@@ -684,13 +740,166 @@
                         document.getElementById('loginView').classList.add('hidden');
                         document.getElementById('adminMain').classList.remove('hidden');
                         loadSchools();
-                        initStatsDate(); // 初期日付設定
+                        initStatsDate();
                     } else {
                         document.getElementById('loginView').classList.remove('hidden');
                         document.getElementById('adminMain').classList.add('hidden');
                     }
                 });
             };
+            
+            // Common Contents Management Logic
+            const loadCommonContents = () => {
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
+                    if (snap.exists()) {
+                        commonContents = snap.data().contents || [];
+                    } else {
+                        commonContents = [];
+                    }
+                    renderCommonContentsList();
+                });
+            };
+
+            const renderCommonContentsList = () => {
+                const con = document.getElementById('commonContentListContainer');
+                con.innerHTML = '';
+                if(commonContents.length === 0) {
+                    con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
+                    return;
+                }
+                commonContents.forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-700">${c.name}</div>
+                            <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-blue-500 text-xs font-bold edit-common" data-idx="${idx}">編集</button>
+                            <button class="text-red-500 text-xs font-bold del-common" data-idx="${idx}">削除</button>
+                        </div>
+                    `;
+                    con.appendChild(div);
+                });
+
+                con.querySelectorAll('.edit-common').forEach(b => b.onclick = () => editCommonContent(b.dataset.idx));
+                con.querySelectorAll('.del-common').forEach(b => b.onclick = async () => {
+                    if(confirm("削除しますか？")) {
+                        commonContents.splice(b.dataset.idx, 1);
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                        showToast("削除しました");
+                    }
+                });
+            };
+
+            function editCommonContent(idx) {
+                const c = commonContents[idx];
+                document.getElementById('editCommonIdx').value = idx;
+                document.getElementById('commonName').value = c.name;
+                document.getElementById('commonId').value = c.id;
+                document.getElementById('commonId').disabled = true; // Edit mode disables ID change
+                document.getElementById('commonType').value = c.type;
+                document.getElementById('commonPrice').value = c.price;
+                document.getElementById('commonImage').value = c.imageUrl || '';
+            }
+
+            document.getElementById('manageCommonContentsBtn').onclick = () => {
+                document.getElementById('commonContentsModal').classList.remove('hidden');
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+            };
+
+            document.getElementById('saveCommonContentBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('editCommonIdx').value);
+                const name = document.getElementById('commonName').value;
+                const idInput = document.getElementById('commonId').value.trim();
+                const type = document.getElementById('commonType').value;
+                const price = document.getElementById('commonPrice').value;
+                const img = document.getElementById('commonImage').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
+
+                let newId = idInput;
+                if (!newId) newId = 'c' + Date.now(); // Auto ID
+
+                const newContent = { id: newId, name, type, price: parseInt(price), imageUrl: img };
+
+                if (idx === -1) {
+                    // Add
+                    if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
+                    commonContents.push(newContent);
+                } else {
+                    // Update
+                    commonContents[idx] = newContent;
+                }
+
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                showToast("共通コンテンツを保存しました");
+                
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+            };
+
+            // Import Logic
+            document.getElementById('openImportCommonModalBtn').onclick = () => {
+                const list = document.getElementById('importListContainer');
+                list.innerHTML = '';
+                if(commonContents.length === 0) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 p-2">共通コンテンツがありません。</p>';
+                } else {
+                    commonContents.forEach(c => {
+                        const label = document.createElement('label');
+                        label.className = "flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b last:border-0";
+                        label.innerHTML = `
+                            <input type="checkbox" class="import-check form-checkbox h-4 w-4 text-blue-600" value="${c.id}">
+                            <div class="text-sm">
+                                <div class="font-bold text-slate-700">${c.name}</div>
+                                <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                            </div>
+                        `;
+                        list.appendChild(label);
+                    });
+                }
+                document.getElementById('importCommonModal').classList.remove('hidden');
+            };
+
+            document.getElementById('execImportBtn').onclick = async () => {
+                const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
+                if(checked.length === 0) return alert("選択されていません");
+
+                let count = 0;
+                checked.forEach(id => {
+                    const target = commonContents.find(c => c.id === id);
+                    if(target) {
+                        // Check if ID exists in local
+                        if(!currentSettings.contents.some(lc => lc.id === target.id)) {
+                            currentSettings.contents.push({...target}); // Clone
+                            count++;
+                        }
+                    }
+                });
+
+                if(count > 0) {
+                    await saveSettings();
+                    showToast(`${count}件のコンテンツを取り込みました`);
+                    renderLocalContents(); // Update view
+                } else {
+                    alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
+                }
+                document.getElementById('importCommonModal').classList.add('hidden');
+            };
+
             
             // Global Dashboard Logic
             document.getElementById('openGlobalDashBtn').onclick = () => {
@@ -1825,7 +2034,7 @@
                              const item = document.createElement('div');
                              let col = "bg-gray-400";
                              if(evt.grades && evt.grades.length > 0) {
-                                 if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
+                                 if(evt.grades.length === 3) col = "bg-[#5abe50]";
                                  else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
                                  else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
                                  else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
