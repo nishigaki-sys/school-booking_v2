@@ -3,682 +3,1678 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロボットプログラミング体験教室 予約受付</title>
+    <title>ロボット教室 管理コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'M PLUS Rounded 1c', sans-serif; }
-        .calendar-day { transition: all 0.2s; aspect-ratio: 1 / 1; }
-        .available { background-color: #f0fdfa; color: #0d9488; cursor: pointer; font-weight: 700; }
-        .available:hover { opacity: 0.8; transform: scale(1.05); background-color: #ccfbf1; }
-        .selected-day { background-color: #0d9488 !important; color: white !important; transform: scale(1.05); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06); }
-        .disabled { color: #cbd5e1; background-color: #f8fafc; }
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        .slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        #bookingForm, #timeSlotsContainer, #calendarContainer { display: none; }
-        .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: 'M PLUS Rounded 1c', sans-serif; background-color: #f1f5f9; }
+        .timeline-container { position: relative; height: 500px; background-color: #fff; border-radius: 0.5rem; overflow-y: auto; border: 1px solid #cbd5e1; }
+        .timeline-event-block { position: absolute; left: 50px; right: 10px; border-radius: 4px; color: white; font-size: 0.75rem; padding: 4px 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; z-index: 10; transition: all 0.1s; }
+        .timeline-event-block:hover { z-index: 20; transform: scale(1.02); opacity: 0.9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .dashboard-event-item { font-size: 0.75rem; margin-bottom: 2px; padding: 2px 4px; border-radius: 3px; color: white; white-space: nowrap; overflow: hidden; cursor: pointer; }
     </style>
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen pb-10">
+<body>
 
-    <!-- ナビゲーションバー -->
-    <nav id="globalNav" class="bg-white text-slate-600 p-4 shadow-sm flex justify-between items-center z-50 relative hidden">
-        <div class="flex items-center gap-4">
-            <button id="navBackBtn" class="hover:bg-slate-100 p-2 rounded-full transition hidden text-slate-500">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-            </button>
-            <h1 class="text-xl font-extrabold text-teal-600" id="navTitle">ロボット教室 体験予約</h1>
+    <!-- ログイン画面 -->
+    <div id="loginView" class="min-h-screen flex items-center justify-center bg-slate-800">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
+            <h1 class="text-2xl font-extrabold text-center text-slate-700 mb-2">管理者ログイン</h1>
+            <p class="text-xs text-center text-slate-400 mb-4">ロボットプログラミング教室 管理システム</p>
+            
+            <!-- IPアドレス表示 -->
+            <div class="bg-slate-100 p-2 rounded text-center mb-6 border border-slate-200">
+                <p class="text-[10px] text-slate-500">あなたのIPアドレス</p>
+                <p id="currentIpDisplay" class="text-xs font-mono font-bold text-slate-700">取得中...</p>
+            </div>
+
+            <form id="loginForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-slate-600">メールアドレス</label>
+                    <input type="email" id="adminEmail" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin@example.com">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-slate-600">パスワード</label>
+                    <input type="password" id="adminPassword" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••">
+                </div>
+                <button type="submit" id="loginBtn" class="w-full py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-600 transition">ログイン</button>
+            </form>
         </div>
-    </nav>
-
-    <!-- ロード画面 -->
-    <div id="loadingScreen" class="fixed inset-0 bg-slate-50 z-[100] flex flex-col items-center justify-center">
-        <div class="loader"></div>
-        <p class="mt-4 text-slate-500 font-bold" id="loadingText">読み込み中...</p>
     </div>
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6 mt-4">
-
-        <!-- === 1. 校舎選択画面 (URLパラメータがない場合のフォールバック) === -->
-        <div id="schoolSelectionView" class="fade-in hidden">
-            <div class="text-center mb-10 mt-4">
-                <h2 class="text-2xl font-bold text-slate-700 mb-2">ご希望の教室を選んでください</h2>
-                <p class="text-slate-500 text-sm">お近くの教室で体験会に参加しよう！</p>
+    <!-- 管理画面コンテナ -->
+    <div id="adminMain" class="hidden min-h-screen">
+        <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex items-center">
+                        <span class="text-xl font-extrabold text-slate-800 mr-4">管理コンソール</span>
+                        <span id="currentSchoolNameDisplay" class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full hidden"></span>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <a id="previewPageBtn" href="#" target="_blank" class="text-sm text-teal-600 hover:text-teal-800 hover:underline hidden flex items-center gap-1 font-bold">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            予約ページ確認
+                        </a>
+                        <button id="backToSchoolSelectBtn" class="text-sm text-blue-600 hover:underline hidden">校舎選択へ戻る</button>
+                        <button id="logoutBtn" class="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-1 rounded">ログアウト</button>
+                    </div>
+                </div>
             </div>
-            <div id="schoolListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-                <!-- JSで生成 -->
+        </nav>
+
+        <!-- 1. 校舎選択画面 (Admin) -->
+        <div id="schoolSelectionView" class="max-w-6xl mx-auto px-4 py-8">
+            <h2 class="text-2xl font-bold text-slate-700 mb-6">管理する校舎を選択</h2>
+            <div id="schoolListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- JS Generated -->
+            </div>
+            
+            <div class="mt-12 bg-white p-6 rounded-xl border border-slate-200 text-center">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 flex justify-center items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                    本部管理メニュー
+                </h3>
+                <div class="flex justify-center gap-4 flex-wrap">
+                    <!-- 全校舎ダッシュボードボタン (NEW) -->
+                    <button id="openGlobalDashBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+                        全校舎集計ダッシュボード
+                    </button>
+
+                    <button onclick="document.getElementById('addSchoolModal').classList.remove('hidden')" class="bg-slate-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-600 shadow transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                        新しい校舎を追加
+                    </button>
+                    <!-- IP制限設定ボタン -->
+                    <button id="manageIpBtn" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-500 shadow transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
+                        IP制限設定
+                    </button>
+                </div>
             </div>
         </div>
 
-        <!-- === 2. 予約画面 === -->
-        <div id="userView" class="max-w-2xl mx-auto hidden fade-in">
-            <header class="text-center mb-8">
-                <div class="w-full h-48 sm:h-64 bg-slate-200 rounded-2xl mb-4 overflow-hidden shadow-lg relative">
-                    <img id="headerImage" src="" alt="教室イメージ" class="w-full h-full object-cover" onerror="this.style.display='none'">
-                    <div class="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center">
-                         <p class="text-white font-bold text-xl drop-shadow-md"><span id="headerSchoolName"></span>校へようこそ</p>
+        <!-- 2. 全校舎集計ダッシュボード (NEW) -->
+        <div id="globalDashboardView" class="hidden min-h-screen bg-slate-100">
+            <!-- Header -->
+            <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+                <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                    <div class="flex justify-between h-16">
+                        <div class="flex items-center gap-2">
+                            <span class="bg-indigo-100 text-indigo-700 p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg></span>
+                            <span class="text-xl font-extrabold text-slate-800">全校舎集計ダッシュボード</span>
+                        </div>
+                        <div class="flex items-center">
+                            <button id="closeGlobalDashBtn" class="text-sm text-slate-500 hover:text-slate-800 font-bold bg-slate-100 px-4 py-2 rounded-lg hover:bg-slate-200 transition">閉じる</button>
+                        </div>
                     </div>
                 </div>
-                <h1 id="pageTitleDisplay" class="text-2xl sm:text-3xl font-extrabold text-teal-600 mb-2"></h1>
-                <p id="pageDescriptionDisplay" class="text-slate-600 text-sm"></p>
-                <div id="schoolInfoDisplay" class="mt-4 text-xs text-slate-500 bg-white p-3 rounded-lg inline-block shadow-sm"></div>
-            </header>
+            </nav>
 
-            <main class="bg-white p-6 sm:p-8 rounded-2xl shadow-lg">
-                <!-- ステップ1: 学年選択 -->
-                <div id="step1">
-                    <h2 class="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
-                        <span class="bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span>
-                        お子様の学年
-                    </h2>
-                    <div id="gradeSelector" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <button data-grade="preschool" class="grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 border-[#ff91aa] text-[#ff91aa] rounded-xl hover:bg-pink-50 transition-transform hover:scale-105">年中・年長</button>
-                        <button data-grade="grade1_2" class="grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 border-[#ffac2d] text-[#ffac2d] rounded-xl hover:bg-orange-50 transition-transform hover:scale-105">小1～小2</button>
-                        <button data-grade="grade3_plus" class="grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 border-[#00b4dc] text-[#00b4dc] rounded-xl hover:bg-blue-50 transition-transform hover:scale-105">小3以上</button>
+            <div class="max-w-7xl mx-auto px-4 py-8">
+                <!-- KPIs -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">全校舎 予約総数</h3>
+                        <p class="text-4xl font-black text-slate-700 mt-2" id="gTotalBookings">-</p>
                     </div>
-                </div>
-
-                <!-- カレンダー -->
-                <div id="calendarContainer" class="mt-10">
-                    <h2 class="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
-                        <span class="bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span>
-                        日程選択
-                    </h2>
-                    <div class="flex items-center justify-between mb-4 px-4">
-                        <button id="prevMonth" class="px-3 py-1 bg-slate-100 rounded-md hover:bg-slate-200 text-slate-600 font-bold">&lt;</button>
-                        <h3 id="calendarTitle" class="text-lg font-bold text-slate-700"></h3>
-                        <button id="nextMonth" class="px-3 py-1 bg-slate-100 rounded-md hover:bg-slate-200 text-slate-600 font-bold">&gt;</button>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">今月の予約数</h3>
+                        <div class="flex items-end gap-2">
+                            <p class="text-4xl font-black text-indigo-600 mt-2" id="gMonthBookings">-</p>
+                            <span class="text-xs text-slate-400 mb-1.5" id="gMonthLabel"></span>
+                        </div>
                     </div>
-                    <div id="calendarGrid" class="grid grid-cols-7 gap-1 text-center text-sm">
-                        <div class="font-bold text-red-400 py-2">日</div>
-                        <div class="font-bold text-slate-500 py-2">月</div>
-                        <div class="font-bold text-slate-500 py-2">火</div>
-                        <div class="font-bold text-slate-500 py-2">水</div>
-                        <div class="font-bold text-slate-500 py-2">木</div>
-                        <div class="font-bold text-slate-500 py-2">金</div>
-                        <div class="font-bold text-blue-400 py-2">土</div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">登録校舎数</h3>
+                        <p class="text-4xl font-black text-slate-700 mt-2" id="gTotalSchools">-</p>
                     </div>
-                    <div class="mt-3 text-xs text-center text-slate-500 flex justify-center gap-4">
-                        <span class="flex items-center"><span class="text-red-500 font-bold mr-1">◎</span> 余裕あり</span>
-                        <span class="flex items-center"><span class="text-blue-500 font-bold mr-1">○</span> 空きあり</span>
-                        <span class="flex items-center"><span class="text-slate-400 font-bold mr-1">×</span> 満席</span>
+                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 relative overflow-hidden">
+                        <div class="absolute right-0 top-0 p-4 opacity-10">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-20 w-20 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        </div>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">直近24時間の動き</h3>
+                        <p class="text-4xl font-black text-green-600 mt-2" id="gRecentActions">-</p>
+                        <p class="text-[10px] text-slate-400">新規予約</p>
                     </div>
                 </div>
 
-                <!-- 時間選択 -->
-                <div id="timeSlotsContainer" class="mt-10"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Chart: Bookings by School -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="font-bold text-slate-700 mb-4 flex items-center">
+                            <span class="w-2 h-6 bg-indigo-500 rounded mr-2"></span>
+                            校舎別 予約獲得ランキング (累計)
+                        </h3>
+                        <div class="relative w-full h-80">
+                            <canvas id="schoolComparisonChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Bookings Stream -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-[400px]">
+                        <h3 class="font-bold text-slate-700 mb-4 flex items-center">
+                            <span class="w-2 h-6 bg-green-500 rounded mr-2"></span>
+                            最新の予約状況 (全校舎)
+                        </h3>
+                        <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="globalRecentBookings">
+                            <!-- JS populated -->
+                            <div class="text-center text-slate-400 text-sm mt-10">読み込み中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. 校舎管理ダッシュボード -->
+        <div id="schoolAdminView" class="hidden max-w-7xl mx-auto px-4 py-8">
+            <!-- Tabs -->
+            <div class="flex border-b border-slate-300 mb-6 bg-white rounded-t-lg overflow-x-auto">
+                <button class="tab-btn px-6 py-4 font-bold text-blue-600 border-b-2 border-blue-600" data-tab="dashboard">ダッシュボード</button>
+                <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="booking-management">予約管理</button>
+                <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="course-settings">体験会設定</button>
+                <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="school-settings">教室設定</button>
+            </div>
+
+            <!-- Tab: Dashboard -->
+            <div id="tab-dashboard" class="tab-content">
+                <!-- KPI Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">現在の予約総数</h3>
+                        <p class="text-3xl font-black text-slate-700 mt-2" id="totalBookings">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">今月の予約</h3>
+                        <p class="text-3xl font-black text-blue-600 mt-2" id="monthBookings">0</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">直近の申込み</h3>
+                        <p class="text-lg font-bold text-slate-700 mt-2 truncate" id="latestBooking">-</p>
+                    </div>
+                </div>
+
+                <!-- 期間指定集計 & グラフ -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- 集計パネル -->
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 h-full">
+                        <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            期間指定集計
+                        </h3>
+                        <div class="flex flex-wrap items-end gap-3 text-sm mb-4">
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">開始日</label>
+                                <input type="date" id="statsStartDate" class="p-2 border border-slate-300 rounded">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-slate-500 mb-1">終了日</label>
+                                <input type="date" id="statsEndDate" class="p-2 border border-slate-300 rounded">
+                            </div>
+                            <button id="calcStatsBtn" class="bg-slate-700 text-white font-bold py-2 px-4 rounded hover:bg-slate-600">集計</button>
+                        </div>
+                        <div id="periodStatsResult" class="p-3 bg-white border border-slate-100 rounded text-sm mb-4">
+                            <div class="flex justify-around items-center">
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">予約数</p>
+                                    <p class="text-lg font-bold text-slate-700" id="statsBookingCount">-</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">総枠数</p>
+                                    <p class="text-lg font-bold text-slate-700" id="statsCapacityCount">-</p>
+                                </div>
+                                <div class="text-center">
+                                    <p class="text-xs text-slate-500">予約率</p>
+                                    <p class="text-lg font-bold text-blue-600" id="statsRate">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- グラフエリア -->
+                    <div class="bg-white p-4 rounded-lg border border-slate-200 h-full flex flex-col">
+                        <div class="flex justify-between items-center mb-2">
+                            <h3 class="text-sm font-bold text-slate-700">予約実績推移 (積み上げ)</h3>
+                            <div class="flex bg-slate-100 rounded p-1">
+                                <button id="chartTabCreated" class="px-3 py-1 text-xs font-bold rounded bg-white text-blue-600 shadow-sm transition chart-tab-btn" data-type="created">受付日</button>
+                                <button id="chartTabEvent" class="px-3 py-1 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition chart-tab-btn" data-type="event">参加日</button>
+                            </div>
+                        </div>
+                        <div class="relative flex-1 w-full min-h-[200px]">
+                            <canvas id="bookingChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- アクセス解析 (ファネル) -->
+                <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
+                        アクセス解析 (コンバージョンファネル)
+                        <span class="text-[10px] ml-2 text-slate-400 font-normal">※指定期間のログ集計値</span>
+                    </h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <!-- Left: Stats -->
+                        <div class="lg:col-span-1 space-y-4">
+                            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
+                                <p class="text-xs text-blue-500 font-bold uppercase tracking-wider">コンバージョン率 (CVR)</p>
+                                <p class="text-3xl font-black text-blue-700 mt-1" id="analyticsCvr">-</p>
+                                <p class="text-[10px] text-blue-400 mt-1">申込完了数 / ページPV数</p>
+                            </div>
+                            <div id="analyticsList" class="space-y-1 text-sm text-slate-600">
+                                <!-- JS Generated Content -->
+                            </div>
+                        </div>
+                        <!-- Right: Funnel Chart -->
+                        <div class="lg:col-span-2">
+                            <div class="relative w-full h-64">
+                                <canvas id="funnelChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 
-                <!-- 入力フォーム -->
-                <div id="bookingForm" class="mt-10 pt-6 border-t border-slate-100">
-                      <div class="bg-teal-50 p-5 rounded-xl mb-6 border border-teal-100 flex flex-col sm:flex-row gap-4 items-center">
-                        <img id="bookingContentImage" src="" alt="体験イメージ" class="w-24 h-24 object-cover rounded-lg bg-slate-200 hidden sm:block" onerror="this.style.display='none'">
-                        <div class="flex-1 text-center sm:text-left">
-                            <h3 class="font-bold text-teal-800 mb-1">選択中の体験会</h3>
-                            <p class="text-sm text-teal-700 font-bold mb-1" id="selectedSlotInfo"></p>
-                            <p class="text-lg font-black text-teal-600" id="selectedPriceInfo"></p>
-                        </div>
+                <!-- Calendar Section -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                    <div class="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg">
+                        <button id="prevDashboardMonth" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-600">&lt; 前月</button>
+                        <h3 id="dashboardCalendarTitle" class="text-lg font-bold text-slate-800"></h3>
+                        <button id="nextDashboardMonth" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-600">翌月 &gt;</button>
                     </div>
-
-                    <!-- 入力フェーズ -->
-                    <div id="inputPhase">
-                        <h2 class="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
-                            <span class="bg-teal-500 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">3</span>
-                            お客様情報の入力
-                        </h2>
-                        <form id="userInfoForm" class="space-y-4 max-w-md mx-auto">
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">保護者様のお名前</label>
-                                <input type="text" id="parentName" required class="w-full p-3 border border-slate-300 rounded-lg text-sm" placeholder="例: 山田 太郎">
+                    <div class="overflow-x-auto">
+                        <div class="min-w-[800px] border rounded-lg">
+                             <div class="grid grid-cols-7 bg-slate-50 border-b text-center py-2 text-xs font-bold text-slate-500">
+                                <div class="text-red-400">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-400">土</div>
                             </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">メールアドレス</label>
-                                <input type="email" id="email" required class="w-full p-3 border border-slate-300 rounded-lg text-sm" placeholder="example@email.com">
-                            </div>
-                            <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">電話番号</label>
-                                <input type="tel" id="phone" required class="w-full p-3 border border-slate-300 rounded-lg text-sm" placeholder="090-1234-5678">
-                            </div>
-                             <div>
-                                <label class="block text-xs font-bold text-slate-500 mb-1">お子様のお名前 (かな)</label>
-                                <input type="text" id="childName" required class="w-full p-3 border border-slate-300 rounded-lg text-sm" placeholder="やまだ はなこ">
-                            </div>
-                            <div class="pt-4">
-                                <button type="submit" class="w-full text-lg font-bold py-4 px-6 bg-teal-500 text-white rounded-xl hover:bg-teal-600 shadow-lg transform active:scale-95 transition">確認画面へ</button>
-                            </div>
-                        </form>
-                    </div>
-
-                    <!-- 確認フェーズ -->
-                    <div id="confirmPhase" class="hidden max-w-md mx-auto">
-                        <h2 class="text-lg font-bold mb-4 text-center">入力内容の確認</h2>
-                        <div class="bg-white border border-slate-200 p-6 rounded-xl shadow-sm mb-6 space-y-4 text-sm">
-                            <div class="border-b pb-2"><p class="text-xs text-slate-400">保護者様のお名前</p><p class="font-bold text-slate-800" id="confirmParentName"></p></div>
-                            <div class="border-b pb-2"><p class="text-xs text-slate-400">メールアドレス</p><p class="font-bold text-slate-800" id="confirmEmail"></p></div>
-                            <div class="border-b pb-2"><p class="text-xs text-slate-400">電話番号</p><p class="font-bold text-slate-800" id="confirmPhone"></p></div>
-                            <div><p class="text-xs text-slate-400">お子様のお名前</p><p class="font-bold text-slate-800" id="confirmChildName"></p></div>
-                        </div>
-                        <div class="flex flex-col gap-3">
-                            <button type="button" id="confirmBookingBtn" class="w-full text-lg font-bold py-4 px-6 bg-orange-500 text-white rounded-xl hover:bg-orange-600 shadow-lg transform active:scale-95 transition">予約を確定する</button>
-                            <button type="button" id="backToInputBtn" class="w-full text-sm font-bold py-3 px-6 bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200">修正する</button>
+                            <div id="dashGrid" class="grid grid-cols-7 gap-px bg-slate-200"></div>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+
+            <!-- Tab: Booking Management -->
+            <div id="tab-booking-management" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
+                    <table class="w-full text-sm text-left text-slate-600">
+                        <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b">
+                            <tr>
+                                <th class="px-6 py-4">開催日時</th>
+                                <th class="px-6 py-4">コンテンツ</th>
+                                <th class="px-6 py-4">申込者</th>
+                                <th class="px-6 py-4">連絡先</th>
+                                <th class="px-6 py-4 text-center">種別</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bookingTableBody" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Tab: Course Settings -->
+            <div id="tab-course-settings" class="tab-content hidden">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Contents -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
+                        <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">1. コンテンツ管理</h3>
+                        <div class="mb-4 space-y-3">
+                             <button id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
+                                <span class="text-2xl font-bold leading-none">+</span> 新規作成
+                            </button>
+                        </div>
+                        <div id="localContentList" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
+                    </div>
+
+                    <!-- Schedule -->
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
+                        <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">2. 開催日程登録</h3>
+                        <div class="flex justify-between items-center mb-4">
+                            <button id="schedPrev" class="px-3 py-1 border rounded text-xs">&lt;</button>
+                            <span id="schedTitle" class="font-bold"></span>
+                            <button id="schedNext" class="px-3 py-1 border rounded text-xs">&gt;</button>
+                        </div>
+                        <div class="border rounded text-xs">
+                             <div class="grid grid-cols-7 bg-slate-50 text-center py-2 font-bold text-slate-500 border-b">
+                                <div class="text-red-400">日</div><div>月</div><div>火</div><div>水</div><div>木</div><div>金</div><div class="text-blue-400">土</div>
+                            </div>
+                            <div id="schedGrid" class="grid grid-cols-7 gap-px bg-slate-200"></div>
+                        </div>
+                        <p class="text-xs text-right mt-2 text-slate-400">日付をクリックして枠を追加</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: School Settings -->
+            <div id="tab-school-settings" class="tab-content hidden">
+                 <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
+                    <h3 class="text-xl font-bold text-slate-700 mb-6">教室基本情報</h3>
+                    <form id="schoolSettingsForm" class="space-y-5">
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">教室名</label>
+                            <input type="text" name="schoolName" id="settingSchoolName" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">住所</label>
+                            <input type="text" name="address" id="settingAddress" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">電話番号</label>
+                            <input type="text" name="phoneNumber" id="settingPhone" class="w-full p-2 border rounded">
+                        </div>
+                         <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">予約ページタイトル</label>
+                            <input type="text" name="pageTitle" id="settingPageTitle" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">予約ページ説明文</label>
+                            <input type="text" name="pageDescription" id="settingPageDesc" class="w-full p-2 border rounded">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-slate-600 mb-1">ヘッダー画像URL</label>
+                            <input type="text" name="headerImageUrl" id="settingHeaderImage" class="w-full p-2 border rounded text-xs text-slate-500">
+                        </div>
+                        <div class="pt-4 text-center">
+                            <button type="submit" id="saveSettingsBtn" class="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:bg-blue-700">設定を保存</button>
+                        </div>
+                    </form>
+                 </div>
+            </div>
         </div>
     </div>
 
-    <!-- 完了モーダル -->
-    <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
-        <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center slide-in-up">
-            <div class="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
-                </svg>
-            </div>
-            <h2 class="text-2xl font-bold mb-2">ご予約ありがとうございます！</h2>
-            <p class="text-slate-600 mb-4">体験レッスンの予約が完了しました。<br>ご登録いただきましたメールアドレス宛にお申込み内容のメールを送付しました。</p>
-            <div class="bg-slate-50 p-4 rounded-lg text-left mb-6">
-                <h4 class="font-bold mb-2 border-b border-slate-200 pb-2 text-slate-700">予約内容</h4>
-                <div id="modal-summary" class="text-sm space-y-2 text-slate-600"></div>
-            </div>
-            <button id="closeModal" class="w-full py-3 bg-teal-500 text-white font-bold rounded-lg hover:bg-teal-600 transition">閉じる</button>
+    <!-- === Modals === -->
+
+    <!-- 校舎追加 -->
+    <div id="addSchoolModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 class="font-bold mb-4">校舎を追加</h3>
+            <form id="addSchoolForm" class="space-y-4">
+                <input type="text" id="newSchoolName" placeholder="校舎名" class="w-full p-2 border rounded" required>
+                <input type="text" id="newSchoolId" placeholder="ID (半角英数)" class="w-full p-2 border rounded" required>
+                <button type="submit" class="w-full bg-slate-800 text-white font-bold py-2 rounded">追加</button>
+                <button type="button" onclick="document.getElementById('addSchoolModal').classList.add('hidden')" class="w-full text-slate-500 text-sm">キャンセル</button>
+            </form>
         </div>
     </div>
+
+    <!-- IP制限設定モーダル -->
+    <div id="ipSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
+            <h3 class="font-bold mb-4 text-slate-700">接続許可IPアドレス設定</h3>
+            <p class="text-xs text-slate-500 mb-4">
+                登録されたIPアドレスのみが管理画面にログインできます。<br>
+                リストが空の場合は制限がかかりません。
+            </p>
+            
+            <div class="mb-4">
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="newIpInput" class="flex-1 p-2 border rounded text-sm" placeholder="例: 203.0.113.1">
+                    <button id="addIpBtn" class="bg-blue-600 text-white px-3 py-2 rounded text-sm font-bold">追加</button>
+                </div>
+                <div class="text-xs text-right">
+                    <button id="addCurrentIpBtn" class="text-blue-500 hover:underline">現在のIPを追加</button>
+                </div>
+            </div>
+
+            <div class="bg-slate-50 border rounded h-40 overflow-y-auto p-2 mb-4 space-y-1" id="ipListContainer">
+                <!-- JSでリスト生成 -->
+            </div>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="document.getElementById('ipSettingsModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">閉じる</button>
+                <button id="saveIpSettingsBtn" class="px-4 py-2 bg-slate-800 text-white rounded text-sm font-bold">保存する</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- コンテンツ作成 (校舎独自) -->
+    <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
+                <span id="contentFormTitle">新規作成</span>
+                <button id="closeContentModal" class="text-slate-400 hover:text-slate-600">×</button>
+            </h3>
+            <div class="space-y-4">
+                <input type="hidden" id="editContentId">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名 (ID設定可)</label>
+                    <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
+                </div>
+                <!-- ID入力欄の追加 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツID (任意・半角英数)</label>
+                    <input type="text" id="editContentCustomId" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="空欄の場合は自動生成">
+                    <p class="text-[10px] text-slate-400 mt-1">※指定したい場合のみ入力。作成後は変更できません。</p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
+                    <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
+                    <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
+                </div>
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
+                        <select id="editContentType" class="w-full p-2 border border-slate-300 rounded text-sm">
+                            <option value="trial">体験会</option>
+                            <option value="event">イベント</option>
+                        </select>
+                    </div>
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
+                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
+                    </div>
+                </div>
+                <button type="button" id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">作成して保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- スケジュール登録 (Timeline) -->
+    <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl">
+            <div class="flex justify-between items-center mb-4 pb-2 border-b">
+                <h3 class="font-bold text-lg"><span id="modalDateDisplay"></span> の設定</h3>
+                <button id="closeScheduleModal" class="text-2xl text-slate-400">×</button>
+            </div>
+            <div class="flex flex-1 overflow-hidden gap-6">
+                <!-- Timeline -->
+                <div class="w-1/2 relative border rounded bg-slate-50 overflow-y-auto h-full timeline-container" id="timelineContainer">
+                    <div id="timelineAxis" class="absolute left-0 w-10 border-r h-[720px] bg-white text-[10px] text-slate-400 text-center pt-1"></div>
+                    <div id="timelineTracks" class="absolute left-10 right-0 h-[720px]"></div>
+                </div>
+                <!-- Form -->
+                <div class="w-1/2 overflow-y-auto">
+                    <div class="bg-slate-50 p-4 rounded-lg mb-6">
+                        <h4 class="text-xs font-bold text-slate-500 mb-3" id="schedFormTitle">新規枠を追加</h4>
+                        <input type="hidden" id="schedEditIndex" value="-1">
+                        <div class="mb-3">
+                            <label class="block text-xs font-bold text-slate-400 mb-1">コンテンツ</label>
+                            <select id="schedContentSelect" class="w-full p-2 border rounded text-sm bg-white"></select>
+                        </div>
+                        <div class="mb-3">
+                             <label class="block text-xs font-bold text-slate-400 mb-1">対象学年</label>
+                             <div class="flex flex-wrap gap-2">
+                                <label class="text-xs"><input type="checkbox" class="sched-grade" value="preschool"> 年中長</label>
+                                <label class="text-xs"><input type="checkbox" class="sched-grade" value="grade1_2"> 小1-2</label>
+                                <label class="text-xs"><input type="checkbox" class="sched-grade" value="grade3_plus"> 小3+</label>
+                             </div>
+                        </div>
+                        <div class="flex gap-2 mb-3">
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-slate-400 mb-1">開始</label>
+                                <input type="time" id="schedStart" class="w-full p-2 border rounded text-sm">
+                            </div>
+                            <div class="flex-1">
+                                <label class="block text-xs font-bold text-slate-400 mb-1">終了</label>
+                                <input type="time" id="schedEnd" class="w-full p-2 border rounded text-sm">
+                            </div>
+                        </div>
+                        <div class="mb-3 w-20">
+                             <label class="block text-xs font-bold text-slate-400 mb-1">定員</label>
+                             <input type="number" id="schedCap" value="5" class="w-full p-2 border rounded text-sm">
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="schedDeleteBtn" class="flex-1 bg-red-100 text-red-500 font-bold py-2 rounded text-xs hidden">削除</button>
+                            <button id="schedSaveBtn" class="flex-[2] bg-blue-600 text-white font-bold py-2 rounded text-sm">保存</button>
+                        </div>
+                        <button id="schedCancelBtn" class="w-full text-xs text-slate-400 mt-2 hidden">キャンセル</button>
+                    </div>
+                    <div>
+                        <h4 class="text-xs font-bold text-slate-500 mb-2">登録済みリスト</h4>
+                        <div id="daySchedList" class="space-y-2 text-sm"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 複製ダイアログ -->
+    <div id="copyDialog" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 hidden z-[60]">
+        <div class="bg-white rounded-lg p-6 shadow-xl max-w-xs w-full">
+            <h4 class="font-bold text-slate-700 mb-4">スケジュールの複製</h4>
+            <input type="date" id="copyDate" class="w-full p-2 border rounded mb-4">
+            <div class="flex justify-end gap-2">
+                <button id="cancelCopyBtn" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
+                <button id="execCopyBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">複製</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-[70]"></div>
 
     <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { getFirestore, doc, getDoc, addDoc, collection, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signInAnonymously, signOut, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-    // --- 設定エリア: 除外したいIPアドレス ---
-    // カウントしたくないIPアドレスをここに追加してください
-    const EXCLUDED_IPS = [
-        "137.83.213.235",   // 社内
-        "203.0.113.10"   // 自宅
-    ];
-
-    const GRADE_CONFIG = {
-        preschool: { bg: 'bg-[#ff91aa]', text: 'text-white', btnBorder: 'border-[#ff91aa]', btnText: 'text-[#ff91aa]', btnHover: 'hover:bg-pink-50' },
-        grade1_2: { bg: 'bg-[#ffac2d]', text: 'text-white', btnBorder: 'border-[#ffac2d]', btnText: 'text-[#ffac2d]', btnHover: 'hover:bg-orange-50' },
-        grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white', btnBorder: 'border-[#00b4dc]', btnText: 'text-[#00b4dc]', btnHover: 'hover:bg-blue-50' }
-    };
-
-    document.addEventListener('DOMContentLoaded', () => {
-        let auth, db, user, appId = 'robot-school-booking-v4';
-        let schools = [], currentSchoolId = null, currentSettings = null, allBookings = [];
-        let selectedGrade = null, selectedDate = null, selectedContent = null, selectedStartTime = "", selectedSlotCapacity = 0;
-        let viewDate = new Date(); viewDate.setDate(1);
-        let pendingBookingData = null;
-        let hasLoggedFormInput = false; 
-        let hasLoggedPageView = false;
-        
-        // IP判定用のPromise
-        let ipCheckPromise = null;
-
-        // 外部サービスを使ってIPを取得する関数
-        const getIpPromise = () => {
-             if (!ipCheckPromise) {
-                 // 外部API (api.ipify.org) を使用してIPアドレスを取得
-                 ipCheckPromise = fetch('https://api.ipify.org?format=json')
-                    .then(res => res.json())
-                    .then(data => data.ip)
-                    .catch(e => {
-                        console.warn("IP取得失敗:", e);
-                        return null; // 失敗時はnullを返す
-                    });
-             }
-             return ipCheckPromise;
+        // Configs
+        const GRADE_CONFIG = {
+            preschool: { bg: 'bg-[#ff91aa]', text: 'text-white' },
+            grade1_2: { bg: 'bg-[#ffac2d]', text: 'text-white' },
+            grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
         };
+        
+        let globalAllowedIps = [];
 
-        const initFirebase = async () => {
-            try {
-                // すぐにIP取得を開始（非同期）
-                getIpPromise();
+        document.addEventListener('DOMContentLoaded', () => {
+            let auth, db, user, appId = 'robot-school-booking-v4';
+            let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
+            let adminDate = new Date();
+            let adminDashboardDate = new Date(); 
+            let selectedDateStr = "";
+            let scheduleToCopy = null;
+            let unsubscribeSettings = null; 
+            let unsubscribeBookings = null;
+            let unsubscribeLogs = null;
+            let unsubscribeGlobal = null;
+            let draggingItemIndex = null;
+            let dragStartY = 0;
+            let bookingChart = null; // Stacked Chart
+            let funnelChart = null; // Funnel Chart
+            let schoolComparisonChart = null; // Global Chart
+            let chartMode = 'created'; // 'created' or 'event'
 
-                let firebaseConfig = {
-                    apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", 
-                    authDomain: "robot-school-booking.firebaseapp.com", 
-                    projectId: "robot-school-booking", 
-                    appId: "1:443474003538:web:e3a17bd422bcee23f6418b"
-                };
-
-                if (typeof __firebase_config !== 'undefined') {
-                    firebaseConfig = JSON.parse(__firebase_config);
+            const fetchIpAddress = async () => {
+                try {
+                    const response = await fetch('https://api.ipify.org?format=json');
+                    const data = await response.json();
+                    const ip = data.ip;
+                    const display = document.getElementById('currentIpDisplay');
+                    if (display) display.textContent = ip;
+                    return ip;
+                } catch (e) {
+                    console.error("IP取得失敗", e);
+                    return null;
                 }
-                if (typeof __app_id !== 'undefined') {
-                    appId = __app_id;
-                }
+            };
 
-                const app = initializeApp(firebaseConfig);
+            const initFirebase = async () => {
+                const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
+                const app = initializeApp(config);
                 auth = getAuth(app);
                 db = getFirestore(app);
                 
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
-                
+                await signInAnonymously(auth);
+                loadAllowedIps();
+                fetchIpAddress();
+
+                // Login Flow
+                document.getElementById('loginForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    
+                    if (globalAllowedIps.length > 0) {
+                        const currentIp = await fetchIpAddress();
+                        if (!currentIp || !globalAllowedIps.includes(currentIp)) {
+                            alert("許可されていないIPアドレスからのアクセスです。");
+                            return;
+                        }
+                    }
+
+                    try {
+                        await signInWithEmailAndPassword(auth, document.getElementById('adminEmail').value, document.getElementById('adminPassword').value);
+                    } catch(err) { alert("ログイン失敗: " + err.message); }
+                };
+
+                document.getElementById('logoutBtn').onclick = async () => {
+                    await signOut(auth);
+                    location.reload();
+                };
+
                 onAuthStateChanged(auth, async (u) => {
                     user = u;
-                    if (u) {
-                        const params = new URLSearchParams(window.location.search);
-                        const targetSchoolId = params.get('school');
-                        
-                        if (targetSchoolId) {
-                            loadSchoolData(targetSchoolId, true);
-                        } else {
-                            loadSchoolList();
-                        }
+                    if (u && !u.isAnonymous) {
+                        document.getElementById('loginView').classList.add('hidden');
+                        document.getElementById('adminMain').classList.remove('hidden');
+                        loadSchools();
+                        initStatsDate(); // 初期日付設定
+                    } else {
+                        document.getElementById('loginView').classList.remove('hidden');
+                        document.getElementById('adminMain').classList.add('hidden');
                     }
                 });
-            } catch (e) {
-                console.error("Firebase Init Error:", e);
-                document.getElementById('loadingText').textContent = "エラーが発生しました。リロードしてください。";
-            }
-        };
-
-        // --- Logger Function (IP除外機能付き) ---
-        const logEvent = async (eventName, details = {}) => {
-            if (!currentSchoolId) return;
+            };
             
-            try {
-                // IPアドレスの判定が終わるまで待機
-                const currentIp = await getIpPromise();
+            // Global Dashboard Logic
+            document.getElementById('openGlobalDashBtn').onclick = () => {
+                document.getElementById('schoolSelectionView').classList.add('hidden');
+                document.getElementById('globalDashboardView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.add('hidden'); // Ensure back button logic is clean
+                initGlobalDashboard();
+            };
 
-                // 除外リストに含まれていたらログ送信をスキップ
-                if (currentIp && EXCLUDED_IPS.includes(currentIp)) {
-                    console.log(`[Log Skipped] Access from excluded IP: ${currentIp} (Event: ${eventName})`);
-                    return;
-                }
-
-                // ログ送信
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), {
-                    schoolId: currentSchoolId,
-                    event: eventName,
-                    ...details,
-                    userAgent: navigator.userAgent,
-                    timestamp: serverTimestamp()
-                });
-            } catch (e) {
-                console.warn("Logging failed", e);
-            }
-        };
-
-        const loadSchoolList = () => {
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'schools'), (snap) => {
-                schools = [];
-                snap.forEach(doc => schools.push({ id: doc.id, ...doc.data() }));
-                renderSchoolList();
-                document.getElementById('loadingScreen').classList.add('hidden');
+            document.getElementById('closeGlobalDashBtn').onclick = () => {
+                if (unsubscribeGlobal) { unsubscribeGlobal(); unsubscribeGlobal = null; }
+                document.getElementById('globalDashboardView').classList.add('hidden');
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
-            });
-        };
+            };
 
-        const renderSchoolList = () => {
-            const container = document.getElementById('schoolListContainer');
-            container.innerHTML = '';
-            schools.forEach(school => {
-                const card = document.createElement('div');
-                card.className = "bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition cursor-pointer border border-slate-100 flex flex-col items-center justify-center gap-4 group";
-                card.innerHTML = `
-                    <div class="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center text-teal-600 group-hover:bg-teal-500 group-hover:text-white transition">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
-                    </div>
-                    <h3 class="text-xl font-bold text-slate-700">${school.name}校</h3>
-                    <button class="mt-2 text-teal-600 font-bold underline decoration-2 underline-offset-4 group-hover:text-teal-700">予約する</button>
-                `;
-                card.onclick = () => loadSchoolData(school.id);
-                container.appendChild(card);
-            });
-        };
+            const initGlobalDashboard = () => {
+                // Fetch all bookings from all schools
+                const today = new Date();
+                const mPrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
+                document.getElementById('gMonthLabel').textContent = `${today.getMonth()+1}月度`;
 
-        const loadSchoolData = (schoolId, isDirectAccess = false) => {
-            currentSchoolId = schoolId;
-            document.getElementById('schoolSelectionView').classList.add('hidden');
-            document.getElementById('loadingScreen').classList.remove('hidden');
-            
-            // Load Settings
-            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', schoolId), (snap) => {
-                if (!snap.exists()) {
-                    alert("指定された校舎が見つかりません。");
-                    document.getElementById('loadingScreen').classList.add('hidden');
-                    document.getElementById('schoolSelectionView').classList.remove('hidden');
-                    return;
-                }
-                
-                currentSettings = snap.data() || { schoolName: '未設定', contents: [], schedule: {} };
-                renderUserView();
-                document.getElementById('loadingScreen').classList.add('hidden');
-                document.getElementById('userView').classList.remove('hidden');
-                
-                // [Log] Page View (First load only)
-                if (!hasLoggedPageView) {
-                    logEvent('page_view');
-                    hasLoggedPageView = true;
-                }
-                
-                document.getElementById('globalNav').classList.remove('hidden');
-                if (isDirectAccess) {
-                    document.getElementById('navBackBtn').classList.add('hidden');
-                } else {
-                    document.getElementById('navBackBtn').classList.remove('hidden');
-                }
-                
-                // Setup Form Input Tracking
-                setupFormTracking();
-            });
-            // Load Bookings for capacity check
-            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
-                allBookings = [];
-                snap.forEach(doc => { if(doc.data().schoolId === schoolId) allBookings.push(doc.data()); });
-                // Re-render calendar if bookings update to refresh availability marks
-                if(document.getElementById('calendarContainer').style.display !== 'none') {
-                      renderUserCalendar();
-                }
-                if(selectedDate) renderTimeSlots(selectedDate);
-            });
-        };
-        
-        const setupFormTracking = () => {
-            const inputs = document.querySelectorAll('#userInfoForm input');
-            // Do not reset hasLoggedFormInput here to prevent re-logging on snapshot update
-            inputs.forEach(input => {
-                input.addEventListener('input', () => {
-                    if (!hasLoggedFormInput) {
-                        logEvent('form_input');
-                        hasLoggedFormInput = true;
-                    }
-                }, { once: true });
-            });
-        };
+                // Real-time listener for ALL bookings
+                unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+                    const bookings = [];
+                    snap.forEach(doc => bookings.push({id: doc.id, ...doc.data()}));
+                    
+                    // 1. Total Bookings
+                    document.getElementById('gTotalBookings').textContent = bookings.length;
 
-        const renderUserView = () => {
-            const s = currentSettings;
-            document.getElementById('navTitle').textContent = `${s.schoolName}校 予約`;
-            document.getElementById('headerSchoolName').textContent = s.schoolName;
-            document.getElementById('pageTitleDisplay').textContent = s.pageTitle || '体験教室予約';
-            document.getElementById('pageDescriptionDisplay').textContent = s.pageDescription || '';
-            
-            const img = document.getElementById('headerImage');
-            const defaultImgUrl = 'https://images.unsplash.com/photo-1581092921461-eab62e97a782?q=80&w=2070';
-            img.src = s.headerImageUrl || defaultImgUrl;
-            img.style.display = 'block';
+                    // 2. Month Bookings
+                    const monthBookings = bookings.filter(b => b.date.startsWith(mPrefix));
+                    document.getElementById('gMonthBookings').textContent = monthBookings.length;
 
-            document.getElementById('schoolInfoDisplay').textContent = `${s.address || ''} | ${s.phoneNumber || ''}`;
-        };
+                    // 3. Total Schools
+                    document.getElementById('gTotalSchools').textContent = schools.length;
 
-        // Grade Select
-        document.getElementById('gradeSelector').addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') {
-                selectedGrade = e.target.dataset.grade;
-                
-                // [Log] Grade Selection
-                logEvent('grade_selection', { grade: selectedGrade });
+                    // 4. Recent Actions (24h)
+                    const yesterday = new Date(Date.now() - 86400000);
+                    const recentCount = bookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
+                    document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
 
-                document.querySelectorAll('#gradeSelector button').forEach(btn => {
-                    const c = GRADE_CONFIG[btn.dataset.grade];
-                    btn.className = `grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 ${c.btnBorder} ${c.btnText} rounded-xl ${c.btnHover} transition-transform hover:scale-105`;
-                });
-                const conf = GRADE_CONFIG[selectedGrade];
-                e.target.className = `grade-btn w-full text-md font-bold py-4 px-4 border-2 ${conf.bg} ${conf.text} ${conf.btnBorder} rounded-xl shadow-lg transform scale-105`;
-                
-                document.getElementById('calendarContainer').style.display = 'block';
-                document.getElementById('calendarContainer').scrollIntoView({behavior: 'smooth'});
-                renderUserCalendar();
-                document.getElementById('timeSlotsContainer').innerHTML = '';
-                document.getElementById('bookingForm').style.display = 'none';
-            }
-        });
+                    // 5. Chart: Bookings by School
+                    const schoolCounts = {};
+                    schools.forEach(s => schoolCounts[s.name] = 0); // Init
+                    bookings.forEach(b => {
+                        const sName = b.schoolName || 'Unknown';
+                        schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
+                    });
 
-        // Calendar
-        document.getElementById('prevMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); renderUserCalendar(); };
-        document.getElementById('nextMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()+1); renderUserCalendar(); };
-
-        const renderUserCalendar = () => {
-            const year = viewDate.getFullYear();
-            const month = viewDate.getMonth();
-            document.getElementById('calendarTitle').textContent = `${year}年 ${month + 1}月`;
-            const grid = document.getElementById('calendarGrid');
-            while(grid.children.length > 7) grid.removeChild(grid.lastChild);
-            
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const today = new Date(); today.setHours(0,0,0,0);
-
-            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
-
-            for(let d=1; d<=daysInMonth; d++) {
-                const cell = document.createElement('div');
-                cell.className = 'calendar-day flex flex-col items-center justify-center rounded-lg transition border border-transparent';
-                
-                const dateObj = new Date(year, month, d);
-                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                
-                // Availability Logic
-                let totalRemaining = 0;
-                let hasEvent = false;
-
-                if (currentSettings.schedule && currentSettings.schedule[dateStr]) {
-                    currentSettings.schedule[dateStr].forEach(evt => {
-                        // Check content existence
-                        const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
-                        if (!content) return;
-
-                        const targetGrades = evt.grades || (content.grades || []) || [];
-                        
-                        if (targetGrades.includes(selectedGrade)) {
-                            hasEvent = true;
-                            const bookedCount = allBookings.filter(b => 
-                                b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
-                            ).length;
-                            const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
-                            totalRemaining += remaining;
+                    // Sort by count desc
+                    const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]);
+                    
+                    if (schoolComparisonChart) schoolComparisonChart.destroy();
+                    const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
+                    schoolComparisonChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: sortedSchools.map(s => s[0]),
+                            datasets: [{
+                                label: '予約数',
+                                data: sortedSchools.map(s => s[1]),
+                                backgroundColor: '#6366f1',
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
                         }
                     });
+
+                    // 6. Recent List Stream
+                    const list = document.getElementById('globalRecentBookings');
+                    list.innerHTML = '';
+                    const sortedBookings = [...bookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50); // Top 50
+                    
+                    if (sortedBookings.length === 0) {
+                        list.innerHTML = '<div class="text-center text-slate-400 py-4">データがありません</div>';
+                    } else {
+                        sortedBookings.forEach(b => {
+                            const dateObj = b.createdAt ? b.createdAt.toDate() : new Date();
+                            const timeStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+                            
+                            const div = document.createElement('div');
+                            div.className = "p-3 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 transition";
+                            div.innerHTML = `
+                                <div class="flex justify-between items-start">
+                                    <span class="text-xs font-bold text-slate-400">${timeStr}</span>
+                                    <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${b.schoolName}</span>
+                                </div>
+                                <div class="font-bold text-slate-700 text-sm mt-1">${b.childName} 様</div>
+                                <div class="text-xs text-slate-500 mt-0.5">${b.courseName} (${b.date} ${b.startTime})</div>
+                            `;
+                            list.appendChild(div);
+                        });
+                    }
+                });
+            };
+
+            // Stats & Chart Logic (School Specific)
+            const initStatsDate = () => {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const firstDay = new Date(y, m, 1);
+                const lastDay = new Date(y, m + 1, 0);
+                
+                // YYYY-MM-DD
+                const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                document.getElementById('statsStartDate').value = fmt(firstDay);
+                document.getElementById('statsEndDate').value = fmt(lastDay);
+            };
+
+            document.getElementById('calcStatsBtn').onclick = () => updateStats();
+            
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.chart-tab-btn').forEach(b => {
+                        b.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                        b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                    chartMode = e.target.dataset.type;
+                    updateChart();
+                };
+            });
+
+            function updateStats() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
+                
+                // 1. 期間内の予約数
+                const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
+                const bookingCount = rangeBookings.length;
+                
+                // 2. 期間内の総枠数
+                let capacityCount = 0;
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if(currentSettings.schedule && currentSettings.schedule[dStr]) {
+                        currentSettings.schedule[dStr].forEach(s => capacityCount += parseInt(s.capacity || 0));
+                    }
+                    d.setDate(d.getDate() + 1);
                 }
                 
-                let symbolHtml = '';
-                let cellClass = '';
-                let isClickable = false;
-
-                if (dateObj < today || !hasEvent) {
-                    // 過去日付 or イベントなし
-                    cellClass = 'disabled';
-                    symbolHtml = '<span class="text-xs text-slate-300">-</span>';
-                } else {
-                    // 未来 & イベントあり
-                    isClickable = true;
-                    if (totalRemaining >= 5) {
-                        cellClass = 'available';
-                        symbolHtml = '<span class="text-red-500 font-bold text-xs">◎</span>';
-                    } else if (totalRemaining > 0) {
-                        cellClass = 'available';
-                        symbolHtml = '<span class="text-blue-500 font-bold text-xs">○</span>';
-                    } else {
-                        // 満席
-                        cellClass = 'disabled'; 
-                        symbolHtml = '<span class="text-slate-400 font-bold text-xs">×</span>';
-                        isClickable = false; 
-                    }
-                }
-
-                cell.classList.add(cellClass);
-                cell.innerHTML = `<span class="text-sm font-bold leading-tight">${d}</span>${symbolHtml}`;
-
-                if (isClickable) {
-                    cell.onclick = () => {
-                        selectedDate = dateObj;
-                        
-                        // [Log] Date Click
-                        logEvent('date_click', { date: dateStr });
-
-                        document.querySelectorAll('.calendar-day').forEach(c => c.classList.remove('selected-day'));
-                        cell.classList.add('selected-day');
-                        renderTimeSlots(selectedDate);
-                    };
-                }
-
-                grid.appendChild(cell);
+                // 3. 予約率
+                const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
+                
+                document.getElementById('statsBookingCount').textContent = bookingCount;
+                document.getElementById('statsCapacityCount').textContent = capacityCount;
+                document.getElementById('statsRate').textContent = `${rate}%`;
+                
+                // グラフ & ファネル更新
+                updateChart();
+                updateFunnelChart(sDate, eDate);
             }
-        };
 
-        const renderTimeSlots = (date) => {
-            const container = document.getElementById('timeSlotsContainer');
-            container.innerHTML = '';
-            container.style.display = 'block';
-            
-            const dateStr = `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-            const title = document.createElement('h3');
-            title.className = "text-lg font-bold mb-4 text-center text-slate-700";
-            title.textContent = `${date.getMonth()+1}月${date.getDate()}日 (${['日','月','火','水','木','金','土'][date.getDay()]}) の開催枠`;
-            container.appendChild(title);
-            
-            const list = document.createElement('div');
-            list.className = "flex flex-col gap-3 max-w-sm mx-auto";
-            
-            const events = (currentSettings.schedule[dateStr] || []).filter(evt => {
-                const content = (currentSettings.contents || []).find(c => c.id === evt.contentId);
-                if(!content) return false;
-                const targetGrades = evt.grades || (content.grades || []) || [];
-                return targetGrades.includes(selectedGrade);
-            }).sort((a,b) => a.startTime.localeCompare(b.startTime));
-
-            if(events.length === 0) list.innerHTML = `<p class="text-center text-slate-400">空き枠がありません</p>`;
-            else {
-                events.forEach(evt => {
-                    const content = currentSettings.contents.find(c => c.id === evt.contentId);
-                    const booked = allBookings.filter(b => b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId).length;
-                    const remaining = Math.max(0, parseInt(evt.capacity) - booked);
-                    const isFull = remaining <= 0;
-                    
-                    const btn = document.createElement('button');
-                    const conf = GRADE_CONFIG[selectedGrade];
-                    
-                    if(isFull) {
-                        btn.className = "p-4 rounded-xl bg-slate-100 text-slate-400 cursor-not-allowed border";
-                        btn.innerHTML = `<span class="font-bold">${evt.startTime}</span> ${content.name} <span class="float-right text-xs bg-red-100 text-red-500 px-2 py-1 rounded">満席</span>`;
-                        btn.disabled = true;
-                    } else {
-                        btn.className = `p-4 rounded-xl border-2 ${conf.btnBorder} ${conf.btnText} bg-white hover:brightness-95 transition text-left shadow-sm`;
-                        btn.innerHTML = `<span class="font-bold text-lg">${evt.startTime}</span> <span class="text-sm font-bold">${content.name}</span> <span class="float-right text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded font-bold">残 ${remaining}</span>`;
-                        btn.onclick = () => {
-                            selectedContent = content; selectedStartTime = evt.startTime; selectedSlotCapacity = evt.capacity;
-                            
-                            // [Log] Content Selection
-                            logEvent('content_selection', { contentId: content.id, name: content.name });
-
-                            document.getElementById('bookingForm').style.display = 'block';
-                            document.getElementById('bookingForm').scrollIntoView({behavior:'smooth'});
-                            document.getElementById('selectedSlotInfo').textContent = `${dateStr.replace(/-/g,'/')} ${evt.startTime}`;
-                            document.getElementById('selectedPriceInfo').textContent = `¥${Number(content.price).toLocaleString()}`;
-                            const bImg = document.getElementById('bookingContentImage');
-                            if(content.imageUrl) {
-                                bImg.src = content.imageUrl;
-                                bImg.style.display = 'block';
-                            } else {
-                                bImg.style.display = 'none';
-                            }
-                            
-                            document.getElementById('inputPhase').classList.remove('hidden');
-                            document.getElementById('confirmPhase').classList.add('hidden');
-                        };
+            // ファネルチャート更新ロジック (実際のログデータ使用)
+            function updateFunnelChart(sDate, eDate) {
+                // 期間内のログをフィルタリング
+                const rangeLogs = allLogs.filter(log => {
+                    if (log.timestamp && log.timestamp.toDate) {
+                        const d = log.timestamp.toDate();
+                        const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        return dStr >= sDate && dStr <= eDate;
                     }
-                    list.appendChild(btn);
+                    return false;
+                });
+
+                // イベント集計
+                const counts = {
+                    page_view: 0,
+                    grade_selection: 0,
+                    date_click: 0,
+                    content_selection: 0,
+                    form_input: 0,
+                    conversion: 0
+                };
+
+                rangeLogs.forEach(log => {
+                    if (counts[log.event] !== undefined) {
+                        counts[log.event]++;
+                    }
+                });
+
+                const data = [
+                    counts.page_view,
+                    counts.grade_selection,
+                    counts.date_click,
+                    counts.content_selection,
+                    counts.form_input,
+                    counts.conversion
+                ];
+                
+                const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
+                
+                // CVR計算 (PV -> Conversion)
+                const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
+                document.getElementById('analyticsCvr').textContent = `${cvr}%`;
+
+                // リスト表示生成
+                const listContainer = document.getElementById('analyticsList');
+                listContainer.innerHTML = '';
+                
+                data.forEach((val, i) => {
+                    if (i === 0) return; // PVは基準なので別表示
+                    const prev = data[i-1];
+                    // 直前ステップからの遷移率
+                    const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
+                    
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-slate-50 px-2 py-1 rounded";
+                    row.innerHTML = `
+                        <span class="text-xs font-bold">${labels[i]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">${val}</span>
+                            <span class="text-[10px] px-1 bg-white border rounded text-blue-600 font-bold">TOP比 ${Math.round(counts.page_view > 0 ? val/counts.page_view*100 : 0)}%</span>
+                        </div>
+                    `;
+                    listContainer.appendChild(row);
+                });
+                
+                // トップのPVも表示
+                const pvRow = document.createElement('div');
+                pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
+                pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${counts.page_view}</span>`;
+                listContainer.prepend(pvRow);
+
+                renderFunnel(data, labels);
+            }
+
+            function renderFunnel(data, labels) {
+                if (funnelChart) funnelChart.destroy();
+                const ctx = document.getElementById('funnelChart').getContext('2d');
+                
+                funnelChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'アクセス数',
+                            data: data,
+                            backgroundColor: [
+                                '#e2e8f0', // PV
+                                '#cbd5e1', // Grade
+                                '#94a3b8', // Cal
+                                '#64748b', // Cont
+                                '#475569', // Form
+                                '#3b82f6'  // Done (Blue)
+                            ],
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // 横棒グラフ
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.x !== null) label += context.parsed.x;
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                beginAtZero: true
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
                 });
             }
-            container.appendChild(list);
-            container.scrollIntoView({behavior: 'smooth'});
-        };
 
-        // Nav Back
-        document.getElementById('navBackBtn').onclick = () => {
-             document.getElementById('userView').classList.add('hidden');
-             document.getElementById('schoolSelectionView').classList.remove('hidden');
-             document.getElementById('navBackBtn').classList.add('hidden');
-             currentSchoolId = null;
-        };
+            function updateChart() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
 
-        // Booking Logic
-        document.getElementById('userInfoForm').onsubmit = (e) => {
-            e.preventDefault();
-            pendingBookingData = {
-                schoolId: currentSchoolId,
-                schoolName: currentSettings.schoolName,
-                // ローカル時間の日付文字列を生成 (YYYY-MM-DD)
-                date: `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`,
-                startTime: selectedStartTime,
-                contentId: selectedContent.id,
-                courseName: selectedContent.name,
-                parentName: document.getElementById('parentName').value,
-                childName: document.getElementById('childName').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                grade: selectedGrade
-            };
-            document.getElementById('confirmParentName').textContent = pendingBookingData.parentName;
-            document.getElementById('confirmEmail').textContent = pendingBookingData.email;
-            document.getElementById('confirmPhone').textContent = pendingBookingData.phone;
-            document.getElementById('confirmChildName').textContent = pendingBookingData.childName;
+                // コンテンツIDごとにデータセットを作る（積み上げ）
+                const contentMap = {};
+                (currentSettings.contents || []).forEach(c => {
+                    contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
+                });
+                // 未定義コンテンツ用
+                contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
+                
+                // ラベル（日付）生成
+                const labels = [];
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    labels.push(dStr);
+                    // 初期化
+                    for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
+                    d.setDate(d.getDate() + 1);
+                }
+
+                // データ集計
+                allBookings.forEach(b => {
+                    let targetDate = '';
+                    if(chartMode === 'event') {
+                        targetDate = b.date;
+                    } else {
+                        // created (Timestamp) -> YYYY-MM-DD
+                        if(b.createdAt && b.createdAt.toDate) {
+                            const cd = b.createdAt.toDate();
+                            targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+                        }
+                    }
+                    
+                    if(targetDate >= sDate && targetDate <= eDate) {
+                        const cid = (currentSettings.contents || []).find(c => c.id === b.contentId) ? b.contentId : 'unknown';
+                        if(contentMap[cid] && contentMap[cid].data[targetDate] !== undefined) {
+                            contentMap[cid].data[targetDate]++;
+                        }
+                    }
+                });
+
+                // Chart.js データ形式に変換
+                const datasets = Object.values(contentMap).map(c => ({
+                    label: c.label,
+                    data: labels.map(l => c.data[l]),
+                    backgroundColor: c.color,
+                })).filter(ds => ds.data.some(v => v > 0)); // データがあるものだけ表示
+
+                // 描画
+                if(bookingChart) bookingChart.destroy();
+                const ctx = document.getElementById('bookingChart').getContext('2d');
+                bookingChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.map(l => l.substring(5)), // MM-DD
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
             
-            document.getElementById('inputPhase').classList.add('hidden');
-            document.getElementById('confirmPhase').classList.remove('hidden');
-            document.getElementById('confirmPhase').scrollIntoView({behavior:'smooth'});
-        };
-
-        document.getElementById('backToInputBtn').onclick = () => {
-             document.getElementById('confirmPhase').classList.add('hidden');
-             document.getElementById('inputPhase').classList.remove('hidden');
-        };
-
-        document.getElementById('confirmBookingBtn').onclick = async () => {
-            const btn = document.getElementById('confirmBookingBtn');
-            btn.disabled = true;
-            btn.textContent = "送信中...";
-            
-            const count = allBookings.filter(b => b.date === pendingBookingData.date && b.startTime === pendingBookingData.startTime && b.contentId === pendingBookingData.contentId).length;
-            if(count >= selectedSlotCapacity) {
-                alert('申し訳ありません、直前で満席になりました。');
-                renderTimeSlots(selectedDate);
-                document.getElementById('bookingForm').style.display = 'none';
-                return;
+            // 色生成ヘルパー
+            function getColorForId(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                return '#' + "00000".substring(0, 6 - c.length) + c;
             }
 
-            const docRef = await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), { ...pendingBookingData, createdAt: serverTimestamp() });
+
+            const loadAllowedIps = () => {
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
+                    if (snap.exists()) {
+                        globalAllowedIps = snap.data().list || [];
+                    } else {
+                        globalAllowedIps = [];
+                    }
+                });
+            };
+
+            // IP Settings Modal Logic
+            function renderIpList() {
+                const list = document.getElementById('ipListContainer');
+                list.innerHTML = '';
+                globalAllowedIps.forEach((ip, index) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center text-sm p-1 border-b last:border-b-0";
+                    div.innerHTML = `<span>${ip}</span><button class="text-red-500 hover:text-red-700 font-bold" onclick="window.removeIp(${index})">削除</button>`;
+                    list.appendChild(div);
+                });
+            }
             
-            // [Log] Conversion
-            logEvent('conversion', { bookingId: docRef.id });
+            window.removeIp = (index) => {
+                globalAllowedIps.splice(index, 1);
+                renderIpList();
+            };
 
-            document.getElementById('modal-summary').innerHTML = `
-                <p><strong>教室:</strong> ${pendingBookingData.schoolName}</p>
-                <p><strong>日時:</strong> ${pendingBookingData.date.replace(/-/g,'年').replace(/-/,'月').replace(/-/,'日')} ${pendingBookingData.startTime} [${pendingBookingData.courseName}]</p>
-                <p><strong>保護者様:</strong> ${pendingBookingData.parentName} 様</p>
-            `;
-            document.getElementById('successModal').classList.remove('hidden');
-            btn.disabled = false;
-            btn.textContent = "予約を確定する";
-        };
+            document.getElementById('manageIpBtn').onclick = () => {
+                document.getElementById('ipSettingsModal').classList.remove('hidden');
+                renderIpList();
+            };
 
-        document.getElementById('closeModal').onclick = () => {
-            document.getElementById('successModal').classList.add('hidden');
-            document.getElementById('calendarContainer').style.display = 'none';
-            document.getElementById('timeSlotsContainer').style.display = 'none';
-            document.getElementById('bookingForm').style.display = 'none';
-            document.getElementById('userInfoForm').reset();
-            document.querySelectorAll('#gradeSelector button').forEach(btn => {
-                const conf = GRADE_CONFIG[btn.dataset.grade];
-                btn.className = `grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 ${conf.btnBorder} ${conf.btnText} rounded-xl ${conf.btnHover} transition-transform hover:scale-105`;
+            document.getElementById('addIpBtn').onclick = () => {
+                const ip = document.getElementById('newIpInput').value.trim();
+                if (ip && !globalAllowedIps.includes(ip)) {
+                    globalAllowedIps.push(ip);
+                    document.getElementById('newIpInput').value = '';
+                    renderIpList();
+                }
+            };
+            
+            document.getElementById('addCurrentIpBtn').onclick = async () => {
+                 const ip = await fetchIpAddress();
+                 if(ip && !globalAllowedIps.includes(ip)) {
+                     globalAllowedIps.push(ip);
+                     renderIpList();
+                 }
+            };
+
+            document.getElementById('saveIpSettingsBtn').onclick = async () => {
+                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), { list: globalAllowedIps });
+                 document.getElementById('ipSettingsModal').classList.add('hidden');
+                 showToast("IP制限設定を保存しました");
+            };
+
+
+            // --- Data ---
+            const loadSchools = () => {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'schools'), (snap) => {
+                    schools = [];
+                    snap.forEach(d => schools.push({id:d.id, ...d.data()}));
+                    renderSchoolList();
+                });
+            };
+
+            function renderSchoolList() {
+                const con = document.getElementById('schoolListContainer');
+                con.innerHTML = '';
+                schools.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-slate-200 relative group";
+                    div.innerHTML = `
+                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                        <h3 class="text-xl font-bold text-slate-700 mb-1">${s.name}校</h3>
+                        <p class="text-xs text-slate-400">ID: ${s.id}</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
+                    `;
+                    div.onclick = (e) => {
+                        if(e.target.closest('.delete-school')) return;
+                        selectSchool(s.id);
+                    };
+                    div.querySelector('.delete-school').onclick = async (e) => {
+                        e.stopPropagation();
+                        if(confirm('削除しますか？')) {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', s.id));
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', s.id));
+                        }
+                    };
+                    con.appendChild(div);
+                });
+            }
+
+            function selectSchool(id) {
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
+
+                currentSchoolId = id;
+                document.getElementById('schoolSelectionView').classList.add('hidden');
+                document.getElementById('schoolAdminView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
+                document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
+                document.getElementById('previewPageBtn').classList.remove('hidden');
+                document.getElementById('previewPageBtn').href = `booking_page.html?school=${id}`;
+                
+                // Load Settings
+                unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
+                    if(snap.exists()) currentSettings = snap.data();
+                    else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
+                    
+                    if(!currentSettings.contents) currentSettings.contents = [];
+                    if(!currentSettings.schedule) currentSettings.schedule = {};
+
+                    document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
+                    
+                    // Populate Form
+                    document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
+                    document.getElementById('settingAddress').value = currentSettings.address || '';
+                    document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
+                    document.getElementById('settingPageTitle').value = currentSettings.pageTitle || '';
+                    document.getElementById('settingPageDesc').value = currentSettings.pageDescription || '';
+                    document.getElementById('settingHeaderImage').value = currentSettings.headerImageUrl || '';
+                    
+                    renderLocalContents();
+                    renderSchedCalendar();
+                    updateStats(); // 集計更新
+                });
+                
+                // Load Bookings
+                unsubscribeBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+                    allBookings = [];
+                    snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
+                    renderDashboard();
+                    renderBookingTable();
+                    updateStats(); // 集計更新
+                });
+
+                // Load Logs (Access Analytics)
+                const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
+                unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
+                    allLogs = [];
+                    snap.forEach(d => allLogs.push(d.data()));
+                    updateStats(); // 集計更新
+                });
+            }
+
+            // --- Features ---
+            
+            // 1. Content Management (Local)
+            function renderLocalContents() {
+                const con = document.getElementById('localContentList');
+                con.innerHTML = '';
+                (currentSettings.contents || []).forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                    div.innerHTML = `<div><span class="font-bold text-slate-700">${c.name}</span> <span class="text-xs text-slate-500">${c.type === 'event' ? 'イベント' : '体験'} ¥${c.price}</span></div><div><button class="text-blue-500 text-xs mr-2 edit-cnt" data-idx="${idx}">編集</button><button class="text-red-500 text-xs del-cnt" data-idx="${idx}">削除</button></div>`;
+                    con.appendChild(div);
+                });
+                
+                con.querySelectorAll('.edit-cnt').forEach(b => b.onclick = () => openContentModal(b.dataset.idx));
+                con.querySelectorAll('.del-cnt').forEach(b => b.onclick = async () => {
+                    if(confirm("削除しますか？")) {
+                        // Ensure index is number
+                        const idx = parseInt(b.dataset.idx);
+                        currentSettings.contents.splice(idx, 1);
+                        await saveSettings();
+                    }
+                });
+            }
+
+            function openContentModal(idxStr = null) {
+                const isNew = idxStr === null;
+                document.getElementById('contentFormTitle').textContent = isNew ? "新規作成" : "コンテンツ編集";
+                document.getElementById('editContentId').value = isNew ? 'new' : idxStr;
+                
+                const idInput = document.getElementById('editContentCustomId');
+                idInput.value = '';
+                idInput.disabled = !isNew; 
+                
+                if (isNew) {
+                    document.getElementById('editContentName').value = '';
+                    document.getElementById('editContentPrice').value = '';
+                    document.getElementById('editContentImage').value = '';
+                } else {
+                    const c = currentSettings.contents[idxStr];
+                    document.getElementById('editContentName').value = c.name;
+                    document.getElementById('editContentCustomId').value = c.id; 
+                    document.getElementById('editContentType').value = c.type;
+                    document.getElementById('editContentPrice').value = c.price;
+                    document.getElementById('editContentImage').value = c.imageUrl || '';
+                }
+                document.getElementById('contentModal').classList.remove('hidden');
+            }
+            
+            document.getElementById('closeContentModal').onclick = () => document.getElementById('contentModal').classList.add('hidden');
+            document.getElementById('openContentModalBtn').onclick = () => openContentModal();
+
+            document.getElementById('saveContentBtn').onclick = async () => {
+                const idxStr = document.getElementById('editContentId').value;
+                const name = document.getElementById('editContentName').value;
+                const type = document.getElementById('editContentType').value;
+                const price = document.getElementById('editContentPrice').value;
+                const img = document.getElementById('editContentImage').value;
+                const customId = document.getElementById('editContentCustomId').value.trim();
+                
+                if(!name || !price) return alert("必須項目を入力してください");
+                
+                let newId;
+                if (idxStr === 'new') {
+                     if (customId) {
+                         if (currentSettings.contents.some(c => c.id === customId)) {
+                             return alert("指定されたIDは既に使用されています。");
+                         }
+                         newId = customId;
+                     } else {
+                         newId = 'c' + Date.now();
+                     }
+                } else {
+                    newId = currentSettings.contents[idxStr].id;
+                }
+
+                const newData = {
+                    id: newId,
+                    name, type, price: parseInt(price), imageUrl: img
+                };
+                
+                if(idxStr === 'new') currentSettings.contents.push(newData);
+                else currentSettings.contents[idxStr] = newData;
+                
+                await saveSettings();
+                document.getElementById('contentModal').classList.add('hidden');
+            };
+
+            // 2. Schedule
+            document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
+            document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
+            document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
+
+            function renderSchedCalendar() {
+                const y = adminDate.getFullYear(), m = adminDate.getMonth();
+                document.getElementById('schedTitle').textContent = `${y}年 ${m+1}月`;
+                const grid = document.getElementById('schedGrid');
+                grid.innerHTML = '';
+                
+                const firstDay = new Date(y, m, 1).getDay();
+                const days = new Date(y, m+1, 0).getDate();
+                
+                for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+                
+                for(let d=1; d<=days; d++) {
+                    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const cell = document.createElement('div');
+                    cell.className = "bg-white min-h-[60px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer relative";
+                    cell.innerHTML = `<div class="font-bold text-slate-400 mb-1 text-xs">${d}</div>`;
+                    
+                    if(currentSettings.schedule[dateStr]) {
+                        currentSettings.schedule[dateStr].forEach(evt => {
+                            const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
+                            let col = "bg-blue-500";
+                            if(evt.grades && evt.grades.length > 0) {
+                                if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
+                                else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d] text-white";
+                                else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc] text-white";
+                            }
+                            const div = document.createElement('div');
+                            div.className = `${col} rounded px-1 mb-1 text-[10px] truncate border border-white`;
+                            div.textContent = `${evt.startTime} ${c.name}`;
+                            cell.appendChild(div);
+                        });
+                    }
+                    cell.onclick = () => openScheduleModal(dateStr);
+                    grid.appendChild(cell);
+                }
+            }
+
+            function openScheduleModal(dateStr) {
+                selectedDateStr = dateStr; 
+                document.getElementById('modalDateDisplay').textContent = dateStr;
+                document.getElementById('scheduleModal').classList.remove('hidden');
+                
+                const sel = document.getElementById('schedContentSelect');
+                sel.innerHTML = '';
+                currentSettings.contents.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id; opt.textContent = `${c.name} (¥${c.price})`;
+                    sel.appendChild(opt);
+                });
+                
+                resetSchedForm();
+                renderTimeline();
+                renderDayList();
+            }
+
+            function renderTimeline() {
+                const tracks = document.getElementById('timelineTracks');
+                const axis = document.getElementById('timelineAxis');
+                tracks.innerHTML = ''; axis.innerHTML = '';
+                
+                const startHour = 9;
+                const endHour = 20;
+                const pxPerMin = 720 / ((endHour - startHour) * 60);
+
+                for(let h=9; h<=20; h++) {
+                    const top = (h-9)*60 * pxPerMin;
+                    const l = document.createElement('div');
+                    l.className = "absolute w-full text-center transform -translate-y-1/2";
+                    l.style.top = top + 'px'; l.textContent = `${h}:00`;
+                    axis.appendChild(l);
+                    
+                    const line = document.createElement('div');
+                    line.className = "absolute w-full border-t border-slate-200 pointer-events-none";
+                    line.style.top = top + 'px';
+                    tracks.appendChild(line);
+                }
+                
+                const evts = currentSettings.schedule[selectedDateStr] || [];
+                evts.forEach((evt, idx) => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
+                    const [sh, sm] = evt.startTime.split(':').map(Number);
+                    const [eh, em] = evt.endTime.split(':').map(Number);
+                    
+                    const sMin = (sh-9)*60 + sm;
+                    const eMin = (eh-9)*60 + em;
+                    const top = sMin * pxPerMin;
+                    const height = (eMin - sMin) * pxPerMin;
+                    
+                    const blk = document.createElement('div');
+                    let col = "bg-blue-500";
+                    if(evt.grades && evt.grades.length > 0) {
+                        if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                        else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
+                        else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
+                    }
+                    blk.className = `timeline-event-block ${col}`;
+                    blk.style.top = top+'px'; blk.style.height = `${Math.max(20, height)}px`;
+                    blk.style.left = '4px'; blk.style.right = '4px';
+                    blk.textContent = `${evt.startTime} ${c ? c.name : ''}`;
+                    blk.title = `${evt.startTime}-${evt.endTime} ${c ? c.name : ''}`;
+                    blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
+                    
+                    // Simple Drag
+                    blk.draggable = true;
+                    blk.ondragstart = (e) => {
+                        e.stopPropagation();
+                        draggingItemIndex = idx;
+                        const rect = blk.getBoundingClientRect();
+                        dragStartY = e.clientY - rect.top;
+                    };
+                    
+                    tracks.appendChild(blk);
+                });
+                
+                // Drop
+                const con = document.getElementById('timelineContainer');
+                con.ondragover = (e) => e.preventDefault();
+                con.ondrop = async (e) => {
+                    e.preventDefault();
+                    if(draggingItemIndex === null) return;
+                    
+                    const idx = draggingItemIndex;
+                    const rect = tracks.getBoundingClientRect();
+                    const y = e.clientY - rect.top - dragStartY; // Correct offset
+                    
+                    const mins = y / (720 / 660);
+                    const newTotal = 9*60 + mins;
+                    const rounded = Math.round(newTotal/10)*10;
+                    
+                    const h = Math.floor(rounded/60);
+                    const m = rounded%60;
+                    
+                    const evt = evts[idx];
+                    const [osh, osm] = evt.startTime.split(':').map(Number);
+                    const [oeh, oem] = evt.endTime.split(':').map(Number);
+                    const dur = (oeh*60+oem) - (osh*60+osm);
+                    
+                    const endTotal = rounded + dur;
+                    const eh = Math.floor(endTotal/60);
+                    const em = endTotal%60;
+                    
+                    if(h < 9 || eh > 20) return; // Bounds check
+
+                    evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+                    
+                    await saveSettings();
+                    renderTimeline();
+                    renderDayList();
+                    renderSchedCalendar();
+                    draggingItemIndex = null;
+                };
+                
+                // Click to add
+                con.onclick = (e) => {
+                    if(e.target.closest('.timeline-event-block')) return;
+                    const rect = tracks.getBoundingClientRect();
+                    const y = e.clientY - rect.top + con.scrollTop;
+                    const pxPerMin = 720 / 660;
+                    const mins = y / pxPerMin;
+                    const newTotal = 9*60 + mins;
+                    const rounded = Math.round(newTotal/10)*10;
+                    
+                    const h = Math.floor(rounded/60);
+                    const m = rounded%60;
+                    const eh = Math.floor((rounded+60)/60);
+                    const em = (rounded+60)%60;
+                    
+                    resetSchedForm();
+                    document.getElementById('schedStart').value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    document.getElementById('schedEnd').value = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+                };
+            }
+
+            function renderDayList() {
+                const list = document.getElementById('daySchedList');
+                list.innerHTML = '';
+                const evts = currentSettings.schedule[selectedDateStr] || [];
+                evts.forEach((evt, idx) => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
+                    const d = document.createElement('div');
+                    d.className = "flex justify-between items-center p-2 border rounded bg-white";
+                    d.innerHTML = `
+                        <div class="cursor-pointer" onclick="window.editSched(${idx})"><b>${evt.startTime}</b> ${c.name}</div>
+                        <div class="flex gap-1">
+                            <button class="text-blue-500 cp-btn" data-idx="${idx}">複製</button>
+                            <button class="text-red-500 del-s-btn" data-idx="${idx}">削除</button>
+                        </div>
+                    `;
+                    list.appendChild(d);
+                });
+                
+                list.querySelectorAll('.cp-btn').forEach(b => b.onclick = (e) => {
+                    e.stopPropagation();
+                    scheduleToCopy = evts[b.dataset.idx];
+                    document.getElementById('copyDialog').classList.remove('hidden');
+                });
+                list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
+                    e.stopPropagation();
+                    if(confirm("削除しますか？")) {
+                        currentSettings.schedule[selectedDateStr].splice(b.dataset.idx, 1);
+                        await saveSettings();
+                        renderTimeline(); renderDayList(); renderSchedCalendar();
+                    }
+                });
+            }
+
+            window.editSched = (idx) => {
+                const evt = currentSettings.schedule[selectedDateStr][idx];
+                document.getElementById('schedEditIndex').value = idx;
+                document.getElementById('schedContentSelect').value = evt.contentId;
+                document.getElementById('schedStart').value = evt.startTime;
+                document.getElementById('schedEnd').value = evt.endTime;
+                document.getElementById('schedCap').value = evt.capacity;
+                document.querySelectorAll('.sched-grade').forEach(c => c.checked = evt.grades && evt.grades.includes(c.value));
+                document.getElementById('schedFormTitle').textContent = "枠を編集";
+                document.getElementById('schedSaveBtn').textContent = "更新";
+                document.getElementById('schedDeleteBtn').classList.remove('hidden');
+                document.getElementById('schedCancelBtn').classList.remove('hidden');
+            };
+
+            const resetSchedForm = () => {
+                document.getElementById('schedEditIndex').value = -1;
+                document.getElementById('schedStart').value = '';
+                document.getElementById('schedEnd').value = '';
+                document.getElementById('schedCap').value = 5;
+                document.querySelectorAll('.sched-grade').forEach(c => c.checked = false);
+                document.getElementById('schedFormTitle').textContent = "新規枠を追加";
+                document.getElementById('schedSaveBtn').textContent = "保存";
+                document.getElementById('schedDeleteBtn').classList.add('hidden');
+                document.getElementById('schedCancelBtn').classList.add('hidden');
+            };
+            document.getElementById('schedCancelBtn').onclick = resetSchedForm;
+
+            document.getElementById('schedSaveBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('schedEditIndex').value);
+                const cid = document.getElementById('schedContentSelect').value;
+                const start = document.getElementById('schedStart').value;
+                const end = document.getElementById('schedEnd').value;
+                const cap = document.getElementById('schedCap').value;
+                const gr = Array.from(document.querySelectorAll('.sched-grade:checked')).map(c=>c.value);
+                
+                if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
+                
+                const newEvt = {
+                    id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
+                    contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
+                };
+                
+                if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
+                
+                if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
+                else currentSettings.schedule[selectedDateStr].push(newEvt);
+                
+                currentSettings.schedule[selectedDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
+                
+                await saveSettings();
+                renderTimeline(); renderDayList(); renderSchedCalendar();
+                resetSchedForm();
+            };
+            
+            document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
+            
+            document.getElementById('execCopyBtn').onclick = async () => {
+                const d = document.getElementById('copyDate').value;
+                if(!d) return;
+                if(!currentSettings.schedule[d]) currentSettings.schedule[d] = [];
+                currentSettings.schedule[d].push({...scheduleToCopy, id: 's'+Date.now()});
+                await saveSettings();
+                document.getElementById('copyDialog').classList.add('hidden');
+                showToast("複製しました");
+                renderSchedCalendar();
+            };
+
+            // 3. Settings Save
+            document.getElementById('schoolSettingsForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                currentSettings.schoolName = fd.get('schoolName');
+                currentSettings.address = fd.get('address');
+                currentSettings.phoneNumber = fd.get('phoneNumber');
+                currentSettings.pageTitle = fd.get('pageTitle');
+                currentSettings.pageDescription = fd.get('pageDescription');
+                currentSettings.headerImageUrl = fd.get('headerImageUrl');
+                await saveSettings();
+                
+                // Update School List meta
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { id: currentSchoolId, name: currentSettings.schoolName }, {merge: true});
+                showToast("保存しました");
+            };
+
+            // 4. Dashboard & Booking List (Read-only view)
+            function renderDashboard() {
+                const total = allBookings.length;
+                document.getElementById('totalBookings').textContent = total;
+                const m = new Date();
+                const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+                document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
+                if(allBookings.length > 0) {
+                    const last = allBookings.sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)[0];
+                    document.getElementById('latestBooking').textContent = `${last.childName}様 (${last.date})`;
+                }
+                
+                document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
+                document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
+                renderAdminDashboard();
+            }
+
+            function renderAdminDashboard() {
+                 const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
+                 document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
+                 const grid = document.getElementById('dashGrid');
+                 grid.innerHTML = '';
+                 
+                 const firstDay = new Date(y, m, 1).getDay();
+                 const days = new Date(y, m+1, 0).getDate();
+                 
+                 for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+                 
+                 for(let d=1; d<=days; d++) {
+                     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                     const cell = document.createElement('div');
+                     cell.className = "bg-white dashboard-calendar-cell min-h-[50px] border-r border-b p-1";
+                     cell.innerHTML = `<div class="text-xs font-bold text-slate-500 mb-1">${d}</div>`;
+                     
+                     if(currentSettings.schedule[dateStr]) {
+                         currentSettings.schedule[dateStr].forEach(evt => {
+                             const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
+                             const count = allBookings.filter(b => b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId).length;
+                             const remaining = Math.max(0, parseInt(evt.capacity) - count);
+                             
+                             const item = document.createElement('div');
+                             let col = "bg-gray-400";
+                             if(evt.grades && evt.grades.length > 0) {
+                                 if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                                 else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
+                                 else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
+                             }
+                             item.className = `dashboard-event-item ${col}`;
+                             item.innerHTML = `<div class="font-bold">${evt.startTime}</div><div class="truncate">${c.name}</div><div class="flex justify-between items-center mt-1"><span class="font-bold">予約:${count}/${evt.capacity}</span><span class="text-xs bg-white text-slate-600 px-1 rounded font-bold">残:${remaining}</span></div>`;
+                             cell.appendChild(item);
+                          });
+                      }
+                      grid.appendChild(cell);
+                  }
+            }
+            
+            function renderBookingTable() {
+                const tbody = document.getElementById('bookingTableBody');
+                tbody.innerHTML = '';
+                allBookings.sort((a,b) => b.date.localeCompare(a.date)).forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">${b.date} ${b.startTime}</td>
+                        <td class="px-6 py-4">${b.courseName}</td>
+                        <td class="px-6 py-4 font-bold">${b.childName} <span class="text-xs font-normal">(${b.parentName})</span></td>
+                        <td class="px-6 py-4 text-xs">${b.email}<br>${b.phone}</td>
+                        <td class="px-6 py-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">確定</span></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Utils
+            async function saveSettings() {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
+            }
+            
+            function showToast(msg) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0');
+                setTimeout(() => t.classList.add('opacity-0'), 3000);
+            }
+
+            document.getElementById('backToSchoolSelectBtn').onclick = () => {
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
+                
+                document.getElementById('schoolAdminView').classList.add('hidden');
+                document.getElementById('schoolSelectionView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
+                document.getElementById('currentSchoolNameDisplay').classList.add('hidden');
+                document.getElementById('previewPageBtn').classList.add('hidden');
+                currentSchoolId = null;
+            };
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('border-blue-600', 'text-blue-600');
+                        b.classList.add('border-transparent', 'text-slate-500');
+                    });
+                    btn.classList.remove('border-transparent', 'text-slate-500');
+                    btn.classList.add('border-blue-600', 'text-blue-600');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+                    
+                    if(btn.dataset.tab === 'dashboard') renderDashboard(); // Refresh
+                };
             });
-            window.scrollTo({top:0, behavior:'smooth'});
-        };
 
-        initFirebase();
-    });
+            // Add School
+            document.getElementById('addSchoolForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('newSchoolName').value;
+                const id = document.getElementById('newSchoolId').value;
+                if(schools.some(s=>s.id===id)) return alert("ID重複");
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', id), { name, id });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), { 
+                    schoolName: name, schoolId: id, contents: [], schedule: {} 
+                });
+                document.getElementById('addSchoolModal').classList.add('hidden');
+                e.target.reset();
+            };
+
+            initFirebase();
+        });
     </script>
 </body>
 </html>
