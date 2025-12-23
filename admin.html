@@ -438,24 +438,14 @@
             let adminDate = new Date();
             let selectedDateStr = "";
             let scheduleToCopy = null;
-            let unsubscribeSettings = null; // リスナー解除用
-            let unsubscribeBookings = null; // リスナー解除用
+            let unsubscribeSettings = null; 
+            let unsubscribeBookings = null; 
 
             const initFirebase = async () => {
-                // Firebase config logic here (same as before)
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
-                if (typeof __firebase_config !== 'undefined') Object.assign(config, JSON.parse(__firebase_config));
-                if (typeof __app_id !== 'undefined') appId = __app_id;
-
                 const app = initializeApp(config);
                 auth = getAuth(app);
                 db = getFirestore(app);
-                
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
-                }
                 
                 // Login Flow
                 document.getElementById('loginForm').onsubmit = async (e) => {
@@ -498,7 +488,6 @@
                 onSnapshot(masterRef, (snap) => {
                     masterContents = [];
                     snap.forEach(d => masterContents.push({id:d.id, ...d.data()}));
-                    // Removed auto-recreation logic for defaults
                     renderHqContentList();
                 });
             };
@@ -531,7 +520,6 @@
             };
 
             const selectSchool = (id) => {
-                // 前のリスナーがあれば解除
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
 
@@ -577,7 +565,7 @@
             // --- Features ---
             
             // 1. Content Management
-            // HQ Content List Logic - FIX: Ensure buttons work and use renderHqContentList to unify logic
+            // HQ Content List Logic
             const renderHqContentList = () => {
                 const list = document.getElementById('hqMasterList');
                 if(!list) return;
@@ -599,7 +587,6 @@
                     list.appendChild(d);
                 });
                 
-                // イベントリスナー設定
                 list.querySelectorAll('.edit-hq').forEach(b => b.onclick = (e) => {
                     e.stopPropagation();
                     openHqFormModal(b.dataset.id);
@@ -671,7 +658,6 @@
             }
 
             document.getElementById('backToSchoolSelectBtn').onclick = () => {
-                // リスナー解除
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 
