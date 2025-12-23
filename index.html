@@ -610,7 +610,8 @@
             pendingBookingData = {
                 schoolId: currentSchoolId,
                 schoolName: currentSettings.schoolName,
-                date: selectedDate.toISOString().split('T')[0],
+                // ローカル時間の日付文字列を生成 (YYYY-MM-DD)
+                date: `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`,
                 startTime: selectedStartTime,
                 contentId: selectedContent.id,
                 courseName: selectedContent.name,
@@ -681,4 +682,3 @@
     </script>
 </body>
 </html>
-
