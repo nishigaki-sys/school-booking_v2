@@ -119,18 +119,11 @@
             </nav>
 
             <div class="max-w-7xl mx-auto px-4 py-8">
-                <!-- KPIs -->
+                <!-- KPIs (固定) -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase">全校舎 予約総数</h3>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">全校舎 予約総数 (累計)</h3>
                         <p class="text-4xl font-black text-slate-700 mt-2" id="gTotalBookings">-</p>
-                    </div>
-                    <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase">今月の予約数</h3>
-                        <div class="flex items-end gap-2">
-                            <p class="text-4xl font-black text-indigo-600 mt-2" id="gMonthBookings">-</p>
-                            <span class="text-xs text-slate-400 mb-1.5" id="gMonthLabel"></span>
-                        </div>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-xs font-bold text-slate-400 uppercase">登録校舎数</h3>
@@ -146,12 +139,47 @@
                     </div>
                 </div>
 
+                <!-- 期間指定集計機能 -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+                    <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                        <h3 class="text-lg font-bold text-slate-700 flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                            期間指定分析
+                        </h3>
+                        <div class="flex flex-wrap items-center gap-2 text-sm bg-slate-50 p-2 rounded-lg border border-slate-100">
+                            <input type="date" id="gStatsStartDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <span class="text-slate-400 font-bold">～</span>
+                            <input type="date" id="gStatsEndDate" class="p-2 border border-slate-300 rounded focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <button id="calcGlobalStatsBtn" class="bg-indigo-600 text-white font-bold py-2 px-6 rounded hover:bg-indigo-700 transition shadow-sm">集計実行</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 期間内KPI -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-6">
+                        <div class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-100">
+                            <p class="text-xs font-bold text-indigo-400 uppercase mb-1">期間内 予約合計</p>
+                            <p class="text-3xl font-black text-indigo-700" id="gPeriodBookingCount">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">予約獲得校舎数</p>
+                            <p class="text-3xl font-black text-slate-700" id="gPeriodActiveSchools">-</p>
+                        </div>
+                        <div class="text-center p-4 bg-slate-50 rounded-lg border border-slate-100">
+                            <p class="text-xs font-bold text-slate-400 uppercase mb-1">最も予約が多い日</p>
+                            <p class="text-xl font-bold text-slate-700" id="gPeriodPeakDay">-</p>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
                     <!-- Chart: Bookings by School -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="font-bold text-slate-700 mb-4 flex items-center">
-                            <span class="w-2 h-6 bg-indigo-500 rounded mr-2"></span>
-                            校舎別 予約獲得ランキング (累計)
+                        <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <span class="w-2 h-6 bg-indigo-500 rounded mr-2"></span>
+                                校舎別 予約獲得ランキング
+                            </div>
+                            <span class="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-1 rounded">指定期間の集計</span>
                         </h3>
                         <div class="relative w-full h-80">
                             <canvas id="schoolComparisonChart"></canvas>
@@ -162,7 +190,7 @@
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-[400px]">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center">
                             <span class="w-2 h-6 bg-green-500 rounded mr-2"></span>
-                            最新の予約状況 (全校舎)
+                            最新の予約状況 (全校舎タイムライン)
                         </h3>
                         <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="globalRecentBookings">
                             <!-- JS populated -->
@@ -565,6 +593,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
+            let globalAllBookings = []; // Added for Global Dashboard
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
             let selectedDateStr = "";
@@ -644,7 +673,7 @@
             document.getElementById('openGlobalDashBtn').onclick = () => {
                 document.getElementById('schoolSelectionView').classList.add('hidden');
                 document.getElementById('globalDashboardView').classList.remove('hidden');
-                document.getElementById('backToSchoolSelectBtn').classList.add('hidden'); // Ensure back button logic is clean
+                document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
                 initGlobalDashboard();
             };
 
@@ -654,91 +683,119 @@
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
             };
 
-            const initGlobalDashboard = () => {
-                // Fetch all bookings from all schools
+            // Init Date inputs for Global
+            const initGlobalStatsDate = () => {
                 const today = new Date();
-                const mPrefix = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}`;
-                document.getElementById('gMonthLabel').textContent = `${today.getMonth()+1}月度`;
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const firstDay = new Date(y, m, 1);
+                const lastDay = new Date(y, m + 1, 0);
+                const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                document.getElementById('gStatsStartDate').value = fmt(firstDay);
+                document.getElementById('gStatsEndDate').value = fmt(lastDay);
+            };
 
+            const initGlobalDashboard = () => {
+                initGlobalStatsDate();
+                
                 // Real-time listener for ALL bookings
                 unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
-                    const bookings = [];
-                    snap.forEach(doc => bookings.push({id: doc.id, ...doc.data()}));
-                    
-                    // 1. Total Bookings
-                    document.getElementById('gTotalBookings').textContent = bookings.length;
-
-                    // 2. Month Bookings
-                    const monthBookings = bookings.filter(b => b.date.startsWith(mPrefix));
-                    document.getElementById('gMonthBookings').textContent = monthBookings.length;
-
-                    // 3. Total Schools
-                    document.getElementById('gTotalSchools').textContent = schools.length;
-
-                    // 4. Recent Actions (24h)
-                    const yesterday = new Date(Date.now() - 86400000);
-                    const recentCount = bookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
-                    document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
-
-                    // 5. Chart: Bookings by School
-                    const schoolCounts = {};
-                    schools.forEach(s => schoolCounts[s.name] = 0); // Init
-                    bookings.forEach(b => {
-                        const sName = b.schoolName || 'Unknown';
-                        schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
-                    });
-
-                    // Sort by count desc
-                    const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]);
-                    
-                    if (schoolComparisonChart) schoolComparisonChart.destroy();
-                    const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
-                    schoolComparisonChart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: sortedSchools.map(s => s[0]),
-                            datasets: [{
-                                label: '予約数',
-                                data: sortedSchools.map(s => s[1]),
-                                backgroundColor: '#6366f1',
-                                borderRadius: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: { legend: { display: false } },
-                            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                        }
-                    });
-
-                    // 6. Recent List Stream
-                    const list = document.getElementById('globalRecentBookings');
-                    list.innerHTML = '';
-                    const sortedBookings = [...bookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50); // Top 50
-                    
-                    if (sortedBookings.length === 0) {
-                        list.innerHTML = '<div class="text-center text-slate-400 py-4">データがありません</div>';
-                    } else {
-                        sortedBookings.forEach(b => {
-                            const dateObj = b.createdAt ? b.createdAt.toDate() : new Date();
-                            const timeStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-                            
-                            const div = document.createElement('div');
-                            div.className = "p-3 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 transition";
-                            div.innerHTML = `
-                                <div class="flex justify-between items-start">
-                                    <span class="text-xs font-bold text-slate-400">${timeStr}</span>
-                                    <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${b.schoolName}</span>
-                                </div>
-                                <div class="font-bold text-slate-700 text-sm mt-1">${b.childName} 様</div>
-                                <div class="text-xs text-slate-500 mt-0.5">${b.courseName} (${b.date} ${b.startTime})</div>
-                            `;
-                            list.appendChild(div);
-                        });
-                    }
+                    globalAllBookings = [];
+                    snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
+                    updateGlobalStats(); // Update visuals
                 });
             };
+
+            document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
+
+            function updateGlobalStats() {
+                const sDate = document.getElementById('gStatsStartDate').value;
+                const eDate = document.getElementById('gStatsEndDate').value;
+                
+                // Base KPIs (Always visible)
+                document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
+                document.getElementById('gTotalSchools').textContent = schools.length;
+                const yesterday = new Date(Date.now() - 86400000);
+                const recentCount = globalAllBookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
+                document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
+
+                // Period Filtered Data
+                let periodBookings = globalAllBookings;
+                if(sDate && eDate) {
+                    // Filter by Event Date (b.date is YYYY-MM-DD string)
+                    periodBookings = globalAllBookings.filter(b => b.date >= sDate && b.date <= eDate);
+                }
+
+                // 1. Period KPIs
+                document.getElementById('gPeriodBookingCount').textContent = periodBookings.length;
+                const activeSchoolIds = new Set(periodBookings.map(b => b.schoolId));
+                document.getElementById('gPeriodActiveSchools').textContent = activeSchoolIds.size;
+                
+                // Find Peak Day
+                const dateCounts = {};
+                periodBookings.forEach(b => dateCounts[b.date] = (dateCounts[b.date] || 0) + 1);
+                const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
+                document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
+
+                // 2. Chart: Bookings by School (Filtered)
+                const schoolCounts = {};
+                schools.forEach(s => schoolCounts[s.name] = 0); // Init all schools
+                periodBookings.forEach(b => {
+                    const sName = b.schoolName || 'Unknown';
+                    schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
+                });
+
+                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); // Sort Desc
+                
+                if (schoolComparisonChart) schoolComparisonChart.destroy();
+                const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
+                schoolComparisonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedSchools.map(s => s[0]),
+                        datasets: [{
+                            label: '予約数',
+                            data: sortedSchools.map(s => s[1]),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+
+                // 3. Recent List Stream (Global, always show latest 50 regardless of filter)
+                const list = document.getElementById('globalRecentBookings');
+                list.innerHTML = '';
+                // Sort by CreatedAt Desc
+                const sortedRecent = [...globalAllBookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50);
+                
+                if (sortedRecent.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-400 py-4">データがありません</div>';
+                } else {
+                    sortedRecent.forEach(b => {
+                        const dateObj = b.createdAt ? b.createdAt.toDate() : new Date();
+                        const timeStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+                        
+                        const div = document.createElement('div');
+                        div.className = "p-3 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 transition";
+                        div.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-bold text-slate-400">${timeStr}</span>
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${b.schoolName}</span>
+                            </div>
+                            <div class="font-bold text-slate-700 text-sm mt-1">${b.childName} 様</div>
+                            <div class="text-xs text-slate-500 mt-0.5">${b.courseName} (${b.date} ${b.startTime})</div>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
+            }
 
             // Stats & Chart Logic (School Specific)
             const initStatsDate = () => {
@@ -1120,7 +1177,7 @@
                 document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
                 document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
                 document.getElementById('previewPageBtn').classList.remove('hidden');
-                document.getElementById('previewPageBtn').href = `booking_page.html?school=${id}`;
+                document.getElementById('previewPageBtn').href = `html_page.html?school=${id}`;
                 
                 // Load Settings
                 unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
