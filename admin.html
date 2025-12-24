@@ -1240,7 +1240,7 @@
                     name, 
                     type, 
                     price: parseInt(price), 
-                    imageUrl: img,
+                    imageUrl: img, 
                     description,
                     duration,
                     notes
@@ -2680,8 +2680,16 @@
                 
                 if (!currentSchoolId) return;
 
-                // Base URL: Assuming current page with query params
-                const baseUrl = `${window.location.origin}${window.location.pathname}?school=${currentSchoolId}`;
+                // Base URL: Replace current filename with 'index.html'
+                let path = window.location.pathname;
+                const lastSlash = path.lastIndexOf('/');
+                if (lastSlash !== -1) {
+                    path = path.substring(0, lastSlash + 1) + 'index.html';
+                } else {
+                    path = '/index.html';
+                }
+                const baseUrl = `${window.location.origin}${path}?school=${currentSchoolId}`;
+                
                 let finalUrl = baseUrl;
 
                 const params = [];
