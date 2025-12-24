@@ -262,7 +262,7 @@
                     <!-- 集計パネル -->
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 h-full">
                         <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                             期間指定集計
                         </h3>
                         <div class="flex flex-wrap items-end gap-3 text-sm mb-4">
@@ -843,6 +843,58 @@
             });
         };
 
+        const loadCommonContents = (db, appId) => {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
+                if (snap.exists()) {
+                    commonContents = snap.data().contents || [];
+                } else {
+                    commonContents = [];
+                }
+                // Call render only if the modal is open, or it will just update the array
+                const container = document.getElementById('commonContentListContainer');
+                if (container && !document.getElementById('commonContentsModal').classList.contains('hidden')) {
+                    renderCommonContentsList();
+                }
+            });
+        };
+        
+        // Define renderCommonContentsList globally or attach to window to avoid scope issues
+        window.renderCommonContentsList = () => {
+            const con = document.getElementById('commonContentListContainer');
+            con.innerHTML = '';
+            if(commonContents.length === 0) {
+                con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
+                return;
+            }
+            commonContents.forEach((c, idx) => {
+                const div = document.createElement('div');
+                div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                div.innerHTML = `
+                    <div>
+                        <div class="font-bold text-slate-700">${c.name}</div>
+                        <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button class="text-blue-500 text-xs font-bold edit-common" data-idx="${idx}">編集</button>
+                        <button class="text-red-500 text-xs font-bold del-common" data-idx="${idx}">削除</button>
+                    </div>
+                `;
+                con.appendChild(div);
+            });
+
+            con.querySelectorAll('.edit-common').forEach(b => b.onclick = () => window.editCommonContent(b.dataset.idx));
+            con.querySelectorAll('.del-common').forEach(b => b.onclick = async () => {
+                if(confirm("削除しますか？")) {
+                    commonContents.splice(b.dataset.idx, 1);
+                    // We need db and appId here. Since this is UI logic, we assume initFirebase has run.
+                    // To be safe, we can capture them from closure if we move this inside, but for now let's assume they are available via module scope if we were inside.
+                    // Since we moved this out, we can't access db/appId easily unless we make them global or pass them.
+                    // REFACTOR: Move these inside DOMContentLoaded but keep them hoisted/available.
+                }
+            });
+        };
+
+
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
@@ -879,6 +931,54 @@
                     return null;
                 }
             };
+            
+            // Re-define inside to access db/appId
+            const renderCommonContentsList = () => {
+                const con = document.getElementById('commonContentListContainer');
+                con.innerHTML = '';
+                if(commonContents.length === 0) {
+                    con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
+                    return;
+                }
+                commonContents.forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-700">${c.name}</div>
+                            <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-blue-500 text-xs font-bold edit-common" data-idx="${idx}">編集</button>
+                            <button class="text-red-500 text-xs font-bold del-common" data-idx="${idx}">削除</button>
+                        </div>
+                    `;
+                    con.appendChild(div);
+                });
+
+                con.querySelectorAll('.edit-common').forEach(b => b.onclick = () => editCommonContent(b.dataset.idx));
+                con.querySelectorAll('.del-common').forEach(b => b.onclick = async () => {
+                    if(confirm("削除しますか？")) {
+                        commonContents.splice(b.dataset.idx, 1);
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                        showToast("削除しました");
+                    }
+                });
+            };
+
+            const editCommonContent = (idx) => {
+                const c = commonContents[idx];
+                document.getElementById('editCommonIdx').value = idx;
+                document.getElementById('commonName').value = c.name;
+                document.getElementById('commonId').value = c.id;
+                document.getElementById('commonId').disabled = true; 
+                document.getElementById('commonType').value = c.type;
+                document.getElementById('commonPrice').value = c.price;
+                document.getElementById('commonImage').value = c.imageUrl || '';
+                document.getElementById('commonDescription').value = c.description || '';
+                document.getElementById('commonDuration').value = c.duration || '';
+                document.getElementById('commonNotes').value = c.notes || '';
+            }
 
             const initFirebase = async () => {
                 const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
@@ -889,7 +989,7 @@
                 await signInAnonymously(auth);
                 loadAllowedIps(db, appId); // Pass db and appId
                 fetchIpAddress();
-                loadCommonContents(); // Load Common Contents on init
+                loadCommonContents(db, appId); // Load Common Contents on init
 
                 // Login Flow
                 document.getElementById('loginForm').onsubmit = async (e) => {
@@ -1152,6 +1252,118 @@
                 });
                 document.getElementById('addSchoolModal').classList.add('hidden');
                 e.target.reset();
+            };
+            
+            document.getElementById('manageCommonContentsBtn').onclick = () => {
+                document.getElementById('commonContentsModal').classList.remove('hidden');
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+                document.getElementById('commonDescription').value = '';
+                document.getElementById('commonDuration').value = '';
+                document.getElementById('commonNotes').value = '';
+            };
+
+            document.getElementById('saveCommonContentBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('editCommonIdx').value);
+                const name = document.getElementById('commonName').value;
+                const idInput = document.getElementById('commonId').value.trim();
+                const type = document.getElementById('commonType').value;
+                const price = document.getElementById('commonPrice').value;
+                const img = document.getElementById('commonImage').value;
+                
+                const description = document.getElementById('commonDescription').value;
+                const duration = document.getElementById('commonDuration').value;
+                const notes = document.getElementById('commonNotes').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
+
+                let newId = idInput;
+                if (!newId) newId = 'c' + Date.now(); // Auto ID
+
+                const newContent = { 
+                    id: newId, 
+                    name, 
+                    type, 
+                    price: parseInt(price), 
+                    imageUrl: img,
+                    description,
+                    duration,
+                    notes
+                };
+
+                if (idx === -1) {
+                    // Add
+                    if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
+                    commonContents.push(newContent);
+                } else {
+                    // Update
+                    commonContents[idx] = newContent;
+                }
+
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                showToast("共通コンテンツを保存しました");
+                
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+            };
+            
+            // Import Logic
+            document.getElementById('openImportCommonModalBtn').onclick = () => {
+                const list = document.getElementById('importListContainer');
+                list.innerHTML = '';
+                if(commonContents.length === 0) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 p-2">共通コンテンツがありません。</p>';
+                } else {
+                    commonContents.forEach(c => {
+                        const label = document.createElement('label');
+                        label.className = "flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b last:border-0";
+                        label.innerHTML = `
+                            <input type="checkbox" class="import-check form-checkbox h-4 w-4 text-blue-600" value="${c.id}">
+                            <div class="text-sm">
+                                <div class="font-bold text-slate-700">${c.name}</div>
+                                <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                            </div>
+                        `;
+                        list.appendChild(label);
+                    });
+                }
+                document.getElementById('importCommonModal').classList.remove('hidden');
+            };
+
+            document.getElementById('execImportBtn').onclick = async () => {
+                const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
+                if(checked.length === 0) return alert("選択されていません");
+
+                let count = 0;
+                checked.forEach(id => {
+                    const target = commonContents.find(c => c.id === id);
+                    if(target) {
+                        // Check if ID exists in local
+                        if(!currentSettings.contents.some(lc => lc.id === target.id)) {
+                            currentSettings.contents.push({...target}); // Clone
+                            count++;
+                        }
+                    }
+                });
+
+                if(count > 0) {
+                    await saveSettings();
+                    showToast(`${count}件のコンテンツを取り込みました`);
+                    renderLocalContents(); // Update view
+                } else {
+                    alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
+                }
+                document.getElementById('importCommonModal').classList.add('hidden');
             };
 
             initFirebase();
