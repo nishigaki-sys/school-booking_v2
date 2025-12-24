@@ -236,6 +236,7 @@
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="booking-management">予約管理</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="inquiries">お問い合わせ</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="course-settings">体験会設定</button>
+                <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="url-generator">集客URL作成</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="school-settings">教室設定</button>
             </div>
 
@@ -252,8 +253,8 @@
                         <p class="text-3xl font-black text-blue-600 mt-2" id="monthBookings">0</p>
                     </div>
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase">直近の申込み</h3>
-                        <p class="text-lg font-bold text-slate-700 mt-2 truncate" id="latestBooking">-</p>
+                        <h3 class="text-xs font-bold text-slate-400 uppercase">今月の売上金額</h3>
+                        <p class="text-3xl font-black text-slate-700 mt-2" id="monthSales">¥0</p>
                     </div>
                 </div>
 
@@ -439,6 +440,48 @@
                             <div id="schedGrid" class="grid grid-cols-7 gap-px bg-slate-200"></div>
                         </div>
                         <p class="text-xs text-right mt-2 text-slate-400">日付をクリックして枠を追加</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: URL Generator (NEW) -->
+            <div id="tab-url-generator" class="tab-content hidden">
+                <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
+                    <h3 class="text-xl font-bold text-slate-700 mb-6 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+                        集客用URL作成ツール
+                    </h3>
+                    <p class="text-sm text-slate-500 mb-6">
+                        広告やSNS投稿用の計測パラメータ（UTM）付きURLを作成します。<br>
+                        ここで作成したURLを使用することで、「どの媒体から」「どのキャンペーンで」予約が入ったかを集計できます。
+                    </p>
+
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">参照元 (utm_source) <span class="text-red-500">*</span></label>
+                                <input type="text" id="utmSource" class="w-full p-2 border rounded text-sm" placeholder="例: instagram, google, flyer">
+                                <p class="text-[10px] text-slate-400 mt-1">流入元（インスタ、Google検索、チラシなど）</p>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-slate-600 mb-1">メディア (utm_medium)</label>
+                                <input type="text" id="utmMedium" class="w-full p-2 border rounded text-sm" placeholder="例: story, cpc, qr">
+                                <p class="text-[10px] text-slate-400 mt-1">媒体の種類（ストーリーズ、検索広告、QRコードなど）</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-600 mb-1">キャンペーン名 (utm_campaign)</label>
+                            <input type="text" id="utmCampaign" class="w-full p-2 border rounded text-sm" placeholder="例: spring_campaign_2025">
+                            <p class="text-[10px] text-slate-400 mt-1">特定のキャンペーンやプロモーション名</p>
+                        </div>
+
+                        <div class="pt-4 border-t mt-4">
+                            <label class="block text-xs font-bold text-slate-600 mb-2">生成されたURL</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="generatedUrl" class="flex-1 p-3 border border-indigo-200 bg-indigo-50 rounded text-sm text-slate-600 font-mono" readonly>
+                                <button id="copyUrlBtn" class="bg-indigo-600 text-white font-bold px-4 py-2 rounded hover:bg-indigo-700 transition whitespace-nowrap">コピー</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1066,18 +1109,18 @@
                 
                 // If a schedule is selected (it's not empty)
                 if (newScheduleVal) {
-                     const schedData = JSON.parse(newScheduleVal);
-                     // If date OR content/time changed from original
-                     const origDate = document.getElementById('originalDate').value;
-                     const origStart = document.getElementById('originalStartTime').value;
-                     const origContent = document.getElementById('originalContentId').value;
+                      const schedData = JSON.parse(newScheduleVal);
+                      // If date OR content/time changed from original
+                      const origDate = document.getElementById('originalDate').value;
+                      const origStart = document.getElementById('originalStartTime').value;
+                      const origContent = document.getElementById('originalContentId').value;
 
-                     if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
-                         updateData.date = newDate;
-                         updateData.startTime = schedData.startTime;
-                         updateData.contentId = schedData.contentId;
-                         updateData.courseName = schedData.courseName;
-                     }
+                      if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                          updateData.date = newDate;
+                          updateData.startTime = schedData.startTime;
+                          updateData.contentId = schedData.contentId;
+                          updateData.courseName = schedData.courseName;
+                      }
                 }
 
                 try {
@@ -2445,10 +2488,19 @@
                 const m = new Date();
                 const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
                 document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
-                if(allBookings.length > 0) {
-                    const last = allBookings.sort((a,b)=>b.createdAt?.seconds - a.createdAt?.seconds)[0];
-                    document.getElementById('latestBooking').textContent = `${last.childName}様 (${last.date})`;
-                }
+                
+                // 売上計算 (今月)
+                let monthSales = 0;
+                allBookings.forEach(b => {
+                    if(b.date.startsWith(mPrefix)) {
+                        // find content price
+                        const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
+                        if(content && content.price) {
+                            monthSales += parseInt(content.price);
+                        }
+                    }
+                });
+                document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
                 
                 document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
                 document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
@@ -2489,10 +2541,10 @@
                              item.className = `dashboard-event-item ${col}`;
                              item.innerHTML = `<div class="font-bold">${evt.startTime}</div><div class="truncate">${c.name}</div><div class="flex justify-between items-center mt-1"><span class="font-bold">予約:${count}/${evt.capacity}</span><span class="text-xs bg-white text-slate-600 px-1 rounded font-bold">残:${remaining}</span></div>`;
                              cell.appendChild(item);
-                          });
-                      }
-                      grid.appendChild(cell);
-                  }
+                           });
+                       }
+                       grid.appendChild(cell);
+                   }
             }
             
             function renderBookingTable() {
@@ -2586,18 +2638,18 @@
                 
                 // If a schedule is selected (it's not empty)
                 if (newScheduleVal) {
-                     const schedData = JSON.parse(newScheduleVal);
-                     // If date OR content/time changed from original
-                     const origDate = document.getElementById('originalDate').value;
-                     const origStart = document.getElementById('originalStartTime').value;
-                     const origContent = document.getElementById('originalContentId').value;
+                      const schedData = JSON.parse(newScheduleVal);
+                      // If date OR content/time changed from original
+                      const origDate = document.getElementById('originalDate').value;
+                      const origStart = document.getElementById('originalStartTime').value;
+                      const origContent = document.getElementById('originalContentId').value;
 
-                     if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
-                         updateData.date = newDate;
-                         updateData.startTime = schedData.startTime;
-                         updateData.contentId = schedData.contentId;
-                         updateData.courseName = schedData.courseName;
-                     }
+                      if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                          updateData.date = newDate;
+                          updateData.startTime = schedData.startTime;
+                          updateData.contentId = schedData.contentId;
+                          updateData.courseName = schedData.courseName;
+                      }
                 }
 
                 try {
@@ -2618,6 +2670,42 @@
                 } catch (err) {
                     alert("削除に失敗しました: " + err.message);
                 }
+            };
+
+            // URL Generator Logic (New)
+            const updateGeneratedUrl = () => {
+                const source = document.getElementById('utmSource').value.trim();
+                const medium = document.getElementById('utmMedium').value.trim();
+                const campaign = document.getElementById('utmCampaign').value.trim();
+                
+                if (!currentSchoolId) return;
+
+                // Base URL: Assuming current page with query params
+                const baseUrl = `${window.location.origin}${window.location.pathname}?school=${currentSchoolId}`;
+                let finalUrl = baseUrl;
+
+                const params = [];
+                if (source) params.push(`utm_source=${encodeURIComponent(source)}`);
+                if (medium) params.push(`utm_medium=${encodeURIComponent(medium)}`);
+                if (campaign) params.push(`utm_campaign=${encodeURIComponent(campaign)}`);
+
+                if (params.length > 0) {
+                    finalUrl += '&' + params.join('&');
+                }
+                
+                document.getElementById('generatedUrl').value = finalUrl;
+            };
+
+            ['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateGeneratedUrl);
+            });
+
+            document.getElementById('copyUrlBtn').onclick = () => {
+                const urlInput = document.getElementById('generatedUrl');
+                urlInput.select();
+                urlInput.setSelectionRange(0, 99999); 
+                document.execCommand('copy'); 
+                showToast("URLをコピーしました");
             };
 
             // Utils
@@ -2657,6 +2745,7 @@
                     document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
                     
                     if(btn.dataset.tab === 'dashboard') renderDashboard(); // Refresh
+                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); // Init URL gen
                 };
             });
 
