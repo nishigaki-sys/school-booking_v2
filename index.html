@@ -19,7 +19,7 @@
         .slide-in-up { animation: slideInUp 0.5s ease-out forwards; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
         @keyframes slideInUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        #bookingForm, #timeSlotsContainer, #calendarContainer { display: none; }
+        #bookingForm, #timeSlotsContainer, #calendarContainer, #inquirySection { display: none; }
         .loader { border: 4px solid #f3f3f3; border-top: 4px solid #3498db; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; margin: 20px auto; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -108,6 +108,18 @@
                         <span class="flex items-center"><span class="text-blue-500 font-bold mr-1">○</span> 空きあり</span>
                         <span class="flex items-center"><span class="text-slate-400 font-bold mr-1">×</span> 満席</span>
                     </div>
+
+                    <!-- お問い合わせ誘導セクション (NEW) -->
+                    <div id="inquirySection" class="mt-12 pt-8 border-t border-slate-100 text-center">
+                        <p class="text-sm text-slate-500 mb-3 font-bold">ご希望の日程が見つからない場合</p>
+                        <button id="openInquiryModalBtn" class="inline-flex items-center justify-center px-6 py-3 border-2 border-slate-300 text-slate-600 bg-white rounded-xl hover:bg-slate-50 hover:border-slate-400 transition font-bold text-sm shadow-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            日程リクエスト・お問い合わせ
+                        </button>
+                        <p class="text-xs text-slate-400 mt-2">※ご希望の曜日や時間帯をお知らせください</p>
+                    </div>
                 </div>
 
                 <!-- 時間選択 -->
@@ -124,7 +136,7 @@
                         </div>
                     </div>
 
-                    <!-- 体験内容詳細 (NEW) -->
+                    <!-- 体験内容詳細 -->
                     <div id="selectedContentDetails" class="bg-white border border-slate-200 rounded-xl p-6 mb-8 hidden shadow-sm">
                         <div id="detailsDescriptionContainer" class="mb-4 hidden">
                             <h4 class="text-sm font-bold text-slate-700 mb-2 border-l-4 border-teal-500 pl-2">体験内容</h4>
@@ -196,6 +208,39 @@
         </div>
     </div>
 
+    <!-- お問い合わせモーダル (NEW) -->
+    <div id="inquiryModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60] hidden">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
+            <h3 class="text-lg font-bold mb-2 text-slate-700">日程リクエスト・お問い合わせ</h3>
+            <p class="text-xs text-slate-500 mb-4">
+                ご希望の日程や、ご質問がございましたら下記フォームよりお送りください。<br>
+                担当者より折り返しご連絡いたします。
+            </p>
+            <form id="inquiryForm" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">保護者様のお名前</label>
+                    <input type="text" id="inqName" class="w-full p-3 border border-slate-300 rounded-lg text-sm" required placeholder="例: 山田 太郎">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">メールアドレス</label>
+                    <input type="email" id="inqEmail" class="w-full p-3 border border-slate-300 rounded-lg text-sm" required placeholder="example@email.com">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">電話番号</label>
+                    <input type="tel" id="inqPhone" class="w-full p-3 border border-slate-300 rounded-lg text-sm" required placeholder="090-1234-5678">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">ご希望の曜日・時間など</label>
+                    <textarea id="inqContent" class="w-full p-3 border border-slate-300 rounded-lg text-sm h-24" required placeholder="例: 平日の17時以降、または土曜日の午前中を希望します。"></textarea>
+                </div>
+                <div class="flex justify-end gap-2 pt-2">
+                    <button type="button" onclick="document.getElementById('inquiryModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm font-bold text-slate-600">キャンセル</button>
+                    <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-700 shadow">送信する</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- 完了モーダル -->
     <div id="successModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 hidden">
         <div class="bg-white rounded-2xl p-8 max-w-md w-full text-center slide-in-up">
@@ -204,9 +249,9 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                 </svg>
             </div>
-            <h2 class="text-2xl font-bold mb-2">ご予約ありがとうございます！</h2>
-            <p class="text-slate-600 mb-4">体験レッスンの予約が完了しました。<br>ご登録いただきましたメールアドレス宛にお申込み内容のメールを送付しました。</p>
-            <div class="bg-slate-50 p-4 rounded-lg text-left mb-6">
+            <h2 class="text-2xl font-bold mb-2">送信完了</h2>
+            <p class="text-slate-600 mb-4" id="successMessage">ご予約ありがとうございます！<br>内容確認メールをお送りしました。</p>
+            <div class="bg-slate-50 p-4 rounded-lg text-left mb-6" id="successDetailArea">
                 <h4 class="font-bold mb-2 border-b border-slate-200 pb-2 text-slate-700">予約内容</h4>
                 <div id="modal-summary" class="text-sm space-y-2 text-slate-600"></div>
             </div>
@@ -457,8 +502,63 @@
                 renderUserCalendar();
                 document.getElementById('timeSlotsContainer').innerHTML = '';
                 document.getElementById('bookingForm').style.display = 'none';
+                document.getElementById('selectedContentDetails').classList.add('hidden'); // 詳細を隠す
+                document.getElementById('inquirySection').style.display = 'block'; // お問い合わせ表示
             }
         });
+
+        // Inquiry Modal Logic
+        document.getElementById('openInquiryModalBtn').onclick = () => {
+             document.getElementById('inquiryModal').classList.remove('hidden');
+        };
+
+        document.getElementById('inquiryForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            btn.disabled = true;
+            btn.textContent = "送信中...";
+
+            // UTMパラメータ取得 (問い合わせにも付与)
+            const urlParams = new URLSearchParams(window.location.search);
+            const utmSource = urlParams.get('utm_source');
+            const utmMedium = urlParams.get('utm_medium');
+            const utmCampaign = urlParams.get('utm_campaign');
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'inquiries'), {
+                    schoolId: currentSchoolId,
+                    schoolName: currentSettings.schoolName,
+                    name: document.getElementById('inqName').value,
+                    email: document.getElementById('inqEmail').value,
+                    phone: document.getElementById('inqPhone').value,
+                    preferredSchedule: document.getElementById('inqContent').value,
+                    grade: selectedGrade || 'unselected',
+                    // 流入経路情報
+                    sourceType: 'web_inquiry',
+                    utmSource: utmSource || null,
+                    utmMedium: utmMedium || null,
+                    utmCampaign: utmCampaign || null,
+                    createdAt: serverTimestamp()
+                });
+                
+                document.getElementById('inquiryModal').classList.add('hidden');
+                document.getElementById('inquiryForm').reset();
+                
+                // Show Success
+                document.getElementById('successMessage').innerHTML = "お問い合わせを受け付けました。<br>担当者より折り返しご連絡いたします。";
+                document.getElementById('successDetailArea').style.display = 'none'; // 詳細エリアは隠す
+                document.getElementById('successModal').classList.remove('hidden');
+                
+                logEvent('inquiry_submitted');
+
+            } catch (err) {
+                alert("送信に失敗しました。時間をおいて再度お試しください。");
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "送信する";
+            }
+        };
+
 
         // Calendar
         document.getElementById('prevMonth').onclick = () => { viewDate.setMonth(viewDate.getMonth()-1); renderUserCalendar(); };
@@ -609,7 +709,7 @@
                                 bImg.style.display = 'none';
                             }
 
-                            // --- 詳細情報の表示ロジック (NEW) ---
+                            // --- 詳細情報の表示ロジック ---
                             const detailsContainer = document.getElementById('selectedContentDetails');
                             const descContainer = document.getElementById('detailsDescriptionContainer');
                             const durContainer = document.getElementById('detailsDurationContainer');
@@ -737,6 +837,8 @@
                 <p><strong>日時:</strong> ${pendingBookingData.date.replace(/-/g,'年').replace(/-/,'月').replace(/-/,'日')} ${pendingBookingData.startTime} [${pendingBookingData.courseName}]</p>
                 <p><strong>保護者様:</strong> ${pendingBookingData.parentName} 様</p>
             `;
+            document.getElementById('successMessage').innerHTML = "ご予約ありがとうございます！<br>内容確認メールをお送りしました。";
+            document.getElementById('successDetailArea').style.display = 'block';
             document.getElementById('successModal').classList.remove('hidden');
             btn.disabled = false;
             btn.textContent = "予約を確定する";
@@ -752,6 +854,7 @@
                 const conf = GRADE_CONFIG[btn.dataset.grade];
                 btn.className = `grade-btn w-full text-md font-bold py-4 px-4 bg-white border-2 ${conf.btnBorder} ${conf.btnText} rounded-xl ${conf.btnHover} transition-transform hover:scale-105`;
             });
+            document.getElementById('inquirySection').style.display = 'none';
             window.scrollTo({top:0, behavior:'smooth'});
         };
 
