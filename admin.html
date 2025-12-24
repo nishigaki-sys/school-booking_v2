@@ -630,6 +630,13 @@
                         </select>
                         <input type="number" id="commonPrice" placeholder="金額" class="w-24 p-2 border rounded text-sm">
                     </div>
+                    <!-- 新規追加項目 -->
+                    <textarea id="commonDescription" placeholder="体験内容" class="w-full p-2 border rounded text-sm h-20"></textarea>
+                    <div class="flex gap-2">
+                        <input type="text" id="commonDuration" placeholder="所要時間 (例: 90分)" class="flex-1 p-2 border rounded text-sm">
+                    </div>
+                    <textarea id="commonNotes" placeholder="注意事項" class="w-full p-2 border rounded text-sm h-16"></textarea>
+                    
                     <input type="text" id="commonImage" placeholder="画像URL" class="w-full p-2 border rounded text-sm">
                     <button id="saveCommonContentBtn" class="w-full bg-orange-600 text-white font-bold py-2 rounded">保存</button>
                 </div>
@@ -654,7 +661,7 @@
 
     <!-- コンテンツ作成 (校舎独自) -->
     <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl">
+        <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
                 <span id="contentFormTitle">新規作成</span>
                 <button id="closeContentModal" class="text-slate-400 hover:text-slate-600">×</button>
@@ -665,17 +672,40 @@
                     <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名 (ID設定可)</label>
                     <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
                 </div>
-                <!-- ID入力欄の追加 -->
+                <!-- ID入力欄 -->
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツID (任意・半角英数)</label>
                     <input type="text" id="editContentCustomId" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="空欄の場合は自動生成">
                     <p class="text-[10px] text-slate-400 mt-1">※指定したい場合のみ入力。作成後は変更できません。</p>
                 </div>
+                
+                <!-- 新規追加項目 -->
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">体験内容</label>
+                    <textarea id="editContentDescription" class="w-full p-2 border border-slate-300 rounded text-sm h-24" placeholder="体験会の詳細な内容を記述してください"></textarea>
+                </div>
+                
+                <div class="flex gap-2">
+                    <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">所要時間</label>
+                        <input type="text" id="editContentDuration" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: 90分">
+                    </div>
+                     <div class="flex-1">
+                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
+                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-slate-500 mb-1">注意事項</label>
+                    <textarea id="editContentNotes" class="w-full p-2 border border-slate-300 rounded text-sm h-20" placeholder="持ち物や注意事項など"></textarea>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
                     <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
-                    <p class="text-[10px] text-slate-400 mt-1">※画像のURLを入力してください（任意）</p>
                 </div>
+                
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
@@ -683,10 +713,6 @@
                             <option value="trial">体験会</option>
                             <option value="event">イベント</option>
                         </select>
-                    </div>
-                    <div class="flex-1">
-                        <label class="block text-xs font-bold text-slate-500 mb-1">金額(円)</label>
-                        <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
                     </div>
                 </div>
                 <button type="button" id="saveContentBtn" class="w-full bg-orange-500 text-white font-bold py-3 rounded-lg hover:bg-orange-600 transition shadow-md">作成して保存</button>
@@ -1103,6 +1129,11 @@
                 document.getElementById('commonType').value = c.type;
                 document.getElementById('commonPrice').value = c.price;
                 document.getElementById('commonImage').value = c.imageUrl || '';
+                
+                // NEW FIELDS
+                document.getElementById('commonDescription').value = c.description || '';
+                document.getElementById('commonDuration').value = c.duration || '';
+                document.getElementById('commonNotes').value = c.notes || '';
             }
 
             document.getElementById('manageCommonContentsBtn').onclick = () => {
@@ -1114,6 +1145,9 @@
                 document.getElementById('commonId').disabled = false;
                 document.getElementById('commonPrice').value = '';
                 document.getElementById('commonImage').value = '';
+                document.getElementById('commonDescription').value = '';
+                document.getElementById('commonDuration').value = '';
+                document.getElementById('commonNotes').value = '';
             };
 
             document.getElementById('saveCommonContentBtn').onclick = async () => {
@@ -1123,13 +1157,26 @@
                 const type = document.getElementById('commonType').value;
                 const price = document.getElementById('commonPrice').value;
                 const img = document.getElementById('commonImage').value;
+                
+                const description = document.getElementById('commonDescription').value;
+                const duration = document.getElementById('commonDuration').value;
+                const notes = document.getElementById('commonNotes').value;
 
                 if(!name || !price) return alert("コンテンツ名と金額は必須です");
 
                 let newId = idInput;
                 if (!newId) newId = 'c' + Date.now(); // Auto ID
 
-                const newContent = { id: newId, name, type, price: parseInt(price), imageUrl: img };
+                const newContent = { 
+                    id: newId, 
+                    name, 
+                    type, 
+                    price: parseInt(price), 
+                    imageUrl: img,
+                    description,
+                    duration,
+                    notes
+                };
 
                 if (idx === -1) {
                     // Add
@@ -1150,6 +1197,9 @@
                 document.getElementById('commonId').disabled = false;
                 document.getElementById('commonPrice').value = '';
                 document.getElementById('commonImage').value = '';
+                document.getElementById('commonDescription').value = '';
+                document.getElementById('commonDuration').value = '';
+                document.getElementById('commonNotes').value = '';
             };
 
             // Import Logic
@@ -1878,6 +1928,10 @@
                     document.getElementById('editContentName').value = '';
                     document.getElementById('editContentPrice').value = '';
                     document.getElementById('editContentImage').value = '';
+                    // NEW FIELDS
+                    document.getElementById('editContentDescription').value = '';
+                    document.getElementById('editContentDuration').value = '';
+                    document.getElementById('editContentNotes').value = '';
                 } else {
                     const c = currentSettings.contents[idxStr];
                     document.getElementById('editContentName').value = c.name;
@@ -1885,6 +1939,10 @@
                     document.getElementById('editContentType').value = c.type;
                     document.getElementById('editContentPrice').value = c.price;
                     document.getElementById('editContentImage').value = c.imageUrl || '';
+                    // NEW FIELDS
+                    document.getElementById('editContentDescription').value = c.description || '';
+                    document.getElementById('editContentDuration').value = c.duration || '';
+                    document.getElementById('editContentNotes').value = c.notes || '';
                 }
                 document.getElementById('contentModal').classList.remove('hidden');
             }
@@ -1900,7 +1958,11 @@
                 const img = document.getElementById('editContentImage').value;
                 const customId = document.getElementById('editContentCustomId').value.trim();
                 
-                if(!name || !price) return alert("必須項目を入力してください");
+                const description = document.getElementById('editContentDescription').value;
+                const duration = document.getElementById('editContentDuration').value;
+                const notes = document.getElementById('editContentNotes').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
                 
                 let newId;
                 if (idxStr === 'new') {
@@ -1918,7 +1980,8 @@
 
                 const newData = {
                     id: newId,
-                    name, type, price: parseInt(price), imageUrl: img
+                    name, type, price: parseInt(price), imageUrl: img,
+                    description, duration, notes
                 };
                 
                 if(idxStr === 'new') currentSettings.contents.push(newData);
@@ -2375,6 +2438,94 @@
                     tbody.appendChild(tr);
                 });
             }
+            
+            // Booking Edit & Cancel Logic
+            window.openBookingEditModal = (bookingId) => {
+                const booking = allBookings.find(b => b.id === bookingId);
+                if (!booking) return;
+
+                document.getElementById('editBookingId').value = booking.id;
+                document.getElementById('editChildName').value = booking.childName || '';
+                document.getElementById('editParentName').value = booking.parentName || '';
+                document.getElementById('editEmail').value = booking.email || '';
+                document.getElementById('editPhone').value = booking.phone || '';
+                
+                // Set original values
+                document.getElementById('originalDate').value = booking.date;
+                document.getElementById('originalStartTime').value = booking.startTime;
+                document.getElementById('originalContentId').value = booking.contentId;
+                
+                // Reset edit date/time
+                const dInput = document.getElementById('editBookingDate');
+                dInput.value = booking.date; // Default to current date
+                
+                // Populate schedule select for the current date
+                // We need to construct the current value object to pre-select it
+                const currentValObj = {
+                    contentId: booking.contentId,
+                    startTime: booking.startTime,
+                    courseName: booking.courseName
+                };
+                updateScheduleSelect(booking.date, 'editBookingScheduleId', JSON.stringify(currentValObj));
+                
+                document.getElementById('bookingEditModal').classList.remove('hidden');
+            };
+
+            document.getElementById('editBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'editBookingScheduleId');
+            });
+
+            document.getElementById('bookingEditForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const bookingId = document.getElementById('editBookingId').value;
+                if (!bookingId) return;
+                
+                const updateData = {
+                    childName: document.getElementById('editChildName').value,
+                    parentName: document.getElementById('editParentName').value,
+                    email: document.getElementById('editEmail').value,
+                    phone: document.getElementById('editPhone').value
+                };
+
+                // Check for schedule change
+                const newDate = document.getElementById('editBookingDate').value;
+                const newScheduleVal = document.getElementById('editBookingScheduleId').value;
+                
+                // If a schedule is selected (it's not empty)
+                if (newScheduleVal) {
+                     const schedData = JSON.parse(newScheduleVal);
+                     // If date OR content/time changed from original
+                     const origDate = document.getElementById('originalDate').value;
+                     const origStart = document.getElementById('originalStartTime').value;
+                     const origContent = document.getElementById('originalContentId').value;
+
+                     if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                         updateData.date = newDate;
+                         updateData.startTime = schedData.startTime;
+                         updateData.contentId = schedData.contentId;
+                         updateData.courseName = schedData.courseName;
+                     }
+                }
+
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), updateData);
+                    document.getElementById('bookingEditModal').classList.add('hidden');
+                    showToast("予約情報を更新しました");
+                } catch (err) {
+                    alert("更新に失敗しました: " + err.message);
+                }
+            };
+
+            window.cancelBooking = async (bookingId) => {
+                if (!confirm("本当にこの予約をキャンセル（削除）しますか？\nこの操作は取り消せません。")) return;
+                
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
+                    showToast("予約をキャンセルしました");
+                } catch (err) {
+                    alert("削除に失敗しました: " + err.message);
+                }
+            };
 
             // Utils
             async function saveSettings() {
