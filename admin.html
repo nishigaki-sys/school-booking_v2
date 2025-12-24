@@ -123,9 +123,9 @@
                     </div>
                 </div>
             </nav>
-
+            <!-- (Global Dashboard Content) -->
             <div class="max-w-7xl mx-auto px-4 py-8">
-                <!-- KPIs (固定) -->
+                <!-- KPIs -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-xs font-bold text-slate-400 uppercase">全校舎 予約総数 (累計)</h3>
@@ -234,6 +234,7 @@
             <div class="flex border-b border-slate-300 mb-6 bg-white rounded-t-lg overflow-x-auto">
                 <button class="tab-btn px-6 py-4 font-bold text-blue-600 border-b-2 border-blue-600" data-tab="dashboard">ダッシュボード</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="booking-management">予約管理</button>
+                <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="inquiries">お問い合わせ</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="course-settings">体験会設定</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="school-settings">教室設定</button>
             </div>
@@ -383,6 +384,27 @@
                 </div>
             </div>
 
+            <!-- Tab: Inquiries (NEW) -->
+            <div id="tab-inquiries" class="tab-content hidden">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4">お問い合わせ (日時リクエスト) 一覧</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm text-left text-slate-600">
+                            <thead class="bg-slate-50 text-xs uppercase font-bold text-slate-500 border-b">
+                                <tr>
+                                    <th class="px-6 py-4 w-32">受信日時</th>
+                                    <th class="px-6 py-4 w-40">お客様名</th>
+                                    <th class="px-6 py-4 w-48">連絡先</th>
+                                    <th class="px-6 py-4">希望内容</th>
+                                    <th class="px-6 py-4 w-32 text-center">ステータス</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inquiryTableBody" class="divide-y divide-slate-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
             <!-- Tab: Course Settings -->
             <div id="tab-course-settings" class="tab-content hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -461,7 +483,7 @@
 
     <!-- === Modals === -->
 
-    <!-- 新規予約登録モーダル (NEW) -->
+    <!-- 新規予約登録モーダル -->
     <div id="addBookingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[80]">
         <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="font-bold text-lg mb-4 text-slate-700">新規予約登録</h3>
@@ -512,7 +534,7 @@
         </div>
     </div>
 
-    <!-- 予約編集モーダル (UPDATED) -->
+    <!-- 予約編集モーダル -->
     <div id="bookingEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[70]">
         <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="font-bold text-lg mb-4 text-slate-700">予約情報の変更</h3>
@@ -807,6 +829,8 @@
         
         let globalAllowedIps = [];
         let commonContents = []; // Store fetched common contents
+        let currentSchoolId = null;
+        let allBookings = []; // Added for admin.html logic consistency
 
         // Definition moved up
         const loadAllowedIps = (db, appId) => {
@@ -822,6 +846,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
+            let allInquiries = []; // Inquiries data
             let globalAllBookings = []; 
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
@@ -831,6 +856,7 @@
             let unsubscribeBookings = null;
             let unsubscribeLogs = null;
             let unsubscribeGlobal = null;
+            let unsubscribeInquiries = null; // Inquiry listener
             let draggingItemIndex = null;
             let dragStartY = 0;
             let bookingChart = null; 
@@ -1074,7 +1100,6 @@
                 }
             };
 
-
             // Common Contents Management Logic
             const loadCommonContents = () => {
                 onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
@@ -1197,9 +1222,6 @@
                 document.getElementById('commonId').disabled = false;
                 document.getElementById('commonPrice').value = '';
                 document.getElementById('commonImage').value = '';
-                document.getElementById('commonDescription').value = '';
-                document.getElementById('commonDuration').value = '';
-                document.getElementById('commonNotes').value = '';
             };
 
             // Import Logic
@@ -1841,6 +1863,7 @@
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 if (unsubscribeLogs) unsubscribeLogs();
+                if (unsubscribeInquiries) unsubscribeInquiries(); // Clean up inquiry listener
 
                 currentSchoolId = id;
                 document.getElementById('schoolSelectionView').classList.add('hidden');
@@ -1881,6 +1904,14 @@
                     renderBookingTable();
                     updateStats(); // 集計更新
                 });
+                
+                // Load Inquiries (NEW)
+                const inqQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'inquiries'), where("schoolId", "==", id));
+                unsubscribeInquiries = onSnapshot(inqQuery, (snap) => {
+                    allInquiries = [];
+                    snap.forEach(d => allInquiries.push({id: d.id, ...d.data()}));
+                    renderInquiryTable();
+                });
 
                 // Load Logs (Access Analytics)
                 const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
@@ -1890,6 +1921,68 @@
                     updateStats(); // 集計更新
                 });
             }
+
+            // Inquiry Rendering & Logic
+            function renderInquiryTable() {
+                const tbody = document.getElementById('inquiryTableBody');
+                tbody.innerHTML = '';
+                
+                // Sort by date desc
+                allInquiries.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+                if (allInquiries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">お問い合わせはありません。</td></tr>';
+                    return;
+                }
+
+                allInquiries.forEach(inq => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b last:border-0";
+                    
+                    // Date Format
+                    let dateStr = '-';
+                    if(inq.createdAt && inq.createdAt.toDate) {
+                        const d = inq.createdAt.toDate();
+                        dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
+                    }
+
+                    // Status Config
+                    const status = inq.status || 'pending';
+                    let selectBg = 'bg-white';
+                    if (status === 'pending') selectBg = 'bg-red-50 text-red-700 border-red-200';
+                    else if (status === 'in_progress') selectBg = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                    else if (status === 'completed') selectBg = 'bg-gray-50 text-gray-500 border-gray-200';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-6 py-4 font-bold text-slate-700">${inq.name} 様</td>
+                        <td class="px-6 py-4 text-xs text-slate-600">
+                            <div>${inq.email}</div>
+                            <div>${inq.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600 whitespace-pre-wrap">${inq.preferredSchedule}</td>
+                        <td class="px-6 py-4 text-center">
+                            <select onchange="updateInquiryStatus('${inq.id}', this.value)" class="text-xs p-1 rounded border ${selectBg} font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors cursor-pointer">
+                                <option value="pending" ${status === 'pending' ? 'selected' : ''}>未対応</option>
+                                <option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>対応中</option>
+                                <option value="completed" ${status === 'completed' ? 'selected' : ''}>完了</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Expose update function to window
+            window.updateInquiryStatus = async (id, status) => {
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inquiries', id), { status: status });
+                    showToast("ステータスを更新しました");
+                } catch (err) {
+                    alert("更新に失敗しました: " + err.message);
+                }
+            };
+
 
             // --- Features ---
             
