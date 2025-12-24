@@ -124,6 +124,30 @@
                         </div>
                     </div>
 
+                    <!-- 体験内容詳細 (NEW) -->
+                    <div id="selectedContentDetails" class="bg-white border border-slate-200 rounded-xl p-6 mb-8 hidden shadow-sm">
+                        <div id="detailsDescriptionContainer" class="mb-4 hidden">
+                            <h4 class="text-sm font-bold text-slate-700 mb-2 border-l-4 border-teal-500 pl-2">体験内容</h4>
+                            <p id="selectedDescription" class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap"></p>
+                        </div>
+                        
+                        <div id="detailsDurationContainer" class="mb-4 hidden flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-slate-400 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <span class="text-sm font-bold text-slate-700 mr-2">所要時間:</span>
+                            <span id="selectedDuration" class="text-sm text-slate-600"></span>
+                        </div>
+
+                        <div id="detailsNotesContainer" class="hidden">
+                            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                                <h4 class="text-xs font-bold text-yellow-800 mb-1 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    注意事項・持ち物
+                                </h4>
+                                <p id="selectedNotes" class="text-xs text-yellow-900 whitespace-pre-wrap leading-relaxed"></p>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- 入力フェーズ -->
                     <div id="inputPhase">
                         <h2 class="text-lg font-bold mb-4 text-center flex items-center justify-center gap-2">
@@ -584,6 +608,48 @@
                             } else {
                                 bImg.style.display = 'none';
                             }
+
+                            // --- 詳細情報の表示ロジック (NEW) ---
+                            const detailsContainer = document.getElementById('selectedContentDetails');
+                            const descContainer = document.getElementById('detailsDescriptionContainer');
+                            const durContainer = document.getElementById('detailsDurationContainer');
+                            const notesContainer = document.getElementById('detailsNotesContainer');
+                            
+                            let hasDetails = false;
+
+                            // 1. 体験内容
+                            if (content.description) {
+                                document.getElementById('selectedDescription').textContent = content.description;
+                                descContainer.classList.remove('hidden');
+                                hasDetails = true;
+                            } else {
+                                descContainer.classList.add('hidden');
+                            }
+
+                            // 2. 所要時間
+                            if (content.duration) {
+                                document.getElementById('selectedDuration').textContent = content.duration;
+                                durContainer.classList.remove('hidden');
+                                hasDetails = true;
+                            } else {
+                                durContainer.classList.add('hidden');
+                            }
+
+                            // 3. 注意事項
+                            if (content.notes) {
+                                document.getElementById('selectedNotes').textContent = content.notes;
+                                notesContainer.classList.remove('hidden');
+                                hasDetails = true;
+                            } else {
+                                notesContainer.classList.add('hidden');
+                            }
+
+                            if (hasDetails) {
+                                detailsContainer.classList.remove('hidden');
+                            } else {
+                                detailsContainer.classList.add('hidden');
+                            }
+                            // ----------------------------------------
                             
                             document.getElementById('inputPhase').classList.remove('hidden');
                             document.getElementById('confirmPhase').classList.add('hidden');
