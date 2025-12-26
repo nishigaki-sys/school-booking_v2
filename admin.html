@@ -100,6 +100,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                         IP制限設定
                     </button>
+                    <button id="manageUsersBtn" class="bg-pink-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-pink-500 shadow transition flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+                        管理者ユーザー設定
+                    </button>
                 </div>
             </div>
         </div>
@@ -641,6 +645,52 @@
         </div>
     </div>
 
+    <div id="userManagementModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[90]">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl shadow-2xl h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b pb-2">
+                <h3 class="font-bold text-lg text-slate-700">管理者ユーザー管理</h3>
+                <button onclick="document.getElementById('userManagementModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600">×</button>
+            </div>
+            
+            <div class="flex gap-4 mb-4 items-end bg-slate-50 p-3 rounded border">
+                <div class="flex-1">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">メールアドレス</label>
+                    <input type="email" id="userMgmtEmail" class="w-full p-2 border rounded text-sm" placeholder="user@example.com">
+                </div>
+                <div class="w-32">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label>
+                    <input type="text" id="userMgmtPass" class="w-full p-2 border rounded text-sm" placeholder="pass123">
+                </div>
+                <div class="w-32">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">権限</label>
+                    <select id="userMgmtRole" class="w-full p-2 border rounded text-sm">
+                        <option value="super_admin">本部管理者</option>
+                        <option value="school_manager">校舎担当</option>
+                    </select>
+                </div>
+                <div class="w-40 hidden" id="userMgmtSchoolContainer">
+                    <label class="block text-xs font-bold text-slate-500 mb-1">担当校舎ID</label>
+                    <input type="text" id="userMgmtSchoolId" class="w-full p-2 border rounded text-sm" placeholder="school_id">
+                </div>
+                <button id="saveUserBtn" class="bg-pink-600 text-white font-bold py-2 px-4 rounded text-sm h-fit">追加/保存</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto border rounded">
+                <table class="w-full text-sm text-left text-slate-600">
+                    <thead class="bg-slate-100 text-xs uppercase font-bold text-slate-500 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-2">Email</th>
+                            <th class="px-4 py-2">Pass</th>
+                            <th class="px-4 py-2">権限</th>
+                            <th class="px-4 py-2">担当校舎</th>
+                            <th class="px-4 py-2 text-center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userListBody" class="divide-y divide-slate-100"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
     <div id="commonContentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl h-[80vh] flex flex-col">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b pb-2">
@@ -831,7 +881,8 @@
         let globalAllowedIps = [];
         let commonContents = []; // Store fetched common contents
         let currentSchoolId = null;
-        let allBookings = []; // Added for admin.html logic consistency
+        let allBookings = []; 
+        let appUsers = []; // User List
 
         // Definition moved up
         const loadAllowedIps = (db, appId) => {
@@ -847,7 +898,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
             let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
-            let allInquiries = []; // Inquiries data
+            let allInquiries = []; 
             let globalAllBookings = []; 
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
@@ -857,14 +908,14 @@
             let unsubscribeBookings = null;
             let unsubscribeLogs = null;
             let unsubscribeGlobal = null;
-            let unsubscribeInquiries = null; // Inquiry listener
+            let unsubscribeInquiries = null; 
             let draggingItemIndex = null;
             let dragStartY = 0;
             let bookingChart = null; 
             let funnelChart = null; 
             let schoolComparisonChart = null; 
             let globalBookingChart = null; 
-            let contentPerformanceChart = null; // ▼ 追加
+            let contentPerformanceChart = null; // Graph
             let chartMode = 'created'; 
             let globalChartMode = 'created'; 
 
@@ -889,39 +940,164 @@
                 db = getFirestore(app);
                 
                 await signInAnonymously(auth);
-                loadAllowedIps(db, appId); // Pass db and appId
+                loadAllowedIps(db, appId); 
                 fetchIpAddress();
-                loadCommonContents(); // Load Common Contents on init
+                loadCommonContents(); 
 
-                // Login Flow (Modified for Demo Environment)
+                // Login Flow (Updated with User Management)
                 document.getElementById('loginForm').onsubmit = async (e) => {
                     e.preventDefault();
+                    
+                    // IP Check
                     if (globalAllowedIps.length > 0) {
                         const currentIp = await fetchIpAddress();
                         if (!currentIp || !globalAllowedIps.includes(currentIp)) {
                             alert("許可されていないIPアドレスからのアクセスです。");
-                            return; // Normally restrict, but for demo we might warn
+                            return; 
                         }
                     }
                     
-                    // Simple Mock Login Check for Demo
                     const email = document.getElementById('adminEmail').value;
                     const pass = document.getElementById('adminPassword').value;
                     
-                    if (email && pass) {
-                        // Success simulation
-                        document.getElementById('loginView').classList.add('hidden');
-                        document.getElementById('adminMain').classList.remove('hidden');
-                        loadSchools();
-                        initStatsDate();
-                    } else {
-                        alert("メールアドレスとパスワードを入力してください");
+                    try {
+                        const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users'));
+                        let usersList = [];
+                        if (userDoc.exists()) {
+                            usersList = userDoc.data().list || [];
+                        } else {
+                            usersList = [{ email: 'admin@example.com', pass: 'password', role: 'super_admin' }];
+                        }
+
+                        const targetUser = usersList.find(u => u.email === email && u.pass === pass);
+
+                        if (targetUser) {
+                            document.getElementById('loginView').classList.add('hidden');
+                            document.getElementById('adminMain').classList.remove('hidden');
+                            
+                            // Role Check
+                            if (targetUser.role === 'super_admin') {
+                                // Super Admin
+                                loadSchools();
+                                initStatsDate();
+                            } else if (targetUser.role === 'school_manager') {
+                                // School Manager
+                                if (targetUser.schoolId) {
+                                    loadSchools(); 
+                                    setTimeout(() => {
+                                        selectSchool(targetUser.schoolId);
+                                        document.getElementById('backToSchoolSelectBtn').classList.add('hidden'); 
+                                        document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
+                                        document.getElementById('schoolSelectionView').classList.add('hidden');
+                                    }, 500);
+                                } else {
+                                    alert("担当校舎が設定されていません。");
+                                    location.reload();
+                                }
+                            }
+                        } else {
+                            alert("メールアドレスまたはパスワードが間違っています。");
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        alert("ログイン処理中にエラーが発生しました。");
                     }
                 };
 
                 document.getElementById('logoutBtn').onclick = async () => {
                     location.reload();
                 };
+            };
+
+            // --- User Management Logic ---
+            
+            // 権限セレクトボックスの変更検知
+            document.getElementById('userMgmtRole').onchange = (e) => {
+                const container = document.getElementById('userMgmtSchoolContainer');
+                if (e.target.value === 'school_manager') {
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
+            };
+
+            // ユーザー管理モーダルを開く
+            document.getElementById('manageUsersBtn').onclick = () => {
+                document.getElementById('userManagementModal').classList.remove('hidden');
+                loadAppUsers();
+            };
+
+            const loadAppUsers = () => {
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users'), (snap) => {
+                    if (snap.exists()) {
+                        appUsers = snap.data().list || [];
+                    } else {
+                        // 初期データがない場合はデモ用アカウントを表示
+                        appUsers = [{ email: 'admin@example.com', pass: 'password', role: 'super_admin' }];
+                    }
+                    renderUserList();
+                });
+            };
+
+            const renderUserList = () => {
+                const tbody = document.getElementById('userListBody');
+                tbody.innerHTML = '';
+                appUsers.forEach((u, idx) => {
+                    const tr = document.createElement('tr');
+                    const roleLabel = u.role === 'super_admin' 
+                        ? '<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded text-xs font-bold">本部</span>' 
+                        : '<span class="bg-teal-100 text-teal-700 px-2 py-1 rounded text-xs font-bold">校舎担当</span>';
+                    
+                    const schoolInfo = u.role === 'school_manager' ? `<span class="font-mono text-xs">${u.schoolId || '-'}</span>` : '-';
+
+                    tr.innerHTML = `
+                        <td class="px-4 py-2">${u.email}</td>
+                        <td class="px-4 py-2 font-mono text-xs">********</td>
+                        <td class="px-4 py-2">${roleLabel}</td>
+                        <td class="px-4 py-2">${schoolInfo}</td>
+                        <td class="px-4 py-2 text-center">
+                            <button class="text-red-500 hover:text-red-700 text-xs font-bold del-user-btn" data-idx="${idx}">削除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                document.querySelectorAll('.del-user-btn').forEach(btn => {
+                    btn.onclick = async (e) => {
+                        if (confirm("このユーザーを削除しますか？")) {
+                            const idx = parseInt(e.target.dataset.idx);
+                            appUsers.splice(idx, 1);
+                            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users'), { list: appUsers });
+                            showToast("ユーザーを削除しました");
+                        }
+                    };
+                });
+            };
+
+            document.getElementById('saveUserBtn').onclick = async () => {
+                const email = document.getElementById('userMgmtEmail').value.trim();
+                const pass = document.getElementById('userMgmtPass').value.trim();
+                const role = document.getElementById('userMgmtRole').value;
+                const schoolId = document.getElementById('userMgmtSchoolId').value.trim();
+
+                if (!email || !pass) return alert("メールとパスワードは必須です");
+                if (role === 'school_manager' && !schoolId) return alert("校舎担当には校舎IDが必須です");
+
+                // 重複チェック
+                const exists = appUsers.some(u => u.email === email);
+                if (exists) {
+                    if (!confirm("このメールアドレスは既に登録されています。上書きしますか？")) return;
+                    const idx = appUsers.findIndex(u => u.email === email);
+                    appUsers[idx] = { email, pass, role, schoolId: role === 'school_manager' ? schoolId : null };
+                } else {
+                    appUsers.push({ email, pass, role, schoolId: role === 'school_manager' ? schoolId : null });
+                }
+
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'users'), { list: appUsers });
+                showToast("ユーザー情報を保存しました");
+                
+                document.getElementById('userMgmtEmail').value = '';
+                document.getElementById('userMgmtPass').value = '';
             };
             
             // Helper: Update Schedule Select Options
@@ -940,14 +1116,12 @@
 
                 currentSettings.schedule[dateStr].forEach(evt => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
-                    // Count existing bookings for this slot
                     const bookedCount = allBookings.filter(b => 
                         b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
                     ).length;
                     const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
 
                     const opt = document.createElement('option');
-                    // Value format: contentId|startTime|courseName
                     opt.value = JSON.stringify({
                         contentId: evt.contentId,
                         startTime: evt.startTime,
@@ -955,7 +1129,6 @@
                     });
                     opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
                     
-                    // Check if selected
                     if (currentVal) {
                         try {
                             const currentObj = JSON.parse(currentVal);
@@ -1001,7 +1174,7 @@
                         email: document.getElementById('newEmail').value,
                         phone: document.getElementById('newPhone').value,
                         grade: document.getElementById('newGrade').value,
-                        sourceType: 'admin', // Source Type
+                        sourceType: 'admin',
                         createdAt: serverTimestamp()
                     });
                     document.getElementById('addBookingModal').classList.add('hidden');
@@ -1061,12 +1234,10 @@
                 document.getElementById('editCommonIdx').value = idx;
                 document.getElementById('commonName').value = c.name;
                 document.getElementById('commonId').value = c.id;
-                document.getElementById('commonId').disabled = true; // Edit mode disables ID change
+                document.getElementById('commonId').disabled = true; 
                 document.getElementById('commonType').value = c.type;
                 document.getElementById('commonPrice').value = c.price;
                 document.getElementById('commonImage').value = c.imageUrl || '';
-                
-                // NEW FIELDS
                 document.getElementById('commonDescription').value = c.description || '';
                 document.getElementById('commonDuration').value = c.duration || '';
                 document.getElementById('commonNotes').value = c.notes || '';
@@ -1074,7 +1245,6 @@
 
             document.getElementById('manageCommonContentsBtn').onclick = () => {
                 document.getElementById('commonContentsModal').classList.remove('hidden');
-                // Reset form
                 document.getElementById('editCommonIdx').value = -1;
                 document.getElementById('commonName').value = '';
                 document.getElementById('commonId').value = '';
@@ -1093,7 +1263,6 @@
                 const type = document.getElementById('commonType').value;
                 const price = document.getElementById('commonPrice').value;
                 const img = document.getElementById('commonImage').value;
-                
                 const description = document.getElementById('commonDescription').value;
                 const duration = document.getElementById('commonDuration').value;
                 const notes = document.getElementById('commonNotes').value;
@@ -1101,32 +1270,23 @@
                 if(!name || !price) return alert("コンテンツ名と金額は必須です");
 
                 let newId = idInput;
-                if (!newId) newId = 'c' + Date.now(); // Auto ID
+                if (!newId) newId = 'c' + Date.now();
 
                 const newContent = { 
-                    id: newId, 
-                    name, 
-                    type, 
-                    price: parseInt(price), 
-                    imageUrl: img, 
-                    description,
-                    duration,
-                    notes
+                    id: newId, name, type, price: parseInt(price), imageUrl: img, 
+                    description, duration, notes
                 };
 
                 if (idx === -1) {
-                    // Add
                     if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
                     commonContents.push(newContent);
                 } else {
-                    // Update
                     commonContents[idx] = newContent;
                 }
 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
                 showToast("共通コンテンツを保存しました");
                 
-                // Reset form
                 document.getElementById('editCommonIdx').value = -1;
                 document.getElementById('commonName').value = '';
                 document.getElementById('commonId').value = '';
@@ -1166,9 +1326,8 @@
                 checked.forEach(id => {
                     const target = commonContents.find(c => c.id === id);
                     if(target) {
-                        // Check if ID exists in local
                         if(!currentSettings.contents.some(lc => lc.id === target.id)) {
-                            currentSettings.contents.push({...target}); // Clone
+                            currentSettings.contents.push({...target}); 
                             count++;
                         }
                     }
@@ -1177,7 +1336,7 @@
                 if(count > 0) {
                     await saveSettings();
                     showToast(`${count}件のコンテンツを取り込みました`);
-                    renderLocalContents(); // Update view
+                    renderLocalContents(); 
                 } else {
                     alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
                 }
@@ -1199,7 +1358,6 @@
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
             };
 
-            // Init Date inputs for Global
             const initGlobalStatsDate = () => {
                 const today = new Date();
                 const y = today.getFullYear();
@@ -1214,12 +1372,10 @@
 
             const initGlobalDashboard = () => {
                 initGlobalStatsDate();
-                
-                // Real-time listener for ALL bookings
                 unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     globalAllBookings = [];
                     snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
-                    updateGlobalStats(); // Update visuals
+                    updateGlobalStats(); 
                 });
             };
 
@@ -1242,14 +1398,12 @@
                 const sDate = document.getElementById('gStatsStartDate').value;
                 const eDate = document.getElementById('gStatsEndDate').value;
                 
-                // Base KPIs (Always visible)
                 document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
                 document.getElementById('gTotalSchools').textContent = schools.length;
                 const yesterday = new Date(Date.now() - 86400000);
                 const recentCount = globalAllBookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
                 document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
 
-                // Period Filtered Data
                 let periodBookings = globalAllBookings;
                 if(sDate && eDate) {
                     periodBookings = globalAllBookings.filter(b => {
@@ -1257,7 +1411,6 @@
                         if (globalChartMode === 'event') {
                             targetDate = b.date;
                         } else {
-                            // created
                             if (b.createdAt && b.createdAt.toDate) {
                                 const d = b.createdAt.toDate();
                                 targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1267,15 +1420,12 @@
                     });
                 }
 
-                // 1. Period KPIs
                 document.getElementById('gPeriodBookingCount').textContent = periodBookings.length;
                 const activeSchoolIds = new Set(periodBookings.map(b => b.schoolId));
                 document.getElementById('gPeriodActiveSchools').textContent = activeSchoolIds.size;
                 
-                // Find Peak Day
                 const dateCounts = {};
                 periodBookings.forEach(b => {
-                    // ピーク日も選択された基準で集計する
                     let targetDate = '';
                     if (globalChartMode === 'event') {
                         targetDate = b.date;
@@ -1290,15 +1440,14 @@
                 const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
                 document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
 
-                // 2. Chart: Bookings by School (Filtered)
                 const schoolCounts = {};
-                schools.forEach(s => schoolCounts[s.name] = 0); // Init all schools
+                schools.forEach(s => schoolCounts[s.name] = 0);
                 periodBookings.forEach(b => {
                     const sName = b.schoolName || 'Unknown';
                     schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
                 });
 
-                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); // Sort Desc
+                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); 
                 
                 if (schoolComparisonChart) schoolComparisonChart.destroy();
                 const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
@@ -1321,7 +1470,6 @@
                     }
                 });
 
-                // 3. Global Stacked Chart (NEW) - School by Date
                 if (sDate && eDate) {
                     const schoolMap = {};
                     schools.forEach(s => {
@@ -1383,10 +1531,8 @@
                     });
                 }
 
-                // 4. Recent List Stream (Global, always show latest 50 regardless of filter)
                 const list = document.getElementById('globalRecentBookings');
                 list.innerHTML = '';
-                // Sort by CreatedAt Desc
                 const sortedRecent = [...globalAllBookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50);
                 
                 if (sortedRecent.length === 0) {
@@ -1418,8 +1564,6 @@
                 const m = today.getMonth();
                 const firstDay = new Date(y, m, 1);
                 const lastDay = new Date(y, m + 1, 0);
-                
-                // YYYY-MM-DD
                 const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                 
                 document.getElementById('statsStartDate').value = fmt(firstDay);
@@ -1446,11 +1590,9 @@
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
                 
-                // 1. 期間内の予約数
                 const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
                 const bookingCount = rangeBookings.length;
                 
-                // 2. 期間内の総枠数
                 let capacityCount = 0;
                 let d = new Date(sDate);
                 const end = new Date(eDate);
@@ -1462,22 +1604,18 @@
                     d.setDate(d.getDate() + 1);
                 }
                 
-                // 3. 予約率
                 const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
                 
                 document.getElementById('statsBookingCount').textContent = bookingCount;
                 document.getElementById('statsCapacityCount').textContent = capacityCount;
                 document.getElementById('statsRate').textContent = `${rate}%`;
                 
-                // グラフ & ファネル更新
                 updateChart();
                 updateFunnelChart(sDate, eDate);
-
-                // ▼ 追加: コンテンツ別予実管理チャート更新
                 updateContentPerformanceChart(sDate, eDate);
             }
 
-            // ▼▼▼ 追加: コンテンツ別予実管理チャートの更新関数 ▼▼▼
+            // Content Performance Chart Logic (New)
             function updateContentPerformanceChart(sDate, eDate) {
                 const statsMap = {};
                 (currentSettings.contents || []).forEach(c => {
@@ -1572,9 +1710,7 @@
                 });
             }
 
-            // ファネルチャート更新ロジック (実際のログデータ使用)
             function updateFunnelChart(sDate, eDate) {
-                // 期間内のログをフィルタリング
                 const rangeLogs = allLogs.filter(log => {
                     if (log.timestamp && log.timestamp.toDate) {
                         const d = log.timestamp.toDate();
@@ -1584,7 +1720,6 @@
                     return false;
                 });
 
-                // イベント集計
                 const counts = {
                     page_view: 0,
                     grade_selection: 0,
@@ -1610,19 +1745,15 @@
                 ];
                 
                 const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
-                
-                // CVR計算 (PV -> Conversion)
                 const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
                 document.getElementById('analyticsCvr').textContent = `${cvr}%`;
 
-                // リスト表示生成
                 const listContainer = document.getElementById('analyticsList');
                 listContainer.innerHTML = '';
                 
                 data.forEach((val, i) => {
-                    if (i === 0) return; // PVは基準なので別表示
+                    if (i === 0) return;
                     const prev = data[i-1];
-                    // 直前ステップからの遷移率
                     const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
                     
                     const row = document.createElement('div');
@@ -1637,7 +1768,6 @@
                     listContainer.appendChild(row);
                 });
                 
-                // トップのPVも表示
                 const pvRow = document.createElement('div');
                 pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
                 pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${counts.page_view}</span>`;
@@ -1657,44 +1787,20 @@
                         datasets: [{
                             label: 'アクセス数',
                             data: data,
-                            backgroundColor: [
-                                '#e2e8f0', // PV
-                                '#cbd5e1', // Grade
-                                '#94a3b8', // Cal
-                                '#64748b', // Cont
-                                '#475569', // Form
-                                '#3b82f6'  // Done (Blue)
-                            ],
+                            backgroundColor: ['#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#3b82f6'],
                             borderRadius: 4,
                             barPercentage: 0.6
                         }]
                     },
                     options: {
-                        indexAxis: 'y', // 横棒グラフ
+                        indexAxis: 'y',
                         responsive: true,
                         maintainAspectRatio: false,
                         plugins: {
                             legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) label += ': ';
-                                        if (context.parsed.x !== null) label += context.parsed.x;
-                                        return label;
-                                    }
-                                }
-                            }
+                            tooltip: { callbacks: { label: function(context) { return (context.dataset.label || '') + ': ' + context.parsed.x; } } }
                         },
-                        scales: {
-                            x: {
-                                grid: { display: false },
-                                beginAtZero: true
-                            },
-                            y: {
-                                grid: { display: false }
-                            }
-                        }
+                        scales: { x: { grid: { display: false }, beginAtZero: true }, y: { grid: { display: false } } }
                     }
                 });
             }
@@ -1704,33 +1810,27 @@
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
 
-                // コンテンツIDごとにデータセットを作る（積み上げ）
                 const contentMap = {};
                 (currentSettings.contents || []).forEach(c => {
                     contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
                 });
-                // 未定義コンテンツ用
                 contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
                 
-                // ラベル（日付）生成
                 const labels = [];
                 let d = new Date(sDate);
                 const end = new Date(eDate);
                 while(d <= end) {
                     const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                     labels.push(dStr);
-                    // 初期化
                     for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
                     d.setDate(d.getDate() + 1);
                 }
 
-                // データ集計
                 allBookings.forEach(b => {
                     let targetDate = '';
                     if(chartMode === 'event') {
                         targetDate = b.date;
                     } else {
-                        // created (Timestamp) -> YYYY-MM-DD
                         if(b.createdAt && b.createdAt.toDate) {
                             const cd = b.createdAt.toDate();
                             targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
@@ -1745,37 +1845,29 @@
                     }
                 });
 
-                // Chart.js データ形式に変換
                 const datasets = Object.values(contentMap).map(c => ({
                     label: c.label,
                     data: labels.map(l => c.data[l]),
                     backgroundColor: c.color,
-                })).filter(ds => ds.data.some(v => v > 0)); // データがあるものだけ表示
+                })).filter(ds => ds.data.some(v => v > 0)); 
 
-                // 描画
                 if(bookingChart) bookingChart.destroy();
                 const ctx = document.getElementById('bookingChart').getContext('2d');
                 bookingChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
-                        labels: labels.map(l => l.substring(5)), // MM-DD
+                        labels: labels.map(l => l.substring(5)),
                         datasets: datasets
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
-                        },
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
-                        }
+                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
                     }
                 });
             }
             
-            // 色生成ヘルパー
             function getColorForId(str) {
                 let hash = 0;
                 for (let i = 0; i < str.length; i++) {
@@ -1785,8 +1877,7 @@
                 return '#' + "00000".substring(0, 6 - c.length) + c;
             }
 
-
-            // IP Settings Modal Logic
+            // IP Settings Logic
             function renderIpList() {
                 const list = document.getElementById('ipListContainer');
                 list.innerHTML = '';
@@ -1797,40 +1888,11 @@
                     list.appendChild(div);
                 });
             }
-            
-            window.removeIp = (index) => {
-                globalAllowedIps.splice(index, 1);
-                renderIpList();
-            };
-
-            document.getElementById('manageIpBtn').onclick = () => {
-                document.getElementById('ipSettingsModal').classList.remove('hidden');
-                renderIpList();
-            };
-
-            document.getElementById('addIpBtn').onclick = () => {
-                const ip = document.getElementById('newIpInput').value.trim();
-                if (ip && !globalAllowedIps.includes(ip)) {
-                    globalAllowedIps.push(ip);
-                    document.getElementById('newIpInput').value = '';
-                    renderIpList();
-                }
-            };
-            
-            document.getElementById('addCurrentIpBtn').onclick = async () => {
-                 const ip = await fetchIpAddress();
-                 if(ip && !globalAllowedIps.includes(ip)) {
-                     globalAllowedIps.push(ip);
-                     renderIpList();
-                 }
-            };
-
-            document.getElementById('saveIpSettingsBtn').onclick = async () => {
-                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), { list: globalAllowedIps });
-                 document.getElementById('ipSettingsModal').classList.add('hidden');
-                 showToast("IP制限設定を保存しました");
-            };
-
+            window.removeIp = (index) => { globalAllowedIps.splice(index, 1); renderIpList(); };
+            document.getElementById('manageIpBtn').onclick = () => { document.getElementById('ipSettingsModal').classList.remove('hidden'); renderIpList(); };
+            document.getElementById('addIpBtn').onclick = () => { const ip = document.getElementById('newIpInput').value.trim(); if (ip && !globalAllowedIps.includes(ip)) { globalAllowedIps.push(ip); document.getElementById('newIpInput').value = ''; renderIpList(); } };
+            document.getElementById('addCurrentIpBtn').onclick = async () => { const ip = await fetchIpAddress(); if(ip && !globalAllowedIps.includes(ip)) { globalAllowedIps.push(ip); renderIpList(); } };
+            document.getElementById('saveIpSettingsBtn').onclick = async () => { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), { list: globalAllowedIps }); document.getElementById('ipSettingsModal').classList.add('hidden'); showToast("IP制限設定を保存しました"); };
 
             // --- Data ---
             const loadSchools = () => {
@@ -1853,17 +1915,8 @@
                         <p class="text-xs text-slate-400">ID: ${s.id}</p>
                         <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
                     `;
-                    div.onclick = (e) => {
-                        if(e.target.closest('.delete-school')) return;
-                        selectSchool(s.id);
-                    };
-                    div.querySelector('.delete-school').onclick = async (e) => {
-                        e.stopPropagation();
-                        if(confirm('削除しますか？')) {
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', s.id));
-                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', s.id));
-                        }
-                    };
+                    div.onclick = (e) => { if(e.target.closest('.delete-school')) return; selectSchool(s.id); };
+                    div.querySelector('.delete-school').onclick = async (e) => { e.stopPropagation(); if(confirm('削除しますか？')) { await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', s.id)); await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', s.id)); } };
                     con.appendChild(div);
                 });
             }
@@ -1872,7 +1925,7 @@
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 if (unsubscribeLogs) unsubscribeLogs();
-                if (unsubscribeInquiries) unsubscribeInquiries(); // Clean up inquiry listener
+                if (unsubscribeInquiries) unsubscribeInquiries();
 
                 currentSchoolId = id;
                 document.getElementById('schoolSelectionView').classList.add('hidden');
@@ -1882,39 +1935,27 @@
                 document.getElementById('previewPageBtn').classList.remove('hidden');
                 document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
-                // Load Settings
                 unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
                     if(snap.exists()) currentSettings = snap.data();
                     else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
-                    
                     if(!currentSettings.contents) currentSettings.contents = [];
                     if(!currentSettings.schedule) currentSettings.schedule = {};
-
                     document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
-                    
-                    // Populate Form
                     document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
                     document.getElementById('settingAddress').value = currentSettings.address || '';
                     document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
                     document.getElementById('settingPageTitle').value = currentSettings.pageTitle || '';
                     document.getElementById('settingPageDesc').value = currentSettings.pageDescription || '';
                     document.getElementById('settingHeaderImage').value = currentSettings.headerImageUrl || '';
-                    
-                    renderLocalContents();
-                    renderSchedCalendar();
-                    updateStats(); // 集計更新
+                    renderLocalContents(); renderSchedCalendar(); updateStats(); 
                 });
                 
-                // Load Bookings
                 unsubscribeBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     allBookings = [];
                     snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
-                    renderDashboard();
-                    renderBookingTable();
-                    updateStats(); // 集計更新
+                    renderDashboard(); renderBookingTable(); updateStats();
                 });
                 
-                // Load Inquiries (NEW)
                 const inqQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'inquiries'), where("schoolId", "==", id));
                 unsubscribeInquiries = onSnapshot(inqQuery, (snap) => {
                     allInquiries = [];
@@ -1922,786 +1963,67 @@
                     renderInquiryTable();
                 });
 
-                // Load Logs (Access Analytics)
                 const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
                 unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
                     allLogs = [];
                     snap.forEach(d => allLogs.push(d.data()));
-                    updateStats(); // 集計更新
+                    updateStats();
                 });
             }
 
-            // Inquiry Rendering & Logic
             function renderInquiryTable() {
                 const tbody = document.getElementById('inquiryTableBody');
                 tbody.innerHTML = '';
-                
-                // Sort by date desc
                 allInquiries.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
-
-                if (allInquiries.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">お問い合わせはありません。</td></tr>';
-                    return;
-                }
-
+                if (allInquiries.length === 0) { tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">お問い合わせはありません。</td></tr>'; return; }
                 allInquiries.forEach(inq => {
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 border-b last:border-0";
-                    
-                    // Date Format
                     let dateStr = '-';
                     if(inq.createdAt && inq.createdAt.toDate) {
                         const d = inq.createdAt.toDate();
                         dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
                     }
-
-                    // Status Config
                     const status = inq.status || 'pending';
                     let selectBg = 'bg-white';
                     if (status === 'pending') selectBg = 'bg-red-50 text-red-700 border-red-200';
                     else if (status === 'in_progress') selectBg = 'bg-yellow-50 text-yellow-700 border-yellow-200';
                     else if (status === 'completed') selectBg = 'bg-gray-50 text-gray-500 border-gray-200';
-
-                    tr.innerHTML = `
-                        <td class="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">${dateStr}</td>
-                        <td class="px-6 py-4 font-bold text-slate-700">${inq.name} 様</td>
-                        <td class="px-6 py-4 text-xs text-slate-600">
-                            <div>${inq.email}</div>
-                            <div>${inq.phone}</div>
-                        </td>
-                        <td class="px-6 py-4 text-sm text-slate-600 whitespace-pre-wrap">${inq.preferredSchedule}</td>
-                        <td class="px-6 py-4 text-center">
-                            <select onchange="updateInquiryStatus('${inq.id}', this.value)" class="text-xs p-1 rounded border ${selectBg} font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors cursor-pointer">
-                                <option value="pending" ${status === 'pending' ? 'selected' : ''}>未対応</option>
-                                <option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>対応中</option>
-                                <option value="completed" ${status === 'completed' ? 'selected' : ''}>完了</option>
-                            </select>
-                        </td>
-                    `;
+                    tr.innerHTML = `<td class="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">${dateStr}</td><td class="px-6 py-4 font-bold text-slate-700">${inq.name} 様</td><td class="px-6 py-4 text-xs text-slate-600"><div>${inq.email}</div><div>${inq.phone}</div></td><td class="px-6 py-4 text-sm text-slate-600 whitespace-pre-wrap">${inq.preferredSchedule}</td><td class="px-6 py-4 text-center"><select onchange="updateInquiryStatus('${inq.id}', this.value)" class="text-xs p-1 rounded border ${selectBg} font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors cursor-pointer"><option value="pending" ${status === 'pending' ? 'selected' : ''}>未対応</option><option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>対応中</option><option value="completed" ${status === 'completed' ? 'selected' : ''}>完了</option></select></td>`;
                     tbody.appendChild(tr);
                 });
             }
-
-            // Expose update function to window
-            window.updateInquiryStatus = async (id, status) => {
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inquiries', id), { status: status });
-                    showToast("ステータスを更新しました");
-                } catch (err) {
-                    alert("更新に失敗しました: " + err.message);
-                }
-            };
-
-
-            // --- Features ---
-            
-            // 1. Content Management (Local)
-            function renderLocalContents() {
-                const con = document.getElementById('localContentList');
-                con.innerHTML = '';
-                (currentSettings.contents || []).forEach((c, idx) => {
-                    const div = document.createElement('div');
-                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
-                    div.innerHTML = `<div><span class="font-bold text-slate-700">${c.name}</span> <span class="text-xs text-slate-500">${c.type === 'event' ? 'イベント' : '体験'} ¥${c.price}</span></div><div><button class="text-blue-500 text-xs mr-2 edit-cnt" data-idx="${idx}">編集</button><button class="text-red-500 text-xs del-cnt" data-idx="${idx}">削除</button></div>`;
-                    con.appendChild(div);
-                });
-                
-                con.querySelectorAll('.edit-cnt').forEach(b => b.onclick = () => openContentModal(b.dataset.idx));
-                con.querySelectorAll('.del-cnt').forEach(b => b.onclick = async () => {
-                    if(confirm("削除しますか？")) {
-                        // Ensure index is number
-                        const idx = parseInt(b.dataset.idx);
-                        currentSettings.contents.splice(idx, 1);
-                        await saveSettings();
-                    }
-                });
-            }
-
-            function openContentModal(idxStr = null) {
-                const isNew = idxStr === null;
-                document.getElementById('contentFormTitle').textContent = isNew ? "新規作成" : "コンテンツ編集";
-                document.getElementById('editContentId').value = isNew ? 'new' : idxStr;
-                
-                const idInput = document.getElementById('editContentCustomId');
-                idInput.value = '';
-                idInput.disabled = !isNew; 
-                
-                if (isNew) {
-                    document.getElementById('editContentName').value = '';
-                    document.getElementById('editContentPrice').value = '';
-                    document.getElementById('editContentImage').value = '';
-                    // NEW FIELDS
-                    document.getElementById('editContentDescription').value = '';
-                    document.getElementById('editContentDuration').value = '';
-                    document.getElementById('editContentNotes').value = '';
-                } else {
-                    const c = currentSettings.contents[idxStr];
-                    document.getElementById('editContentName').value = c.name;
-                    document.getElementById('editContentCustomId').value = c.id; 
-                    document.getElementById('editContentType').value = c.type;
-                    document.getElementById('editContentPrice').value = c.price;
-                    document.getElementById('editContentImage').value = c.imageUrl || '';
-                    // NEW FIELDS
-                    document.getElementById('editContentDescription').value = c.description || '';
-                    document.getElementById('editContentDuration').value = c.duration || '';
-                    document.getElementById('editContentNotes').value = c.notes || '';
-                }
-                document.getElementById('contentModal').classList.remove('hidden');
-            }
-            
-            document.getElementById('closeContentModal').onclick = () => document.getElementById('contentModal').classList.add('hidden');
-            document.getElementById('openContentModalBtn').onclick = () => openContentModal();
-
-            document.getElementById('saveContentBtn').onclick = async () => {
-                const idxStr = document.getElementById('editContentId').value;
-                const name = document.getElementById('editContentName').value;
-                const type = document.getElementById('editContentType').value;
-                const price = document.getElementById('editContentPrice').value;
-                const img = document.getElementById('editContentImage').value;
-                const customId = document.getElementById('editContentCustomId').value.trim();
-                
-                const description = document.getElementById('editContentDescription').value;
-                const duration = document.getElementById('editContentDuration').value;
-                const notes = document.getElementById('editContentNotes').value;
-
-                if(!name || !price) return alert("コンテンツ名と金額は必須です");
-                
-                let newId;
-                if (idxStr === 'new') {
-                     if (customId) {
-                         if (currentSettings.contents.some(c => c.id === customId)) {
-                             return alert("指定されたIDは既に使用されています。");
-                         }
-                         newId = customId;
-                     } else {
-                         newId = 'c' + Date.now();
-                     }
-                } else {
-                    newId = currentSettings.contents[idxStr].id;
-                }
-
-                const newData = {
-                    id: newId,
-                    name, type, price: parseInt(price), imageUrl: img,
-                    description, duration, notes
-                };
-                
-                if(idxStr === 'new') currentSettings.contents.push(newData);
-                else currentSettings.contents[idxStr] = newData;
-                
-                await saveSettings();
-                document.getElementById('contentModal').classList.add('hidden');
-            };
-
-            // 2. Schedule
-            document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
-            document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
-            document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
-
-            function renderSchedCalendar() {
-                const y = adminDate.getFullYear(), m = adminDate.getMonth();
-                document.getElementById('schedTitle').textContent = `${y}年 ${m+1}月`;
-                const grid = document.getElementById('schedGrid');
-                grid.innerHTML = '';
-                
-                const firstDay = new Date(y, m, 1).getDay();
-                const days = new Date(y, m+1, 0).getDate();
-                
-                for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
-                
-                for(let d=1; d<=days; d++) {
-                    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                    const cell = document.createElement('div');
-                    cell.className = "bg-white min-h-[60px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer relative";
-                    cell.innerHTML = `<div class="font-bold text-slate-400 mb-1 text-xs">${d}</div>`;
-                    
-                    if(currentSettings.schedule[dateStr]) {
-                        currentSettings.schedule[dateStr].forEach(evt => {
-                            const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
-                            let col = "bg-blue-500";
-                            if(evt.grades && evt.grades.length > 0) {
-                                if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
-                                else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
-                                else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d] text-white";
-                                else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc] text-white";
-                            }
-                            const div = document.createElement('div');
-                            div.className = `${col} rounded px-1 mb-1 text-[10px] truncate border border-white`;
-                            div.textContent = `${evt.startTime} ${c.name}`;
-                            cell.appendChild(div);
-                        });
-                    }
-                    cell.onclick = () => openScheduleModal(dateStr);
-                    grid.appendChild(cell);
-                }
-            }
-
-            function openScheduleModal(dateStr) {
-                selectedDateStr = dateStr; 
-                document.getElementById('modalDateDisplay').textContent = dateStr;
-                document.getElementById('scheduleModal').classList.remove('hidden');
-                
-                const sel = document.getElementById('schedContentSelect');
-                sel.innerHTML = '';
-                currentSettings.contents.forEach(c => {
-                    const opt = document.createElement('option');
-                    opt.value = c.id; opt.textContent = `${c.name} (¥${c.price})`;
-                    sel.appendChild(opt);
-                });
-                
-                resetSchedForm();
-                renderTimeline();
-                renderDayList();
-            }
-
-            function renderTimeline() {
-                const tracks = document.getElementById('timelineTracks');
-                const axis = document.getElementById('timelineAxis');
-                tracks.innerHTML = ''; axis.innerHTML = '';
-                
-                const startHour = 9;
-                const endHour = 20;
-                const pxPerMin = 720 / ((endHour - startHour) * 60);
-
-                for(let h=9; h<=20; h++) {
-                    const top = (h-9)*60 * pxPerMin;
-                    const l = document.createElement('div');
-                    l.className = "absolute w-full text-center transform -translate-y-1/2";
-                    l.style.top = top + 'px'; l.textContent = `${h}:00`;
-                    axis.appendChild(l);
-                    
-                    const line = document.createElement('div');
-                    line.className = "absolute w-full border-t border-slate-200 pointer-events-none";
-                    line.style.top = top + 'px';
-                    tracks.appendChild(line);
-                }
-                
-                const evts = currentSettings.schedule[selectedDateStr] || [];
-                evts.forEach((evt, idx) => {
-                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
-                    const [sh, sm] = evt.startTime.split(':').map(Number);
-                    const [eh, em] = evt.endTime.split(':').map(Number);
-                    
-                    const sMin = (sh-9)*60 + sm;
-                    const eMin = (eh-9)*60 + em;
-                    const top = sMin * pxPerMin;
-                    const height = (eMin - sMin) * pxPerMin;
-                    
-                    const blk = document.createElement('div');
-                    let col = "bg-blue-500";
-                    if(evt.grades && evt.grades.length > 0) {
-                        if(evt.grades.length === 3) col = "bg-[#5abe50]";
-                        else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
-                        else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
-                        else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
-                    }
-                    blk.className = `timeline-event-block ${col}`;
-                    blk.style.top = top+'px'; blk.style.height = `${Math.max(20, height)}px`;
-                    blk.style.left = '4px'; blk.style.right = '4px';
-                    blk.textContent = `${evt.startTime} ${c ? c.name : ''}`;
-                    blk.title = `${evt.startTime}-${evt.endTime} ${c ? c.name : ''}`;
-                    blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
-                    
-                    // Simple Drag
-                    blk.draggable = true;
-                    blk.ondragstart = (e) => {
-                        e.stopPropagation();
-                        draggingItemIndex = idx;
-                        const rect = blk.getBoundingClientRect();
-                        dragStartY = e.clientY - rect.top; // Offset inside the block
-                    };
-                    
-                    tracks.appendChild(blk);
-                });
-                
-                // Drop
-                const con = document.getElementById('timelineContainer');
-                con.ondragover = (e) => e.preventDefault();
-                con.ondrop = async (e) => {
-                    e.preventDefault();
-                    if(draggingItemIndex === null) return;
-                    
-                    const idx = draggingItemIndex;
-                    const rect = tracks.getBoundingClientRect();
-                    // Scroll calculation fix: e.clientY is viewport relative. rect.top is viewport relative.
-                    // Correct: e.clientY - rect.top gives position relative to the top of the tracks container
-                    const y = e.clientY - rect.top - dragStartY; 
-                    
-                    const pxPerMin = 720 / ((20 - 9) * 60);
-                    const mins = y / pxPerMin;
-                    const newTotal = 9*60 + mins;
-                    const rounded = Math.round(newTotal/10)*10;
-                    
-                    const h = Math.floor(rounded/60);
-                    const m = rounded%60;
-                    
-                    const evt = evts[idx];
-                    const [osh, osm] = evt.startTime.split(':').map(Number);
-                    const [oeh, oem] = evt.endTime.split(':').map(Number);
-                    const dur = (oeh*60+oem) - (osh*60+osm);
-                    
-                    const endTotal = rounded + dur;
-                    const eh = Math.floor(endTotal/60);
-                    const em = endTotal%60;
-                    
-                    if(h < 9 || eh > 20) return; // Bounds check
-
-                    // Overlap check
-                    const newStartMins = h * 60 + m;
-                    const newEndMins = eh * 60 + em;
-                    const existingEvents = currentSettings.schedule[selectedDateStr] || [];
-                    for (let i = 0; i < existingEvents.length; i++) {
-                        if (i === idx) continue; // Skip self
-                        const ex = existingEvents[i];
-                        const [exSh, exSm] = ex.startTime.split(':').map(Number);
-                        const [exEh, exEm] = ex.endTime.split(':').map(Number);
-                        const exStartMins = exSh * 60 + exSm;
-                        const exEndMins = exEh * 60 + exEm;
-
-                        if (newStartMins < exEndMins && newEndMins > exStartMins) {
-                            alert("時間が重複しているため変更できません。");
-                            draggingItemIndex = null;
-                            return;
-                        }
-                    }
-
-                    evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                    evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
-                    
-                    await saveSettings();
-                    renderTimeline();
-                    renderDayList();
-                    renderSchedCalendar();
-                    draggingItemIndex = null;
-                };
-                
-                // Click to add
-                con.onclick = (e) => {
-                    if(e.target.closest('.timeline-event-block')) return;
-                    const rect = tracks.getBoundingClientRect();
-                    const y = e.clientY - rect.top; // Relative to tracks top (already accounts for scroll)
-                    const pxPerMin = 720 / 660;
-                    const mins = y / pxPerMin;
-                    const newTotal = 9*60 + mins;
-                    const rounded = Math.round(newTotal/10)*10;
-                    
-                    const h = Math.floor(rounded/60);
-                    const m = rounded%60;
-                    const eh = Math.floor((rounded+60)/60);
-                    const em = (rounded+60)%60;
-                    
-                    resetSchedForm();
-                    document.getElementById('schedStart').value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                    document.getElementById('schedEnd').value = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
-                };
-            }
-
-            function renderDayList() {
-                const list = document.getElementById('daySchedList');
-                list.innerHTML = '';
-                const evts = currentSettings.schedule[selectedDateStr] || [];
-                evts.forEach((evt, idx) => {
-                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
-                    const d = document.createElement('div');
-                    d.className = "flex justify-between items-center p-2 border rounded bg-white";
-                    d.innerHTML = `
-                        <div class="cursor-pointer" onclick="window.editSched(${idx})"><b>${evt.startTime}</b> ${c.name}</div>
-                        <div class="flex gap-1">
-                            <button class="text-blue-500 cp-btn" data-idx="${idx}">複製</button>
-                            <button class="text-red-500 del-s-btn" data-idx="${idx}">削除</button>
-                        </div>
-                    `;
-                    list.appendChild(d);
-                });
-                
-                list.querySelectorAll('.cp-btn').forEach(b => b.onclick = (e) => {
-                    e.stopPropagation();
-                    scheduleToCopy = evts[b.dataset.idx];
-                    document.getElementById('copyDialog').classList.remove('hidden');
-                });
-                list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
-                    e.stopPropagation();
-                    const idx = parseInt(b.dataset.idx);
-                    const evt = evts[idx];
-
-                    // 予約チェック
-                    const hasBooking = allBookings.some(booking => 
-                        booking.date === selectedDateStr && 
-                        booking.startTime === evt.startTime && 
-                        booking.contentId === evt.contentId
-                    );
-
-                    if (hasBooking) {
-                        alert("この枠には既に予約が入っているため削除できません。\n予約管理タブから予約を確認・キャンセルしてください。");
-                        return;
-                    }
-
-                    if(confirm("削除しますか？")) {
-                        currentSettings.schedule[selectedDateStr].splice(idx, 1);
-                        await saveSettings();
-                        renderTimeline(); renderDayList(); renderSchedCalendar();
-                    }
-                });
-            }
-
-            window.editSched = (idx) => {
-                const evt = currentSettings.schedule[selectedDateStr][idx];
-                document.getElementById('schedEditIndex').value = idx;
-                document.getElementById('schedContentSelect').value = evt.contentId;
-                document.getElementById('schedStart').value = evt.startTime;
-                document.getElementById('schedEnd').value = evt.endTime;
-                document.getElementById('schedCap').value = evt.capacity;
-                document.querySelectorAll('.sched-grade').forEach(c => c.checked = evt.grades && evt.grades.includes(c.value));
-                document.getElementById('schedFormTitle').textContent = "枠を編集";
-                document.getElementById('schedSaveBtn').textContent = "更新";
-                document.getElementById('schedDeleteBtn').classList.remove('hidden');
-                document.getElementById('schedCancelBtn').classList.remove('hidden');
-            };
-
-            const resetSchedForm = () => {
-                document.getElementById('schedEditIndex').value = -1;
-                document.getElementById('schedStart').value = '';
-                document.getElementById('schedEnd').value = '';
-                document.getElementById('schedCap').value = 5;
-                document.querySelectorAll('.sched-grade').forEach(c => c.checked = false);
-                document.getElementById('schedFormTitle').textContent = "新規枠を追加";
-                document.getElementById('schedSaveBtn').textContent = "保存";
-                document.getElementById('schedDeleteBtn').classList.add('hidden');
-                document.getElementById('schedCancelBtn').classList.add('hidden');
-            };
-            document.getElementById('schedCancelBtn').onclick = resetSchedForm;
-
-            document.getElementById('schedSaveBtn').onclick = async () => {
-                const idx = parseInt(document.getElementById('schedEditIndex').value);
-                const cid = document.getElementById('schedContentSelect').value;
-                const start = document.getElementById('schedStart').value;
-                const end = document.getElementById('schedEnd').value;
-                const cap = document.getElementById('schedCap').value;
-                const gr = Array.from(document.querySelectorAll('.sched-grade:checked')).map(c=>c.value);
-                
-                if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
-
-                // Overlap Check Logic
-                const [nh, nm] = start.split(':').map(Number);
-                const [neh, nem] = end.split(':').map(Number);
-                const newStartMins = nh * 60 + nm;
-                const newEndMins = neh * 60 + nem;
-
-                const existingEvents = currentSettings.schedule[selectedDateStr] || [];
-                for (let i = 0; i < existingEvents.length; i++) {
-                    if (idx !== -1 && i === idx) continue; // Skip self if editing
-
-                    const ex = existingEvents[i];
-                    const [exSh, exSm] = ex.startTime.split(':').map(Number);
-                    const [exEh, exEm] = ex.endTime.split(':').map(Number);
-                    const exStartMins = exSh * 60 + exSm;
-                    const exEndMins = exEh * 60 + exEm;
-
-                    // Check for overlap: (StartA < EndB) and (EndA > StartB)
-                    if (newStartMins < exEndMins && newEndMins > exStartMins) {
-                        return alert("時間が重複しているため登録できません。");
-                    }
-                }
-                
-                const newEvt = {
-                    id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
-                    contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
-                };
-                
-                if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
-                
-                if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
-                else currentSettings.schedule[selectedDateStr].push(newEvt);
-                
-                currentSettings.schedule[selectedDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
-                
-                await saveSettings();
-                renderTimeline(); renderDayList(); renderSchedCalendar();
-                resetSchedForm();
-            };
-            
-            document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
-            
-            document.getElementById('execCopyBtn').onclick = async () => {
-                const d = document.getElementById('copyDate').value;
-                if(!d) return;
-                if(!currentSettings.schedule[d]) currentSettings.schedule[d] = [];
-                currentSettings.schedule[d].push({...scheduleToCopy, id: 's'+Date.now()});
-                await saveSettings();
-                document.getElementById('copyDialog').classList.add('hidden');
-                showToast("複製しました");
-                renderSchedCalendar();
-            };
-
-            // 3. Settings Save
-            document.getElementById('schoolSettingsForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const fd = new FormData(e.target);
-                currentSettings.schoolName = fd.get('schoolName');
-                currentSettings.address = fd.get('address');
-                currentSettings.phoneNumber = fd.get('phoneNumber');
-                currentSettings.pageTitle = fd.get('pageTitle');
-                currentSettings.pageDescription = fd.get('pageDescription');
-                currentSettings.headerImageUrl = fd.get('headerImageUrl');
-                await saveSettings();
-                
-                // Update School List meta
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { id: currentSchoolId, name: currentSettings.schoolName }, {merge: true});
-                showToast("保存しました");
-            };
-
-            // 4. Dashboard & Booking List (Read-only view)
-            function renderDashboard() {
-                const total = allBookings.length;
-                document.getElementById('totalBookings').textContent = total;
-                const m = new Date();
-                const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
-                document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
-                
-                // 売上計算 (今月)
-                let monthSales = 0;
-                allBookings.forEach(b => {
-                    if(b.date.startsWith(mPrefix)) {
-                        // find content price
-                        const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
-                        if(content && content.price) {
-                            monthSales += parseInt(content.price);
-                        }
-                    }
-                });
-                document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
-                
-                document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
-                document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
-                renderAdminDashboard();
-            }
-
-            function renderAdminDashboard() {
-                 const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
-                 document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
-                 const grid = document.getElementById('dashGrid');
-                 grid.innerHTML = '';
-                 
-                 const firstDay = new Date(y, m, 1).getDay();
-                 const days = new Date(y, m+1, 0).getDate();
-                 
-                 for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
-                 
-                 for(let d=1; d<=days; d++) {
-                     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                     const cell = document.createElement('div');
-                     cell.className = "bg-white dashboard-calendar-cell min-h-[50px] border-r border-b p-1";
-                     cell.innerHTML = `<div class="text-xs font-bold text-slate-500 mb-1">${d}</div>`;
-                     
-                     if(currentSettings.schedule[dateStr]) {
-                         currentSettings.schedule[dateStr].forEach(evt => {
-                             const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
-                             const count = allBookings.filter(b => b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId).length;
-                             const remaining = Math.max(0, parseInt(evt.capacity) - count);
-                             
-                             const item = document.createElement('div');
-                             let col = "bg-gray-400";
-                             if(evt.grades && evt.grades.length > 0) {
-                                 if(evt.grades.length === 3) col = "bg-[#5abe50]";
-                                 else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
-                                 else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
-                                 else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
-                             }
-                             item.className = `dashboard-event-item ${col}`;
-                             item.innerHTML = `<div class="font-bold">${evt.startTime}</div><div class="truncate">${c.name}</div><div class="flex justify-between items-center mt-1"><span class="font-bold">予約:${count}/${evt.capacity}</span><span class="text-xs bg-white text-slate-600 px-1 rounded font-bold">残:${remaining}</span></div>`;
-                             cell.appendChild(item);
-                          });
-                       }
-                       grid.appendChild(cell);
-                  }
-            }
-            
-            function renderBookingTable() {
-                const tbody = document.getElementById('bookingTableBody');
-                tbody.innerHTML = '';
-                allBookings.sort((a,b) => b.date.localeCompare(a.date)).forEach(b => {
-                    const tr = document.createElement('tr');
-                    tr.className = "hover:bg-slate-50";
-                    
-                    let sourceBadge = '';
-                    if (b.sourceType === 'admin') {
-                        sourceBadge = '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200">管理画面</span>';
-                    } else {
-                        if (b.utmSource) {
-                            sourceBadge = `<span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs border border-indigo-100 block w-fit mb-1">${b.utmSource}</span>`;
-                            if(b.utmMedium) sourceBadge += `<span class="text-[10px] text-slate-400">${b.utmMedium}</span>`;
-                        } else {
-                            sourceBadge = '<span class="text-xs text-slate-400">Web予約</span>';
-                        }
-                    }
-
-                    tr.innerHTML = `
-                        <td class="px-6 py-4">${b.date} ${b.startTime}</td>
-                        <td class="px-6 py-4">${b.courseName}</td>
-                        <td class="px-6 py-4 font-bold">${b.childName} <span class="text-xs font-normal">(${b.parentName})</span></td>
-                        <td class="px-6 py-4 text-xs">${b.email}<br>${b.phone}</td>
-                        <td class="px-6 py-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">確定</span></td>
-                        <td class="px-6 py-4 text-center">${sourceBadge}</td>
-                        <td class="px-6 py-4 text-center">
-                            <div class="flex flex-col gap-2">
-                                <button onclick="openBookingEditModal('${b.id}')" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 font-bold">編集</button>
-                                <button onclick="cancelBooking('${b.id}')" class="text-xs bg-red-50 text-red-600 px-2 py-1 rounded border border-red-200 hover:bg-red-100 font-bold">キャンセル</button>
-                            </div>
-                        </td>
-                    `;
-                    tbody.appendChild(tr);
-                });
-            }
-            
-            // Booking Edit & Cancel Logic
-            window.openBookingEditModal = (bookingId) => {
-                const booking = allBookings.find(b => b.id === bookingId);
-                if (!booking) return;
-
-                document.getElementById('editBookingId').value = booking.id;
-                document.getElementById('editChildName').value = booking.childName || '';
-                document.getElementById('editParentName').value = booking.parentName || '';
-                document.getElementById('editEmail').value = booking.email || '';
-                document.getElementById('editPhone').value = booking.phone || '';
-                
-                // Set original values
-                document.getElementById('originalDate').value = booking.date;
-                document.getElementById('originalStartTime').value = booking.startTime;
-                document.getElementById('originalContentId').value = booking.contentId;
-                
-                // Reset edit date/time
-                const dInput = document.getElementById('editBookingDate');
-                dInput.value = booking.date; // Default to current date
-                
-                // Populate schedule select for the current date
-                // We need to construct the current value object to pre-select it
-                const currentValObj = {
-                    contentId: booking.contentId,
-                    startTime: booking.startTime,
-                    courseName: booking.courseName
-                };
-                updateScheduleSelect(booking.date, 'editBookingScheduleId', JSON.stringify(currentValObj));
-                
-                document.getElementById('bookingEditModal').classList.remove('hidden');
-            };
-
-            document.getElementById('editBookingDate').addEventListener('change', (e) => {
-                updateScheduleSelect(e.target.value, 'editBookingScheduleId');
-            });
-
-            document.getElementById('bookingEditForm').onsubmit = async (e) => {
-                e.preventDefault();
-                const bookingId = document.getElementById('editBookingId').value;
-                if (!bookingId) return;
-                
-                const updateData = {
-                    childName: document.getElementById('editChildName').value,
-                    parentName: document.getElementById('editParentName').value,
-                    email: document.getElementById('editEmail').value,
-                    phone: document.getElementById('editPhone').value
-                };
-
-                // Check for schedule change
-                const newDate = document.getElementById('editBookingDate').value;
-                const newScheduleVal = document.getElementById('editBookingScheduleId').value;
-                
-                // If a schedule is selected (it's not empty)
-                if (newScheduleVal) {
-                      const schedData = JSON.parse(newScheduleVal);
-                      // If date OR content/time changed from original
-                      const origDate = document.getElementById('originalDate').value;
-                      const origStart = document.getElementById('originalStartTime').value;
-                      const origContent = document.getElementById('originalContentId').value;
-
-                      if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
-                          updateData.date = newDate;
-                          updateData.startTime = schedData.startTime;
-                          updateData.contentId = schedData.contentId;
-                          updateData.courseName = schedData.courseName;
-                      }
-                }
-
-                try {
-                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), updateData);
-                    document.getElementById('bookingEditModal').classList.add('hidden');
-                    showToast("予約情報を更新しました");
-                } catch (err) {
-                    alert("更新に失敗しました: " + err.message);
-                }
-            };
-
-            window.cancelBooking = async (bookingId) => {
-                if (!confirm("本当にこの予約をキャンセル（削除）しますか？\nこの操作は取り消せません。")) return;
-                
-                try {
-                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
-                    showToast("予約をキャンセルしました");
-                } catch (err) {
-                    alert("削除に失敗しました: " + err.message);
-                }
-            };
+            window.updateInquiryStatus = async (id, status) => { try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inquiries', id), { status: status }); showToast("ステータスを更新しました"); } catch (err) { alert("更新に失敗しました: " + err.message); } };
 
             // URL Generator Logic (New)
             const updateGeneratedUrl = () => {
                 const source = document.getElementById('utmSource').value.trim();
                 const medium = document.getElementById('utmMedium').value.trim();
                 const campaign = document.getElementById('utmCampaign').value.trim();
-                
                 if (!currentSchoolId) return;
-
-                // Base URL: Replace current filename with 'index.html'
                 let path = window.location.pathname;
                 const lastSlash = path.lastIndexOf('/');
-                if (lastSlash !== -1) {
-                    path = path.substring(0, lastSlash + 1) + 'index.html';
-                } else {
-                    path = '/index.html';
-                }
+                if (lastSlash !== -1) path = path.substring(0, lastSlash + 1) + 'index.html'; else path = '/index.html';
                 const baseUrl = `${window.location.origin}${path}?school=${currentSchoolId}`;
-                
                 let finalUrl = baseUrl;
-
                 const params = [];
                 if (source) params.push(`utm_source=${encodeURIComponent(source)}`);
                 if (medium) params.push(`utm_medium=${encodeURIComponent(medium)}`);
                 if (campaign) params.push(`utm_campaign=${encodeURIComponent(campaign)}`);
-
-                if (params.length > 0) {
-                    finalUrl += '&' + params.join('&');
-                }
-                
+                if (params.length > 0) finalUrl += '&' + params.join('&');
                 document.getElementById('generatedUrl').value = finalUrl;
             };
-
-            ['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
-                document.getElementById(id).addEventListener('input', updateGeneratedUrl);
-            });
-
-            document.getElementById('copyUrlBtn').onclick = () => {
-                const urlInput = document.getElementById('generatedUrl');
-                urlInput.select();
-                urlInput.setSelectionRange(0, 99999); 
-                document.execCommand('copy'); 
-                showToast("URLをコピーしました");
-            };
+            ['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => { document.getElementById(id).addEventListener('input', updateGeneratedUrl); });
+            document.getElementById('copyUrlBtn').onclick = () => { const urlInput = document.getElementById('generatedUrl'); urlInput.select(); urlInput.setSelectionRange(0, 99999); document.execCommand('copy'); showToast("URLをコピーしました"); };
 
             // Utils
-            async function saveSettings() {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
-            }
-            
-            function showToast(msg) {
-                const t = document.getElementById('toast');
-                t.textContent = msg;
-                t.classList.remove('opacity-0');
-                setTimeout(() => t.classList.add('opacity-0'), 3000);
-            }
+            async function saveSettings() { await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings); }
+            function showToast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.remove('opacity-0'); setTimeout(() => t.classList.add('opacity-0'), 3000); }
 
             document.getElementById('backToSchoolSelectBtn').onclick = () => {
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 if (unsubscribeLogs) unsubscribeLogs();
-                
                 document.getElementById('schoolAdminView').classList.add('hidden');
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
                 document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
@@ -2712,30 +2034,23 @@
 
             document.querySelectorAll('.tab-btn').forEach(btn => {
                 btn.onclick = () => {
-                    document.querySelectorAll('.tab-btn').forEach(b => {
-                        b.classList.remove('border-blue-600', 'text-blue-600');
-                        b.classList.add('border-transparent', 'text-slate-500');
-                    });
+                    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('border-blue-600', 'text-blue-600'); b.classList.add('border-transparent', 'text-slate-500'); });
                     btn.classList.remove('border-transparent', 'text-slate-500');
                     btn.classList.add('border-blue-600', 'text-blue-600');
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
                     document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
-                    
-                    if(btn.dataset.tab === 'dashboard') renderDashboard(); // Refresh
-                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); // Init URL gen
+                    if(btn.dataset.tab === 'dashboard') renderDashboard();
+                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl();
                 };
             });
 
-            // Add School
             document.getElementById('addSchoolForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('newSchoolName').value;
                 const id = document.getElementById('newSchoolId').value;
                 if(schools.some(s=>s.id===id)) return alert("ID重複");
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', id), { name, id });
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), { 
-                    schoolName: name, schoolId: id, contents: [], schedule: {} 
-                });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), { schoolName: name, schoolId: id, contents: [], schedule: {} });
                 document.getElementById('addSchoolModal').classList.add('hidden');
                 e.target.reset();
             };
@@ -2745,3 +2060,5 @@
     </script>
 </body>
 </html>
+
+                                  
