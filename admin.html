@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ロボット教室 管理コンソール (RBAC実装版)</title>
+    <title>ロボット教室 管理コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,47 +20,32 @@
         ::-webkit-scrollbar-track { background: #f1f5f9; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        
-        /* 読み込み中オーバーレイ */
-        #loadingOverlay {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.8); 
-            z-index: 9999; display: flex; justify-content: center; align-items: center;
-        }
     </style>
 </head>
 <body>
-    <div id="loadingOverlay" class="hidden">
-        <div class="text-center">
-            <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-slate-700 mx-auto mb-4"></div>
-            <p class="font-bold text-slate-600">読み込み中...</p>
-        </div>
-    </div>
 
     <div id="loginView" class="min-h-screen flex items-center justify-center bg-slate-800">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
-            <h1 class="text-2xl font-extrabold text-center text-slate-700 mb-2">管理コンソール</h1>
+            <h1 class="text-2xl font-extrabold text-center text-slate-700 mb-2">管理者ログイン</h1>
             <p class="text-xs text-center text-slate-400 mb-4">ロボットプログラミング教室 管理システム</p>
             
             <div class="bg-slate-100 p-2 rounded text-center mb-6 border border-slate-200">
-                <p class="text-[10px] text-slate-500">接続元IPアドレス</p>
+                <p class="text-[10px] text-slate-500">あなたのIPアドレス</p>
                 <p id="currentIpDisplay" class="text-xs font-mono font-bold text-slate-700">取得中...</p>
             </div>
 
             <form id="loginForm" class="space-y-4">
                 <div>
                     <label class="block text-sm font-bold text-slate-600">メールアドレス</label>
-                    <input type="email" id="loginEmail" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="name@example.com" required>
+                    <input type="email" id="adminEmail" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="admin@example.com" value="admin@example.com">
                 </div>
                 <div>
                     <label class="block text-sm font-bold text-slate-600">パスワード</label>
-                    <input type="password" id="loginPassword" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" required>
+                    <input type="password" id="adminPassword" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" placeholder="••••••••" value="password">
                 </div>
-                <div id="loginErrorMsg" class="text-xs text-red-500 font-bold text-center hidden"></div>
                 <button type="submit" id="loginBtn" class="w-full py-3 bg-slate-700 text-white font-bold rounded-lg hover:bg-slate-600 transition">ログイン</button>
             </form>
-            <p class="text-[10px] text-center text-slate-400 mt-4">
-                ※IP制限およびアカウント権限によるアクセス制御が有効です
-            </p>
+            <p class="text-[10px] text-center text-red-400 mt-4">※デモ用: そのままログインボタンを押してください</p>
         </div>
     </div>
 
@@ -71,7 +56,6 @@
                     <div class="flex items-center">
                         <span class="text-xl font-extrabold text-slate-800 mr-4">管理コンソール</span>
                         <span id="currentSchoolNameDisplay" class="text-sm font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full hidden"></span>
-                        <span id="currentUserRoleDisplay" class="ml-2 text-[10px] text-white px-2 py-0.5 rounded bg-slate-400"></span>
                     </div>
                     <div class="flex items-center gap-4">
                         <a id="previewPageBtn" href="#" target="_blank" class="text-sm text-teal-600 hover:text-teal-800 hover:underline hidden flex items-center gap-1 font-bold">
@@ -81,16 +65,13 @@
                             予約ページ確認
                         </a>
                         <button id="backToSchoolSelectBtn" class="text-sm text-blue-600 hover:underline hidden">校舎選択へ戻る</button>
-                        <div class="flex items-center gap-2">
-                            <span id="currentUserName" class="text-xs font-bold text-slate-600 hidden sm:inline"></span>
-                            <button id="logoutBtn" class="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-1 rounded">ログアウト</button>
-                        </div>
+                        <button id="logoutBtn" class="text-sm font-bold text-red-500 hover:bg-red-50 px-3 py-1 rounded">ログアウト</button>
                     </div>
                 </div>
             </div>
         </nav>
 
-        <div id="schoolSelectionView" class="max-w-6xl mx-auto px-4 py-8 hidden">
+        <div id="schoolSelectionView" class="max-w-6xl mx-auto px-4 py-8">
             <h2 class="text-2xl font-bold text-slate-700 mb-6">管理する校舎を選択</h2>
             <div id="schoolListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 </div>
@@ -104,11 +85,6 @@
                     <button id="openGlobalDashBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         全校舎集計ダッシュボード
-                    </button>
-
-                    <button id="manageMembersBtn" class="bg-pink-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-pink-700 shadow transition flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
-                        メンバー・権限管理
                     </button>
 
                     <button id="manageCommonContentsBtn" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 shadow transition flex items-center gap-2">
@@ -432,9 +408,9 @@
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
                         <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">2. 開催日程登録</h3>
                         <div class="flex justify-between items-center mb-4">
-                            <button id="schedPrev" class="px-3 py-1 border rounded text-xs hover:bg-slate-100">&lt; 前月</button>
+                            <button id="schedPrev" class="px-3 py-1 border rounded text-xs">&lt;</button>
                             <span id="schedTitle" class="font-bold"></span>
-                            <button id="schedNext" class="px-3 py-1 border rounded text-xs hover:bg-slate-100">翌月 &gt;</button>
+                            <button id="schedNext" class="px-3 py-1 border rounded text-xs">&gt;</button>
                         </div>
                         <div class="border rounded text-xs">
                              <div class="grid grid-cols-7 bg-slate-50 text-center py-2 font-bold text-slate-500 border-b">
@@ -665,80 +641,6 @@
         </div>
     </div>
 
-    <div id="manageMembersModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[90]">
-        <div class="bg-white rounded-xl p-6 w-full max-w-4xl shadow-2xl h-[85vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4 pb-2 border-b">
-                <div>
-                    <h3 class="font-bold text-lg text-slate-800">メンバー・権限管理</h3>
-                    <p class="text-xs text-slate-500">管理画面にログインできるユーザーを作成・管理します。</p>
-                </div>
-                <button onclick="document.getElementById('manageMembersModal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 text-2xl">×</button>
-            </div>
-            
-            <div class="flex flex-1 overflow-hidden gap-6">
-                <div class="w-1/3 bg-slate-50 p-4 rounded-lg overflow-y-auto">
-                    <h4 class="font-bold text-sm text-slate-700 mb-4">新規メンバー登録</h4>
-                    <form id="addUserForm" class="space-y-4">
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">メールアドレス</label>
-                            <input type="email" id="newUserEmail" class="w-full p-2 border rounded text-sm" required placeholder="user@example.com">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">パスワード</label>
-                            <input type="password" id="newUserPassword" class="w-full p-2 border rounded text-sm" required placeholder="8文字以上">
-                        </div>
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">お名前</label>
-                            <input type="text" id="newUserName" class="w-full p-2 border rounded text-sm" required placeholder="管理者 太郎">
-                        </div>
-                        
-                        <div>
-                            <label class="block text-xs font-bold text-slate-500 mb-1">権限ロール</label>
-                            <select id="newUserRole" class="w-full p-2 border rounded text-sm bg-white" required>
-                                <option value="SCHOOL_STAFF">校舎スタッフ (一般)</option>
-                                <option value="SCHOOL_MANAGER">校舎責任者 (管理)</option>
-                                <option value="HQ_STAFF">本部スタッフ</option>
-                                <option value="SUPER_ADMIN">特権管理者</option>
-                            </select>
-                            <p class="text-[10px] text-slate-400 mt-1" id="roleDescription">指定した校舎の予約・設定の閲覧と操作が可能です。</p>
-                        </div>
-
-                        <div id="schoolSelectWrapper">
-                            <label class="block text-xs font-bold text-slate-500 mb-1">所属校舎</label>
-                            <select id="newUserSchoolId" class="w-full p-2 border rounded text-sm bg-white">
-                                </select>
-                        </div>
-
-                        <div class="pt-2">
-                            <button type="submit" class="w-full bg-pink-600 text-white font-bold py-2 rounded shadow hover:bg-pink-700 transition">メンバーを追加</button>
-                        </div>
-                    </form>
-                </div>
-
-                <div class="w-2/3 flex flex-col">
-                    <div class="mb-2 flex justify-between items-end">
-                        <h4 class="font-bold text-sm text-slate-700">登録済みメンバー一覧</h4>
-                        <button id="refreshUserListBtn" class="text-xs text-blue-500 hover:underline">更新</button>
-                    </div>
-                    <div class="flex-1 border rounded-lg overflow-y-auto bg-white">
-                        <table class="w-full text-sm text-left">
-                            <thead class="bg-slate-100 text-xs text-slate-500 sticky top-0">
-                                <tr>
-                                    <th class="px-4 py-2">名前/Email</th>
-                                    <th class="px-4 py-2">権限</th>
-                                    <th class="px-4 py-2">所属</th>
-                                    <th class="px-4 py-2 text-center">操作</th>
-                                </tr>
-                            </thead>
-                            <tbody id="userListTableBody" class="divide-y divide-slate-100">
-                                </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <div id="commonContentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl h-[80vh] flex flex-col">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b pb-2">
@@ -915,865 +817,465 @@
     <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-[70]"></div>
 
     <script type="module">
-        import { initializeApp, getApp, getApps } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ---------------------------------------------------------
-        // 定数・設定
-        // ---------------------------------------------------------
-        
-        // ロール定義
-        const ROLES = {
-            SUPER_ADMIN:    { label: '特権管理者', rank: 100 },
-            HQ_STAFF:       { label: '本部スタッフ', rank: 80 },
-            SCHOOL_MANAGER: { label: '校舎責任者', rank: 50 },
-            SCHOOL_STAFF:   { label: '校舎スタッフ', rank: 10 }
-        };
-
+        // Configs
         const GRADE_CONFIG = {
             preschool: { bg: 'bg-[#ff91aa]', text: 'text-white' },
             grade1_2: { bg: 'bg-[#ffac2d]', text: 'text-white' },
             grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
         };
-
-        // Firebase設定 (デモ用)
-        const firebaseConfig = { 
-            apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", 
-            authDomain: "robot-school-booking.firebaseapp.com", 
-            projectId: "robot-school-booking", 
-            appId: "1:443474003538:web:e3a17bd422bcee23f6418b" 
-        };
-        
-        const APP_ID_PATH = 'robot-school-booking-v4'; // Firestoreのルートパス
-
-        // ---------------------------------------------------------
-        // グローバル変数
-        // ---------------------------------------------------------
-        
-        let app, auth, db;
-        let currentUser = null;     // Authユーザーオブジェクト
-        let userProfile = null;     // Firestoreから取得したユーザー詳細（ロール等）
         
         let globalAllowedIps = [];
-        let schools = [];
-        let commonContents = []; 
+        let commonContents = []; // Store fetched common contents
         let currentSchoolId = null;
-        let currentSettings = {};
-        
-        let allBookings = [];
-        let globalAllBookings = [];
-        let allLogs = [];
-        let allInquiries = [];
-        
-        // リスナー解除用関数
-        let unsubscribeSettings = null; 
-        let unsubscribeBookings = null;
-        let unsubscribeLogs = null;
-        let unsubscribeGlobal = null;
-        let unsubscribeInquiries = null;
-        
-        // チャート・UI状態
-        let adminDate = new Date();
-        let adminDashboardDate = new Date(); 
-        let selectedDateStr = "";
-        let scheduleToCopy = null;
-        let draggingItemIndex = null;
-        let dragStartY = 0;
-        let bookingChart = null; 
-        let funnelChart = null; 
-        let schoolComparisonChart = null; 
-        let globalBookingChart = null; 
-        let contentPerformanceChart = null;
-        let chartMode = 'created'; 
-        let globalChartMode = 'created'; 
+        let allBookings = []; // Added for admin.html logic consistency
 
-        // ---------------------------------------------------------
-        // 初期化・共通関数
-        // ---------------------------------------------------------
-
-        // IPアドレス取得
-        const fetchIpAddress = async () => {
-            try {
-                const response = await fetch('https://api.ipify.org?format=json');
-                const data = await response.json();
-                const ip = data.ip;
-                const display = document.getElementById('currentIpDisplay');
-                if (display) display.textContent = ip;
-                return ip;
-            } catch (e) {
-                console.error("IP取得失敗", e);
-                return null;
-            }
-        };
-
-        // ローディング表示制御
-        const toggleLoading = (show) => {
-            const el = document.getElementById('loadingOverlay');
-            if(show) el.classList.remove('hidden');
-            else el.classList.add('hidden');
-        };
-
-        // 権限チェック関数
-        const checkPermission = (requiredRank) => {
-            if (!userProfile) return false;
-            const myRank = ROLES[userProfile.role]?.rank || 0;
-            return myRank >= requiredRank;
-        };
-        
-        // ロールが本部権限（全校舎アクセス可）かどうか
-        const isHQ = () => {
-            if (!userProfile) return false;
-            return ['SUPER_ADMIN', 'HQ_STAFF'].includes(userProfile.role);
-        };
-
-        // アプリ初期化
-        const initApp = async () => {
-            app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            // IPホワイトリストのロード
-            onSnapshot(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
+        // Definition moved up
+        const loadAllowedIps = (db, appId) => {
+            onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
                 if (snap.exists()) {
                     globalAllowedIps = snap.data().list || [];
                 } else {
                     globalAllowedIps = [];
                 }
             });
+        };
 
-            // 認証状態の監視
-            onAuthStateChanged(auth, async (user) => {
-                if (user) {
-                    toggleLoading(true);
-                    currentUser = user;
-                    
-                    // Firestoreからユーザー詳細（ロール情報）を取得
-                    try {
-                        const userDoc = await getDoc(doc(db, 'artifacts', APP_ID_PATH, 'users', user.uid));
-                        if (userDoc.exists()) {
-                            userProfile = userDoc.data();
-                        } else {
-                            // プロフィールがない場合はデフォルト権限（安全のため最低限）
-                            userProfile = { role: 'SCHOOL_STAFF', name: user.email, schoolId: null };
+        document.addEventListener('DOMContentLoaded', () => {
+            let auth, db, user, appId = 'robot-school-booking-v4';
+            let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
+            let allInquiries = []; // Inquiries data
+            let globalAllBookings = []; 
+            let adminDate = new Date();
+            let adminDashboardDate = new Date(); 
+            let selectedDateStr = "";
+            let scheduleToCopy = null;
+            let unsubscribeSettings = null; 
+            let unsubscribeBookings = null;
+            let unsubscribeLogs = null;
+            let unsubscribeGlobal = null;
+            let unsubscribeInquiries = null; // Inquiry listener
+            let draggingItemIndex = null;
+            let dragStartY = 0;
+            let bookingChart = null; 
+            let funnelChart = null; 
+            let schoolComparisonChart = null; 
+            let globalBookingChart = null; 
+            let contentPerformanceChart = null; // ▼ 追加
+            let chartMode = 'created'; 
+            let globalChartMode = 'created'; 
+
+            const fetchIpAddress = async () => {
+                try {
+                    const response = await fetch('https://api.ipify.org?format=json');
+                    const data = await response.json();
+                    const ip = data.ip;
+                    const display = document.getElementById('currentIpDisplay');
+                    if (display) display.textContent = ip;
+                    return ip;
+                } catch (e) {
+                    console.error("IP取得失敗", e);
+                    return null;
+                }
+            };
+
+            const initFirebase = async () => {
+                const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
+                const app = initializeApp(config);
+                auth = getAuth(app);
+                db = getFirestore(app);
+                
+                await signInAnonymously(auth);
+                loadAllowedIps(db, appId); // Pass db and appId
+                fetchIpAddress();
+                loadCommonContents(); // Load Common Contents on init
+
+                // Login Flow (Modified for Demo Environment)
+                document.getElementById('loginForm').onsubmit = async (e) => {
+                    e.preventDefault();
+                    if (globalAllowedIps.length > 0) {
+                        const currentIp = await fetchIpAddress();
+                        if (!currentIp || !globalAllowedIps.includes(currentIp)) {
+                            alert("許可されていないIPアドレスからのアクセスです。");
+                            return; // Normally restrict, but for demo we might warn
                         }
-
-                        // UI反映
+                    }
+                    
+                    // Simple Mock Login Check for Demo
+                    const email = document.getElementById('adminEmail').value;
+                    const pass = document.getElementById('adminPassword').value;
+                    
+                    if (email && pass) {
+                        // Success simulation
                         document.getElementById('loginView').classList.add('hidden');
                         document.getElementById('adminMain').classList.remove('hidden');
-                        document.getElementById('currentUserName').textContent = userProfile.name || user.email;
-                        
-                        const roleInfo = ROLES[userProfile.role] || { label: '不明', rank: 0 };
-                        const roleBadge = document.getElementById('currentUserRoleDisplay');
-                        roleBadge.textContent = roleInfo.label;
-                        
-                        // ロールごとのUI制御
-                        setupUIByRole();
-                        
-                        // データロード開始
-                        loadCommonContents();
                         loadSchools();
-                        initStatsDate(); // 集計期間の初期化
-                        
-                    } catch (e) {
-                        console.error("User Profile Load Error:", e);
-                        alert("ユーザー情報の取得に失敗しました");
-                        auth.signOut();
-                    } finally {
-                        toggleLoading(false);
+                        initStatsDate();
+                    } else {
+                        alert("メールアドレスとパスワードを入力してください");
                     }
-                } else {
-                    // 未ログイン
-                    currentUser = null;
-                    userProfile = null;
-                    document.getElementById('loginView').classList.remove('hidden');
-                    document.getElementById('adminMain').classList.add('hidden');
-                }
-            });
-        };
-
-        // ---------------------------------------------------------
-        // 認証・ログイン処理
-        // ---------------------------------------------------------
-
-        // ログインフォーム送信
-        document.getElementById('loginForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-            const errorMsg = document.getElementById('loginErrorMsg');
-            
-            errorMsg.classList.add('hidden');
-            toggleLoading(true);
-
-            try {
-                // 1. IP制限チェック
-                if (globalAllowedIps.length > 0) {
-                    const currentIp = await fetchIpAddress();
-                    if (!currentIp || !globalAllowedIps.includes(currentIp)) {
-                        throw new Error("許可されていないIPアドレスからのアクセスです。");
-                    }
-                }
-
-                // 2. Firebase Auth ログイン
-                await signInWithEmailAndPassword(auth, email, password);
-                // 成功すれば onAuthStateChanged が発火して画面遷移する
-                
-            } catch (error) {
-                console.error(error);
-                let msg = "ログインに失敗しました。";
-                if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    msg = "メールアドレスまたはパスワードが間違っています。";
-                } else if (error.message) {
-                    msg = error.message;
-                }
-                errorMsg.textContent = msg;
-                errorMsg.classList.remove('hidden');
-                toggleLoading(false);
-            }
-        };
-
-        // ログアウト
-        document.getElementById('logoutBtn').onclick = async () => {
-            if(confirm("ログアウトしますか？")) {
-                await signOut(auth);
-                location.reload();
-            }
-        };
-
-        // ---------------------------------------------------------
-        // ロール別UI制御 & 校舎リスト表示
-        // ---------------------------------------------------------
-
-        const setupUIByRole = () => {
-            const role = userProfile.role;
-            const isSuperAdmin = role === 'SUPER_ADMIN';
-            const isHq = role === 'HQ_STAFF' || isSuperAdmin;
-            
-            // 本部機能ボタンの表示制御
-            const hqMenu = document.querySelector('#schoolSelectionView .bg-white'); // 本部メニューコンテナ
-            if (!isHq) {
-                hqMenu.classList.add('hidden'); // 本部・管理以外は本部メニュー非表示
-            } else {
-                hqMenu.classList.remove('hidden');
-            }
-
-            // IP制限設定ボタン (特権管理者のみ)
-            if (!isSuperAdmin) {
-                document.getElementById('manageIpBtn').classList.add('hidden');
-            }
-            
-            // メンバー管理ボタン (特権管理者のみ)
-            const memBtn = document.getElementById('manageMembersBtn');
-            if (isSuperAdmin) {
-                memBtn.classList.remove('hidden');
-            } else {
-                memBtn.classList.add('hidden');
-            }
-            
-            // 校舎管理画面でのタブ制御（例：設定変更は管理者のみにするなど）
-            // 今回は全般的にアクセス可能だが、削除ボタン等は制御する
-        };
-
-        const loadSchools = () => {
-            onSnapshot(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'schools'), (snap) => {
-                schools = [];
-                snap.forEach(d => schools.push({id:d.id, ...d.data()}));
-                renderSchoolList();
-            });
-        };
-
-        const renderSchoolList = () => {
-            const con = document.getElementById('schoolListContainer');
-            con.innerHTML = '';
-
-            // 校舎リストのフィルタリング
-            // 本部・管理者は全校舎表示。校舎スタッフ/MGは所属校舎のみ表示。
-            let displaySchools = schools;
-            if (!isHQ() && userProfile.schoolId) {
-                displaySchools = schools.filter(s => s.id === userProfile.schoolId);
-            }
-
-            if (displaySchools.length === 0) {
-                con.innerHTML = '<p class="col-span-3 text-center text-slate-400 py-10">表示できる校舎がありません。<br>管理者に所属校舎の設定を依頼してください。</p>';
-                document.getElementById('schoolSelectionView').classList.remove('hidden');
-                return;
-            }
-            
-            // 所属校舎が1つだけで、かつ本部権限がない場合は自動的にその校舎を選択する
-            // (UX向上のため)
-            if (!isHQ() && displaySchools.length === 1) {
-                selectSchool(displaySchools[0].id);
-                return;
-            }
-
-            document.getElementById('schoolSelectionView').classList.remove('hidden');
-
-            displaySchools.forEach(s => {
-                const div = document.createElement('div');
-                div.className = "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-slate-200 relative group";
-                
-                // 削除ボタンは特権管理者のみ表示
-                let deleteBtnHtml = '';
-                if (userProfile.role === 'SUPER_ADMIN') {
-                    deleteBtnHtml = `<button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>`;
-                }
-
-                div.innerHTML = `
-                    ${deleteBtnHtml}
-                    <h3 class="text-xl font-bold text-slate-700 mb-1">${s.name}校</h3>
-                    <p class="text-xs text-slate-400">ID: ${s.id}</p>
-                    <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
-                `;
-                div.onclick = (e) => {
-                    if(e.target.closest('.delete-school')) return;
-                    selectSchool(s.id);
                 };
-                
-                if (userProfile.role === 'SUPER_ADMIN') {
-                    div.querySelector('.delete-school').onclick = async (e) => {
-                        e.stopPropagation();
-                        if(confirm(`本当に「${s.name}校」を削除しますか？\n関連データは残りますが、アクセスできなくなります。`)) {
-                            await deleteDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'schools', s.id));
-                            // 設定も削除する場合は以下
-                            // await deleteDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'settings', s.id));
-                            showToast("校舎を削除しました");
-                        }
-                    };
-                }
-                con.appendChild(div);
-            });
-        };
 
-        // ---------------------------------------------------------
-        // メンバー・権限管理機能 (特権管理者用)
-        // ---------------------------------------------------------
-
-        // モーダルを開く
-        document.getElementById('manageMembersBtn').onclick = () => {
-            document.getElementById('manageMembersModal').classList.remove('hidden');
-            renderUserSchoolSelect();
-            fetchAndRenderUsers();
-        };
-
-        // メンバー追加時の校舎選択肢を更新
-        const renderUserSchoolSelect = () => {
-            const sel = document.getElementById('newUserSchoolId');
-            sel.innerHTML = '<option value="">(所属なし・本部)</option>';
-            schools.forEach(s => {
-                const opt = document.createElement('option');
-                opt.value = s.id;
-                opt.textContent = s.name;
-                sel.appendChild(opt);
-            });
+                document.getElementById('logoutBtn').onclick = async () => {
+                    location.reload();
+                };
+            };
             
-            // ロール選択に応じて所属校舎の必須/非表示を切り替え
-            handleRoleChange(); 
-        };
-
-        document.getElementById('newUserRole').addEventListener('change', handleRoleChange);
-
-        function handleRoleChange() {
-            const role = document.getElementById('newUserRole').value;
-            const desc = document.getElementById('roleDescription');
-            const schoolWrapper = document.getElementById('schoolSelectWrapper');
-            
-            if (role === 'SUPER_ADMIN') {
-                desc.textContent = "全ての権限を持ち、全校舎・ユーザー管理・システム設定が可能です。";
-                schoolWrapper.classList.add('opacity-50', 'pointer-events-none'); // 本部は校舎所属しない
-                document.getElementById('newUserSchoolId').value = "";
-            } else if (role === 'HQ_STAFF') {
-                desc.textContent = "全校舎の数値を閲覧できますが、システム設定やユーザー管理はできません。";
-                schoolWrapper.classList.add('opacity-50', 'pointer-events-none');
-                document.getElementById('newUserSchoolId').value = "";
-            } else if (role === 'SCHOOL_MANAGER') {
-                desc.textContent = "指定された校舎の全操作（設定変更含む）が可能です。";
-                schoolWrapper.classList.remove('opacity-50', 'pointer-events-none');
-            } else { // SCHOOL_STAFF
-                desc.textContent = "指定された校舎の予約管理・問い合わせ対応のみ可能です（設定変更不可）。";
-                schoolWrapper.classList.remove('opacity-50', 'pointer-events-none');
-            }
-        }
-
-        // ユーザー一覧の取得と表示
-        const fetchAndRenderUsers = async () => {
-            const tbody = document.getElementById('userListTableBody');
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs">読み込み中...</td></tr>';
-
-            try {
-                const snap = await getDocs(collection(db, 'artifacts', APP_ID_PATH, 'users'));
-                const users = [];
-                snap.forEach(doc => users.push({ uid: doc.id, ...doc.data() }));
+            // Helper: Update Schedule Select Options
+            const updateScheduleSelect = (dateStr, selectElementId, currentVal = "") => {
+                const sel = document.getElementById(selectElementId);
+                sel.innerHTML = '<option value="">選択してください</option>';
                 
-                tbody.innerHTML = '';
-                if (users.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs">ユーザーがいません</td></tr>';
+                if (!dateStr || !currentSettings.schedule || !currentSettings.schedule[dateStr]) {
+                    if (dateStr) {
+                         const opt = document.createElement('option');
+                         opt.text = "開催予定がありません";
+                         sel.add(opt);
+                    }
                     return;
                 }
 
-                users.forEach(u => {
-                    const tr = document.createElement('tr');
-                    tr.className = "border-b hover:bg-slate-50";
+                currentSettings.schedule[dateStr].forEach(evt => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
+                    // Count existing bookings for this slot
+                    const bookedCount = allBookings.filter(b => 
+                        b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
+                    ).length;
+                    const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
+
+                    const opt = document.createElement('option');
+                    // Value format: contentId|startTime|courseName
+                    opt.value = JSON.stringify({
+                        contentId: evt.contentId,
+                        startTime: evt.startTime,
+                        courseName: c.name
+                    });
+                    opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
                     
-                    const roleLabel = ROLES[u.role]?.label || u.role;
-                    // 校舎名解決
-                    const schoolName = u.schoolId ? (schools.find(s => s.id === u.schoolId)?.name + '校') : '-';
-
-                    // 自分自身は削除できないようにする
-                    const deleteBtn = (currentUser.uid === u.uid) 
-                        ? `<span class="text-gray-300 text-xs">自分</span>` 
-                        : `<button class="text-red-500 hover:text-red-700 font-bold text-xs" onclick="window.deleteUser('${u.uid}')">削除</button>`;
-
-                    tr.innerHTML = `
-                        <td class="px-4 py-2">
-                            <div class="font-bold text-slate-700">${u.name}</div>
-                            <div class="text-[10px] text-slate-400">${u.email || ''}</div>
-                        </td>
-                        <td class="px-4 py-2 text-xs"><span class="bg-slate-100 px-2 py-1 rounded border">${roleLabel}</span></td>
-                        <td class="px-4 py-2 text-xs">${schoolName}</td>
-                        <td class="px-4 py-2 text-center">${deleteBtn}</td>
-                    `;
-                    tbody.appendChild(tr);
+                    // Check if selected
+                    if (currentVal) {
+                        try {
+                            const currentObj = JSON.parse(currentVal);
+                             if (currentObj.contentId === evt.contentId && currentObj.startTime === evt.startTime) {
+                                opt.selected = true;
+                            }
+                        } catch(e) {}
+                    }
+                    
+                    sel.appendChild(opt);
                 });
-            } catch (e) {
-                console.error(e);
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-xs text-red-500">取得エラー</td></tr>';
-            }
-        };
-
-        document.getElementById('refreshUserListBtn').onclick = fetchAndRenderUsers;
-
-        // ユーザー追加処理 (Secondary App Pattern)
-        document.getElementById('addUserForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('newUserEmail').value;
-            const pass = document.getElementById('newUserPassword').value;
-            const name = document.getElementById('newUserName').value;
-            const role = document.getElementById('newUserRole').value;
-            const schoolId = document.getElementById('newUserSchoolId').value || null;
-
-            if ((role.startsWith('SCHOOL_') && !schoolId)) {
-                return alert("校舎スタッフ・責任者の場合は「所属校舎」を選択してください。");
-            }
-
-            if (!confirm(`以下のユーザーを作成しますか？\n名前: ${name}\n権限: ${ROLES[role].label}`)) return;
-
-            toggleLoading(true);
-            
-            // 現在のAdminセッションを維持したまま、新規ユーザーを作成するために
-            // Firebase Appの別インスタンスを作成するテクニック
-            let secondaryApp = null;
-            try {
-                // Secondary App Initialize
-                secondaryApp = initializeApp(firebaseConfig, "SecondaryApp");
-                const secondaryAuth = getAuth(secondaryApp);
-                
-                // 1. Authユーザー作成
-                const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
-                const newUid = userCredential.user.uid;
-                
-                // 2. Authからは即ログアウト (Secondary)
-                await signOut(secondaryAuth);
-                
-                // 3. Firestoreにメタデータ保存 (Primary DB instance using Admin session)
-                await setDoc(doc(db, 'artifacts', APP_ID_PATH, 'users', newUid), {
-                    name,
-                    email,
-                    role,
-                    schoolId,
-                    createdAt: serverTimestamp()
-                });
-
-                alert("ユーザーを作成しました。");
-                document.getElementById('addUserForm').reset();
-                handleRoleChange(); // Reset UI state
-                fetchAndRenderUsers();
-
-            } catch (err) {
-                console.error("Create User Error:", err);
-                if (err.code === 'auth/email-already-in-use') {
-                    alert("このメールアドレスは既に使用されています。");
-                } else {
-                    alert("ユーザー作成エラー: " + err.message);
-                }
-            } finally {
-                // Cleanup secondary app
-                if (secondaryApp) {
-                    // deleteApp is not exported in v9 modular directly like this usually in CDN?
-                    // SDK handles cleanup mostly, strictly speaking strictly standard `deleteApp` needs import.
-                    // For CDN simplicity we just leave it or let GC handle it as it's scoped.
-                }
-                toggleLoading(false);
-            }
-        };
-
-        // ユーザー削除 (Firestoreのみ削除。Auth削除はAdmin SDKが必要なため、このデモでは無効化フラグ等の運用か、Firestore削除でログイン不可とする)
-        // ※この実装では「FirestoreのUserドキュメント」を削除することで、
-        //   onAuthStateChanged内の `getDoc` でプロフィールが取れなくなり、ログイン後に弾かれるようになる。
-        window.deleteUser = async (uid) => {
-            if(!confirm("ユーザーの権限データを削除しますか？\n(Firebase Auth上のアカウントは残りますが、管理画面にはログインできなくなります)")) return;
-            
-            try {
-                await deleteDoc(doc(db, 'artifacts', APP_ID_PATH, 'users', uid));
-                fetchAndRenderUsers();
-                showToast("ユーザー権限を削除しました");
-            } catch(e) {
-                alert("削除エラー: " + e.message);
-            }
-        };
-
-        // ---------------------------------------------------------
-        // 校舎選択後の処理
-        // ---------------------------------------------------------
-
-        function selectSchool(id) {
-            // 前のリスナーを解除
-            if (unsubscribeSettings) unsubscribeSettings();
-            if (unsubscribeBookings) unsubscribeBookings();
-            if (unsubscribeLogs) unsubscribeLogs();
-            if (unsubscribeInquiries) unsubscribeInquiries();
-
-            currentSchoolId = id;
-            
-            // ビュー切り替え
-            document.getElementById('schoolSelectionView').classList.add('hidden');
-            document.getElementById('schoolAdminView').classList.remove('hidden');
-            
-            // 本部・管理者の場合のみ「戻る」ボタンを表示
-            if (isHQ() || schools.length > 1) {
-                document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
-            } else {
-                document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
-            }
-
-            document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
-            
-            // 予約ページプレビューボタン
-            const previewBtn = document.getElementById('previewPageBtn');
-            previewBtn.classList.remove('hidden');
-            previewBtn.href = `index.html?school=${id}`; // 実際の予約ページURLに合わせて変更してください
-
-            // 設定読み込み
-            unsubscribeSettings = onSnapshot(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'settings', id), (snap) => {
-                if(snap.exists()) currentSettings = snap.data();
-                else {
-                    const sName = schools.find(s=>s.id===id)?.name || '未設定';
-                    currentSettings = { schoolName: sName, contents:[], schedule:{} };
-                }
-                
-                if(!currentSettings.contents) currentSettings.contents = [];
-                if(!currentSettings.schedule) currentSettings.schedule = {};
-
-                document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
-                
-                // フォームへの反映
-                fillSettingsForm();
-                
-                // 各種再描画
-                renderLocalContents();
-                renderSchedCalendar();
-                updateStats(); 
-                
-                // ロールによる機能制限 (設定変更などは校舎スタッフには不可にする等)
-                applySchoolRolePermissions();
-            });
-            
-            // 予約データ読み込み
-            unsubscribeBookings = onSnapshot(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'bookings'), (snap) => {
-                allBookings = [];
-                snap.forEach(d => { 
-                    if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); 
-                });
-                renderDashboard();
-                renderBookingTable();
-                updateStats(); 
-            });
-            
-            // お問い合わせ読み込み
-            const inqQuery = query(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'inquiries'), where("schoolId", "==", id));
-            unsubscribeInquiries = onSnapshot(inqQuery, (snap) => {
-                allInquiries = [];
-                snap.forEach(d => allInquiries.push({id: d.id, ...d.data()}));
-                renderInquiryTable();
-            });
-
-            // アクセスログ読み込み
-            const logsQuery = query(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
-            unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
-                allLogs = [];
-                snap.forEach(d => allLogs.push(d.data()));
-                updateStats();
-            });
-        }
-
-        // 校舎内での権限制御適用
-        function applySchoolRolePermissions() {
-            if (!userProfile) return;
-            
-            const role = userProfile.role;
-            const isManager = ['SUPER_ADMIN', 'HQ_STAFF', 'SCHOOL_MANAGER'].includes(role);
-            
-            // 校舎スタッフ(SCHOOL_STAFF)は設定変更禁止
-            const inputs = document.querySelectorAll('#schoolSettingsForm input');
-            const saveBtn = document.getElementById('saveSettingsBtn');
-            const addContentBtn = document.getElementById('openContentModalBtn');
-            const importBtn = document.getElementById('openImportCommonModalBtn');
-            
-            if (!isManager) {
-                // 設定フォーム無効化
-                inputs.forEach(el => el.disabled = true);
-                if(saveBtn) saveBtn.classList.add('hidden');
-                
-                // コンテンツ追加ボタン非表示
-                if(addContentBtn) addContentBtn.classList.add('hidden');
-                if(importBtn) importBtn.classList.add('hidden');
-                
-                // 日程の追加/削除も本来は制御すべきだが、ここでは割愛（またはUIでボタンを消す）
-            } else {
-                inputs.forEach(el => el.disabled = false);
-                if(saveBtn) saveBtn.classList.remove('hidden');
-                if(addContentBtn) addContentBtn.classList.remove('hidden');
-                if(importBtn) importBtn.classList.remove('hidden');
-            }
-        }
-
-        // 設定フォームへの値埋め込み
-        function fillSettingsForm() {
-            document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
-            document.getElementById('settingAddress').value = currentSettings.address || '';
-            document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
-            document.getElementById('settingPageTitle').value = currentSettings.pageTitle || '';
-            document.getElementById('settingPageDesc').value = currentSettings.pageDescription || '';
-            document.getElementById('settingHeaderImage').value = currentSettings.headerImageUrl || '';
-        }
-
-        // ---------------------------------------------------------
-        // 共通コンテンツ管理 (本部機能)
-        // ---------------------------------------------------------
-
-        const loadCommonContents = () => {
-            onSnapshot(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'config', 'common_contents'), (snap) => {
-                if (snap.exists()) {
-                    commonContents = snap.data().contents || [];
-                } else {
-                    commonContents = [];
-                }
-                renderCommonContentsList();
-            });
-        };
-
-        const renderCommonContentsList = () => {
-            const con = document.getElementById('commonContentListContainer');
-            con.innerHTML = '';
-            if(commonContents.length === 0) {
-                con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
-                return;
-            }
-            commonContents.forEach((c, idx) => {
-                const div = document.createElement('div');
-                div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
-                div.innerHTML = `
-                    <div>
-                        <div class="font-bold text-slate-700">${c.name}</div>
-                        <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
-                    </div>
-                    <div class="flex gap-2">
-                        <button class="text-blue-500 text-xs font-bold edit-common" data-idx="${idx}">編集</button>
-                        <button class="text-red-500 text-xs font-bold del-common" data-idx="${idx}">削除</button>
-                    </div>
-                `;
-                con.appendChild(div);
-            });
-
-            // イベントリスナー設定
-            con.querySelectorAll('.edit-common').forEach(b => b.onclick = () => editCommonContent(b.dataset.idx));
-            con.querySelectorAll('.del-common').forEach(b => b.onclick = async () => {
-                if(!checkPermission(80)) return alert("権限がありません");
-                if(confirm("削除しますか？")) {
-                    commonContents.splice(b.dataset.idx, 1);
-                    await setDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
-                    showToast("削除しました");
-                }
-            });
-        };
-
-        function editCommonContent(idx) {
-            const c = commonContents[idx];
-            document.getElementById('editCommonIdx').value = idx;
-            document.getElementById('commonName').value = c.name;
-            document.getElementById('commonId').value = c.id;
-            document.getElementById('commonId').disabled = true;
-            document.getElementById('commonType').value = c.type;
-            document.getElementById('commonPrice').value = c.price;
-            document.getElementById('commonImage').value = c.imageUrl || '';
-            document.getElementById('commonDescription').value = c.description || '';
-            document.getElementById('commonDuration').value = c.duration || '';
-            document.getElementById('commonNotes').value = c.notes || '';
-        }
-
-        document.getElementById('manageCommonContentsBtn').onclick = () => {
-            document.getElementById('commonContentsModal').classList.remove('hidden');
-            document.getElementById('editCommonIdx').value = -1;
-            document.getElementById('commonName').value = '';
-            document.getElementById('commonId').value = '';
-            document.getElementById('commonId').disabled = false;
-            document.getElementById('commonPrice').value = '';
-            document.getElementById('commonImage').value = '';
-            document.getElementById('commonDescription').value = '';
-            document.getElementById('commonDuration').value = '';
-            document.getElementById('commonNotes').value = '';
-        };
-
-        document.getElementById('saveCommonContentBtn').onclick = async () => {
-            if(!checkPermission(80)) return alert("権限がありません");
-
-            const idx = parseInt(document.getElementById('editCommonIdx').value);
-            const name = document.getElementById('commonName').value;
-            const idInput = document.getElementById('commonId').value.trim();
-            const type = document.getElementById('commonType').value;
-            const price = document.getElementById('commonPrice').value;
-            
-            if(!name || !price) return alert("コンテンツ名と金額は必須です");
-
-            let newId = idInput;
-            if (!newId) newId = 'c' + Date.now();
-
-            const newContent = { 
-                id: newId, name, type, price: parseInt(price), 
-                imageUrl: document.getElementById('commonImage').value, 
-                description: document.getElementById('commonDescription').value,
-                duration: document.getElementById('commonDuration').value,
-                notes: document.getElementById('commonNotes').value
             };
 
-            if (idx === -1) {
-                if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
-                commonContents.push(newContent);
-            } else {
-                commonContents[idx] = newContent;
-            }
+            // --- Add Booking Logic ---
+            document.getElementById('openAddBookingModalBtn').onclick = () => {
+                document.getElementById('addBookingModal').classList.remove('hidden');
+                document.getElementById('addBookingForm').reset();
+                document.getElementById('newBookingScheduleId').innerHTML = '<option value="">先に日付を選択してください</option>';
+            };
 
-            await setDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
-            showToast("共通コンテンツを保存しました");
+            document.getElementById('newBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'newBookingScheduleId');
+            });
+
+            document.getElementById('addBookingForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const date = document.getElementById('newBookingDate').value;
+                const scheduleVal = document.getElementById('newBookingScheduleId').value;
+                if (!date || !scheduleVal) return alert("日時とコースを選択してください");
+
+                const scheduleData = JSON.parse(scheduleVal);
+
+                try {
+                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), {
+                        schoolId: currentSchoolId,
+                        schoolName: currentSettings.schoolName,
+                        date: date,
+                        startTime: scheduleData.startTime,
+                        contentId: scheduleData.contentId,
+                        courseName: scheduleData.courseName,
+                        childName: document.getElementById('newChildName').value,
+                        parentName: document.getElementById('newParentName').value,
+                        email: document.getElementById('newEmail').value,
+                        phone: document.getElementById('newPhone').value,
+                        grade: document.getElementById('newGrade').value,
+                        sourceType: 'admin', // Source Type
+                        createdAt: serverTimestamp()
+                    });
+                    document.getElementById('addBookingModal').classList.add('hidden');
+                    showToast("予約を登録しました");
+                } catch (err) {
+                    alert("登録失敗: " + err.message);
+                }
+            };
             
-            // フォームリセット
-            document.getElementById('editCommonIdx').value = -1;
-            document.getElementById('commonName').value = '';
-            document.getElementById('commonId').value = '';
-            document.getElementById('commonId').disabled = false;
-        };
+            // Common Contents Management Logic
+            const loadCommonContents = () => {
+                onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
+                    if (snap.exists()) {
+                        commonContents = snap.data().contents || [];
+                    } else {
+                        commonContents = [];
+                    }
+                    renderCommonContentsList();
+                });
+            };
 
-        // 共通コンテンツ取り込み機能
-        document.getElementById('openImportCommonModalBtn').onclick = () => {
-            const list = document.getElementById('importListContainer');
-            list.innerHTML = '';
-            if(commonContents.length === 0) {
-                list.innerHTML = '<p class="text-sm text-slate-400 p-2">共通コンテンツがありません。</p>';
-            } else {
-                commonContents.forEach(c => {
-                    const label = document.createElement('label');
-                    label.className = "flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b last:border-0";
-                    label.innerHTML = `
-                        <input type="checkbox" class="import-check form-checkbox h-4 w-4 text-blue-600" value="${c.id}">
-                        <div class="text-sm">
+            const renderCommonContentsList = () => {
+                const con = document.getElementById('commonContentListContainer');
+                con.innerHTML = '';
+                if(commonContents.length === 0) {
+                    con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
+                    return;
+                }
+                commonContents.forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                    div.innerHTML = `
+                        <div>
                             <div class="font-bold text-slate-700">${c.name}</div>
                             <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
                         </div>
+                        <div class="flex gap-2">
+                            <button class="text-blue-500 text-xs font-bold edit-common" data-idx="${idx}">編集</button>
+                            <button class="text-red-500 text-xs font-bold del-common" data-idx="${idx}">削除</button>
+                        </div>
                     `;
-                    list.appendChild(label);
+                    con.appendChild(div);
                 });
-            }
-            document.getElementById('importCommonModal').classList.remove('hidden');
-        };
 
-        document.getElementById('execImportBtn').onclick = async () => {
-            const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
-            if(checked.length === 0) return alert("選択されていません");
-
-            let count = 0;
-            checked.forEach(id => {
-                const target = commonContents.find(c => c.id === id);
-                if(target) {
-                    if(!currentSettings.contents.some(lc => lc.id === target.id)) {
-                        currentSettings.contents.push({...target});
-                        count++;
+                con.querySelectorAll('.edit-common').forEach(b => b.onclick = () => editCommonContent(b.dataset.idx));
+                con.querySelectorAll('.del-common').forEach(b => b.onclick = async () => {
+                    if(confirm("削除しますか？")) {
+                        commonContents.splice(b.dataset.idx, 1);
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                        showToast("削除しました");
                     }
-                }
-            });
-
-            if(count > 0) {
-                await saveSettings();
-                showToast(`${count}件のコンテンツを取り込みました`);
-                renderLocalContents();
-            } else {
-                alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
-            }
-            document.getElementById('importCommonModal').classList.add('hidden');
-        };
-
-        // ---------------------------------------------------------
-        // グローバルダッシュボード (本部用)
-        // ---------------------------------------------------------
-
-        document.getElementById('openGlobalDashBtn').onclick = () => {
-            document.getElementById('schoolSelectionView').classList.add('hidden');
-            document.getElementById('globalDashboardView').classList.remove('hidden');
-            document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
-            initGlobalDashboard();
-        };
-
-        document.getElementById('closeGlobalDashBtn').onclick = () => {
-            if (unsubscribeGlobal) { unsubscribeGlobal(); unsubscribeGlobal = null; }
-            document.getElementById('globalDashboardView').classList.add('hidden');
-            document.getElementById('schoolSelectionView').classList.remove('hidden');
-        };
-
-        const initGlobalDashboard = () => {
-            const today = new Date();
-            const y = today.getFullYear(), m = today.getMonth();
-            const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            document.getElementById('gStatsStartDate').value = fmt(new Date(y, m, 1));
-            document.getElementById('gStatsEndDate').value = fmt(new Date(y, m + 1, 0));
-            
-            // 全予約リアルタイムリスナー
-            unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'bookings'), (snap) => {
-                globalAllBookings = [];
-                snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
-                updateGlobalStats();
-            });
-        };
-        
-        document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
-
-        // チャート切り替え
-        document.querySelectorAll('.g-chart-tab-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                document.querySelectorAll('.g-chart-tab-btn').forEach(b => {
-                    b.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
-                    b.classList.add('text-slate-500');
                 });
-                e.target.classList.remove('text-slate-500');
-                e.target.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
-                globalChartMode = e.target.dataset.type;
-                updateGlobalStats();
             };
-        });
 
-        function updateGlobalStats() {
-            const sDate = document.getElementById('gStatsStartDate').value;
-            const eDate = document.getElementById('gStatsEndDate').value;
+            function editCommonContent(idx) {
+                const c = commonContents[idx];
+                document.getElementById('editCommonIdx').value = idx;
+                document.getElementById('commonName').value = c.name;
+                document.getElementById('commonId').value = c.id;
+                document.getElementById('commonId').disabled = true; // Edit mode disables ID change
+                document.getElementById('commonType').value = c.type;
+                document.getElementById('commonPrice').value = c.price;
+                document.getElementById('commonImage').value = c.imageUrl || '';
+                
+                // NEW FIELDS
+                document.getElementById('commonDescription').value = c.description || '';
+                document.getElementById('commonDuration').value = c.duration || '';
+                document.getElementById('commonNotes').value = c.notes || '';
+            }
+
+            document.getElementById('manageCommonContentsBtn').onclick = () => {
+                document.getElementById('commonContentsModal').classList.remove('hidden');
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+                document.getElementById('commonDescription').value = '';
+                document.getElementById('commonDuration').value = '';
+                document.getElementById('commonNotes').value = '';
+            };
+
+            document.getElementById('saveCommonContentBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('editCommonIdx').value);
+                const name = document.getElementById('commonName').value;
+                const idInput = document.getElementById('commonId').value.trim();
+                const type = document.getElementById('commonType').value;
+                const price = document.getElementById('commonPrice').value;
+                const img = document.getElementById('commonImage').value;
+                
+                const description = document.getElementById('commonDescription').value;
+                const duration = document.getElementById('commonDuration').value;
+                const notes = document.getElementById('commonNotes').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
+
+                let newId = idInput;
+                if (!newId) newId = 'c' + Date.now(); // Auto ID
+
+                const newContent = { 
+                    id: newId, 
+                    name, 
+                    type, 
+                    price: parseInt(price), 
+                    imageUrl: img, 
+                    description,
+                    duration,
+                    notes
+                };
+
+                if (idx === -1) {
+                    // Add
+                    if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
+                    commonContents.push(newContent);
+                } else {
+                    // Update
+                    commonContents[idx] = newContent;
+                }
+
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
+                showToast("共通コンテンツを保存しました");
+                
+                // Reset form
+                document.getElementById('editCommonIdx').value = -1;
+                document.getElementById('commonName').value = '';
+                document.getElementById('commonId').value = '';
+                document.getElementById('commonId').disabled = false;
+                document.getElementById('commonPrice').value = '';
+                document.getElementById('commonImage').value = '';
+            };
+
+            // Import Logic
+            document.getElementById('openImportCommonModalBtn').onclick = () => {
+                const list = document.getElementById('importListContainer');
+                list.innerHTML = '';
+                if(commonContents.length === 0) {
+                    list.innerHTML = '<p class="text-sm text-slate-400 p-2">共通コンテンツがありません。</p>';
+                } else {
+                    commonContents.forEach(c => {
+                        const label = document.createElement('label');
+                        label.className = "flex items-center gap-3 p-2 hover:bg-slate-50 cursor-pointer border-b last:border-0";
+                        label.innerHTML = `
+                            <input type="checkbox" class="import-check form-checkbox h-4 w-4 text-blue-600" value="${c.id}">
+                            <div class="text-sm">
+                                <div class="font-bold text-slate-700">${c.name}</div>
+                                <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                            </div>
+                        `;
+                        list.appendChild(label);
+                    });
+                }
+                document.getElementById('importCommonModal').classList.remove('hidden');
+            };
+
+            document.getElementById('execImportBtn').onclick = async () => {
+                const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
+                if(checked.length === 0) return alert("選択されていません");
+
+                let count = 0;
+                checked.forEach(id => {
+                    const target = commonContents.find(c => c.id === id);
+                    if(target) {
+                        // Check if ID exists in local
+                        if(!currentSettings.contents.some(lc => lc.id === target.id)) {
+                            currentSettings.contents.push({...target}); // Clone
+                            count++;
+                        }
+                    }
+                });
+
+                if(count > 0) {
+                    await saveSettings();
+                    showToast(`${count}件のコンテンツを取り込みました`);
+                    renderLocalContents(); // Update view
+                } else {
+                    alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
+                }
+                document.getElementById('importCommonModal').classList.add('hidden');
+            };
+
             
-            // 基本KPI
-            document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
-            document.getElementById('gTotalSchools').textContent = schools.length;
-            const yesterday = new Date(Date.now() - 86400000);
-            const recentCount = globalAllBookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
-            document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
+            // Global Dashboard Logic
+            document.getElementById('openGlobalDashBtn').onclick = () => {
+                document.getElementById('schoolSelectionView').classList.add('hidden');
+                document.getElementById('globalDashboardView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
+                initGlobalDashboard();
+            };
 
-            // 期間フィルタリング
-            let periodBookings = globalAllBookings;
-            if(sDate && eDate) {
-                periodBookings = globalAllBookings.filter(b => {
+            document.getElementById('closeGlobalDashBtn').onclick = () => {
+                if (unsubscribeGlobal) { unsubscribeGlobal(); unsubscribeGlobal = null; }
+                document.getElementById('globalDashboardView').classList.add('hidden');
+                document.getElementById('schoolSelectionView').classList.remove('hidden');
+            };
+
+            // Init Date inputs for Global
+            const initGlobalStatsDate = () => {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const firstDay = new Date(y, m, 1);
+                const lastDay = new Date(y, m + 1, 0);
+                const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                document.getElementById('gStatsStartDate').value = fmt(firstDay);
+                document.getElementById('gStatsEndDate').value = fmt(lastDay);
+            };
+
+            const initGlobalDashboard = () => {
+                initGlobalStatsDate();
+                
+                // Real-time listener for ALL bookings
+                unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+                    globalAllBookings = [];
+                    snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
+                    updateGlobalStats(); // Update visuals
+                });
+            };
+
+            document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
+
+            document.querySelectorAll('.g-chart-tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.g-chart-tab-btn').forEach(b => {
+                        b.classList.remove('bg-white', 'text-indigo-600', 'shadow-sm');
+                        b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'text-indigo-600', 'shadow-sm');
+                    globalChartMode = e.target.dataset.type;
+                    updateGlobalStats();
+                };
+            });
+
+            function updateGlobalStats() {
+                const sDate = document.getElementById('gStatsStartDate').value;
+                const eDate = document.getElementById('gStatsEndDate').value;
+                
+                // Base KPIs (Always visible)
+                document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
+                document.getElementById('gTotalSchools').textContent = schools.length;
+                const yesterday = new Date(Date.now() - 86400000);
+                const recentCount = globalAllBookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
+                document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
+
+                // Period Filtered Data
+                let periodBookings = globalAllBookings;
+                if(sDate && eDate) {
+                    periodBookings = globalAllBookings.filter(b => {
+                        let targetDate = '';
+                        if (globalChartMode === 'event') {
+                            targetDate = b.date;
+                        } else {
+                            // created
+                            if (b.createdAt && b.createdAt.toDate) {
+                                const d = b.createdAt.toDate();
+                                targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                            }
+                        }
+                        return targetDate >= sDate && targetDate <= eDate;
+                    });
+                }
+
+                // 1. Period KPIs
+                document.getElementById('gPeriodBookingCount').textContent = periodBookings.length;
+                const activeSchoolIds = new Set(periodBookings.map(b => b.schoolId));
+                document.getElementById('gPeriodActiveSchools').textContent = activeSchoolIds.size;
+                
+                // Find Peak Day
+                const dateCounts = {};
+                periodBookings.forEach(b => {
+                    // ピーク日も選択された基準で集計する
                     let targetDate = '';
                     if (globalChartMode === 'event') {
                         targetDate = b.date;
@@ -1783,706 +1285,1463 @@
                             targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                         }
                     }
-                    return targetDate >= sDate && targetDate <= eDate;
+                    if(targetDate) dateCounts[targetDate] = (dateCounts[targetDate] || 0) + 1;
+                });
+                const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
+                document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
+
+                // 2. Chart: Bookings by School (Filtered)
+                const schoolCounts = {};
+                schools.forEach(s => schoolCounts[s.name] = 0); // Init all schools
+                periodBookings.forEach(b => {
+                    const sName = b.schoolName || 'Unknown';
+                    schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
+                });
+
+                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); // Sort Desc
+                
+                if (schoolComparisonChart) schoolComparisonChart.destroy();
+                const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
+                schoolComparisonChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: sortedSchools.map(s => s[0]),
+                        datasets: [{
+                            label: '予約数',
+                            data: sortedSchools.map(s => s[1]),
+                            backgroundColor: '#6366f1',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
+
+                // 3. Global Stacked Chart (NEW) - School by Date
+                if (sDate && eDate) {
+                    const schoolMap = {};
+                    schools.forEach(s => {
+                        schoolMap[s.id] = { label: s.name, data: {}, color: getColorForId(s.id) };
+                    });
+                    
+                    const labels = [];
+                    let d = new Date(sDate);
+                    const end = new Date(eDate);
+                    while(d <= end) {
+                        const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        labels.push(dStr);
+                        for(let sid in schoolMap) schoolMap[sid].data[dStr] = 0;
+                        d.setDate(d.getDate() + 1);
+                    }
+
+                    globalAllBookings.forEach(b => {
+                        let targetDate = '';
+                        if(globalChartMode === 'event') {
+                            targetDate = b.date;
+                        } else {
+                            if(b.createdAt && b.createdAt.toDate) {
+                                const cd = b.createdAt.toDate();
+                                targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+                            }
+                        }
+                        if(targetDate >= sDate && targetDate <= eDate) {
+                            if(schoolMap[b.schoolId] && schoolMap[b.schoolId].data[targetDate] !== undefined) {
+                                schoolMap[b.schoolId].data[targetDate]++;
+                            }
+                        }
+                    });
+
+                    const datasets = Object.values(schoolMap).map(s => ({
+                        label: s.label,
+                        data: labels.map(l => s.data[l]),
+                        backgroundColor: s.color,
+                    })).filter(ds => ds.data.some(v => v > 0));
+
+                    if(globalBookingChart) globalBookingChart.destroy();
+                    const ctx2 = document.getElementById('globalBookingChart').getContext('2d');
+                    globalBookingChart = new Chart(ctx2, {
+                        type: 'bar',
+                        data: {
+                            labels: labels.map(l => l.substring(5)),
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            scales: {
+                                x: { stacked: true },
+                                y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                            },
+                            plugins: {
+                                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                            }
+                        }
+                    });
+                }
+
+                // 4. Recent List Stream (Global, always show latest 50 regardless of filter)
+                const list = document.getElementById('globalRecentBookings');
+                list.innerHTML = '';
+                // Sort by CreatedAt Desc
+                const sortedRecent = [...globalAllBookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50);
+                
+                if (sortedRecent.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-400 py-4">データがありません</div>';
+                } else {
+                    sortedRecent.forEach(b => {
+                        const dateObj = b.createdAt ? b.createdAt.toDate() : new Date();
+                        const timeStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+                        
+                        const div = document.createElement('div');
+                        div.className = "p-3 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 transition";
+                        div.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <span class="text-xs font-bold text-slate-400">${timeStr}</span>
+                                <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${b.schoolName}</span>
+                            </div>
+                            <div class="font-bold text-slate-700 text-sm mt-1">${b.childName} 様</div>
+                            <div class="text-xs text-slate-500 mt-0.5">${b.courseName} (${b.date} ${b.startTime})</div>
+                        `;
+                        list.appendChild(div);
+                    });
+                }
+            }
+
+            // Stats & Chart Logic (School Specific)
+            const initStatsDate = () => {
+                const today = new Date();
+                const y = today.getFullYear();
+                const m = today.getMonth();
+                const firstDay = new Date(y, m, 1);
+                const lastDay = new Date(y, m + 1, 0);
+                
+                // YYYY-MM-DD
+                const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
+                document.getElementById('statsStartDate').value = fmt(firstDay);
+                document.getElementById('statsEndDate').value = fmt(lastDay);
+            };
+
+            document.getElementById('calcStatsBtn').onclick = () => updateStats();
+            
+            document.querySelectorAll('.chart-tab-btn').forEach(btn => {
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.chart-tab-btn').forEach(b => {
+                        b.classList.remove('bg-white', 'text-blue-600', 'shadow-sm');
+                        b.classList.add('text-slate-500');
+                    });
+                    e.target.classList.remove('text-slate-500');
+                    e.target.classList.add('bg-white', 'text-blue-600', 'shadow-sm');
+                    chartMode = e.target.dataset.type;
+                    updateChart();
+                };
+            });
+
+            function updateStats() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
+                
+                // 1. 期間内の予約数
+                const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
+                const bookingCount = rangeBookings.length;
+                
+                // 2. 期間内の総枠数
+                let capacityCount = 0;
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if(currentSettings.schedule && currentSettings.schedule[dStr]) {
+                        currentSettings.schedule[dStr].forEach(s => capacityCount += parseInt(s.capacity || 0));
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+                
+                // 3. 予約率
+                const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
+                
+                document.getElementById('statsBookingCount').textContent = bookingCount;
+                document.getElementById('statsCapacityCount').textContent = capacityCount;
+                document.getElementById('statsRate').textContent = `${rate}%`;
+                
+                // グラフ & ファネル更新
+                updateChart();
+                updateFunnelChart(sDate, eDate);
+
+                // ▼ 追加: コンテンツ別予実管理チャート更新
+                updateContentPerformanceChart(sDate, eDate);
+            }
+
+            // ▼▼▼ 追加: コンテンツ別予実管理チャートの更新関数 ▼▼▼
+            function updateContentPerformanceChart(sDate, eDate) {
+                const statsMap = {};
+                (currentSettings.contents || []).forEach(c => {
+                    statsMap[c.id] = { name: c.name, capacity: 0, booking: 0 };
+                });
+                statsMap['unknown'] = { name: 'その他・削除済', capacity: 0, booking: 0 };
+
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if(currentSettings.schedule && currentSettings.schedule[dStr]) {
+                        currentSettings.schedule[dStr].forEach(evt => {
+                            const cid = statsMap[evt.contentId] ? evt.contentId : 'unknown';
+                            statsMap[cid].capacity += parseInt(evt.capacity || 0);
+                        });
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+
+                allBookings.forEach(b => {
+                    if(b.date >= sDate && b.date <= eDate) {
+                        const cid = statsMap[b.contentId] ? b.contentId : 'unknown';
+                        statsMap[cid].booking += 1;
+                    }
+                });
+
+                const labels = [];
+                const dataCapacity = [];
+                const dataBooking = [];
+
+                Object.values(statsMap).forEach(item => {
+                    if (item.capacity > 0 || item.booking > 0) {
+                        labels.push(item.name);
+                        dataCapacity.push(item.capacity);
+                        dataBooking.push(item.booking);
+                    }
+                });
+
+                if (contentPerformanceChart) contentPerformanceChart.destroy();
+                const ctx = document.getElementById('contentPerformanceChart').getContext('2d');
+
+                contentPerformanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '予約数',
+                                data: dataBooking,
+                                backgroundColor: '#f97316', 
+                                borderRadius: 4,
+                                order: 1
+                            },
+                            {
+                                label: '総枠数(定員)',
+                                data: dataCapacity,
+                                backgroundColor: '#cbd5e1',
+                                borderRadius: 4,
+                                order: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.y !== null) label += context.parsed.y;
+                                        if(context.dataset.label === '予約数') {
+                                            const index = context.dataIndex;
+                                            const cap = dataCapacity[index];
+                                            const val = context.parsed.y;
+                                            if(cap > 0) {
+                                                const rate = Math.round((val / cap) * 100);
+                                                label += ` (${rate}%)`;
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
                 });
             }
 
-            // 期間内KPI
-            document.getElementById('gPeriodBookingCount').textContent = periodBookings.length;
-            const activeSchoolIds = new Set(periodBookings.map(b => b.schoolId));
-            document.getElementById('gPeriodActiveSchools').textContent = activeSchoolIds.size;
-            
-            // ピーク日
-            const dateCounts = {};
-            periodBookings.forEach(b => {
-                let targetDate = (globalChartMode === 'event') ? b.date : (b.createdAt?.toDate().toISOString().split('T')[0] || '');
-                if(targetDate) dateCounts[targetDate] = (dateCounts[targetDate] || 0) + 1;
-            });
-            const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
-            document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
+            // ファネルチャート更新ロジック (実際のログデータ使用)
+            function updateFunnelChart(sDate, eDate) {
+                // 期間内のログをフィルタリング
+                const rangeLogs = allLogs.filter(log => {
+                    if (log.timestamp && log.timestamp.toDate) {
+                        const d = log.timestamp.toDate();
+                        const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                        return dStr >= sDate && dStr <= eDate;
+                    }
+                    return false;
+                });
 
-            // 校舎別ランキングチャート
-            const schoolCounts = {};
-            schools.forEach(s => schoolCounts[s.name] = 0);
-            periodBookings.forEach(b => {
-                const sName = b.schoolName || 'Unknown';
-                schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
-            });
-            const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]);
-            
-            if (schoolComparisonChart) schoolComparisonChart.destroy();
-            schoolComparisonChart = new Chart(document.getElementById('schoolComparisonChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: sortedSchools.map(s => s[0]),
-                    datasets: [{
-                        label: '予約数',
-                        data: sortedSchools.map(s => s[1]),
-                        backgroundColor: '#6366f1',
-                        borderRadius: 4
-                    }]
-                },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
-                }
-            });
+                // イベント集計
+                const counts = {
+                    page_view: 0,
+                    grade_selection: 0,
+                    date_click: 0,
+                    content_selection: 0,
+                    form_input: 0,
+                    conversion: 0
+                };
 
-            // 最新予約リスト
-            const list = document.getElementById('globalRecentBookings');
-            list.innerHTML = '';
-            const sortedRecent = [...globalAllBookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50);
-            
-            if (sortedRecent.length === 0) list.innerHTML = '<div class="text-center text-slate-400 py-4">データがありません</div>';
-            else {
-                sortedRecent.forEach(b => {
-                    const dateObj = b.createdAt ? b.createdAt.toDate() : new Date();
-                    const timeStr = `${dateObj.getMonth()+1}/${dateObj.getDate()} ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
-                    const div = document.createElement('div');
-                    div.className = "p-3 bg-slate-50 border border-slate-100 rounded hover:bg-slate-100 transition";
-                    div.innerHTML = `
-                        <div class="flex justify-between items-start">
-                            <span class="text-xs font-bold text-slate-400">${timeStr}</span>
-                            <span class="bg-indigo-100 text-indigo-700 text-[10px] px-2 py-0.5 rounded-full font-bold">${b.schoolName}</span>
+                rangeLogs.forEach(log => {
+                    if (counts[log.event] !== undefined) {
+                        counts[log.event]++;
+                    }
+                });
+
+                const data = [
+                    counts.page_view,
+                    counts.grade_selection,
+                    counts.date_click,
+                    counts.content_selection,
+                    counts.form_input,
+                    counts.conversion
+                ];
+                
+                const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
+                
+                // CVR計算 (PV -> Conversion)
+                const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
+                document.getElementById('analyticsCvr').textContent = `${cvr}%`;
+
+                // リスト表示生成
+                const listContainer = document.getElementById('analyticsList');
+                listContainer.innerHTML = '';
+                
+                data.forEach((val, i) => {
+                    if (i === 0) return; // PVは基準なので別表示
+                    const prev = data[i-1];
+                    // 直前ステップからの遷移率
+                    const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
+                    
+                    const row = document.createElement('div');
+                    row.className = "flex justify-between items-center bg-slate-50 px-2 py-1 rounded";
+                    row.innerHTML = `
+                        <span class="text-xs font-bold">${labels[i]}</span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-500">${val}</span>
+                            <span class="text-[10px] px-1 bg-white border rounded text-blue-600 font-bold">TOP比 ${Math.round(counts.page_view > 0 ? val/counts.page_view*100 : 0)}%</span>
                         </div>
-                        <div class="font-bold text-slate-700 text-sm mt-1">${b.childName} 様</div>
-                        <div class="text-xs text-slate-500 mt-0.5">${b.courseName} (${b.date} ${b.startTime})</div>
                     `;
+                    listContainer.appendChild(row);
+                });
+                
+                // トップのPVも表示
+                const pvRow = document.createElement('div');
+                pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
+                pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${counts.page_view}</span>`;
+                listContainer.prepend(pvRow);
+
+                renderFunnel(data, labels);
+            }
+
+            function renderFunnel(data, labels) {
+                if (funnelChart) funnelChart.destroy();
+                const ctx = document.getElementById('funnelChart').getContext('2d');
+                
+                funnelChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'アクセス数',
+                            data: data,
+                            backgroundColor: [
+                                '#e2e8f0', // PV
+                                '#cbd5e1', // Grade
+                                '#94a3b8', // Cal
+                                '#64748b', // Cont
+                                '#475569', // Form
+                                '#3b82f6'  // Done (Blue)
+                            ],
+                            borderRadius: 4,
+                            barPercentage: 0.6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y', // 横棒グラフ
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.x !== null) label += context.parsed.x;
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                beginAtZero: true
+                            },
+                            y: {
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            }
+
+            function updateChart() {
+                const sDate = document.getElementById('statsStartDate').value;
+                const eDate = document.getElementById('statsEndDate').value;
+                if(!sDate || !eDate) return;
+
+                // コンテンツIDごとにデータセットを作る（積み上げ）
+                const contentMap = {};
+                (currentSettings.contents || []).forEach(c => {
+                    contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
+                });
+                // 未定義コンテンツ用
+                contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
+                
+                // ラベル（日付）生成
+                const labels = [];
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    labels.push(dStr);
+                    // 初期化
+                    for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
+                    d.setDate(d.getDate() + 1);
+                }
+
+                // データ集計
+                allBookings.forEach(b => {
+                    let targetDate = '';
+                    if(chartMode === 'event') {
+                        targetDate = b.date;
+                    } else {
+                        // created (Timestamp) -> YYYY-MM-DD
+                        if(b.createdAt && b.createdAt.toDate) {
+                            const cd = b.createdAt.toDate();
+                            targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
+                        }
+                    }
+                    
+                    if(targetDate >= sDate && targetDate <= eDate) {
+                        const cid = (currentSettings.contents || []).find(c => c.id === b.contentId) ? b.contentId : 'unknown';
+                        if(contentMap[cid] && contentMap[cid].data[targetDate] !== undefined) {
+                            contentMap[cid].data[targetDate]++;
+                        }
+                    }
+                });
+
+                // Chart.js データ形式に変換
+                const datasets = Object.values(contentMap).map(c => ({
+                    label: c.label,
+                    data: labels.map(l => c.data[l]),
+                    backgroundColor: c.color,
+                })).filter(ds => ds.data.some(v => v > 0)); // データがあるものだけ表示
+
+                // 描画
+                if(bookingChart) bookingChart.destroy();
+                const ctx = document.getElementById('bookingChart').getContext('2d');
+                bookingChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels.map(l => l.substring(5)), // MM-DD
+                        datasets: datasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            x: { stacked: true },
+                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
+                        },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                        }
+                    }
+                });
+            }
+            
+            // 色生成ヘルパー
+            function getColorForId(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
+                return '#' + "00000".substring(0, 6 - c.length) + c;
+            }
+
+
+            // IP Settings Modal Logic
+            function renderIpList() {
+                const list = document.getElementById('ipListContainer');
+                list.innerHTML = '';
+                globalAllowedIps.forEach((ip, index) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center text-sm p-1 border-b last:border-b-0";
+                    div.innerHTML = `<span>${ip}</span><button class="text-red-500 hover:text-red-700 font-bold" onclick="window.removeIp(${index})">削除</button>`;
                     list.appendChild(div);
                 });
             }
-        }
-
-        // ---------------------------------------------------------
-        // 個別校舎ダッシュボード & チャート (Local)
-        // ---------------------------------------------------------
-
-        const initStatsDate = () => {
-            const today = new Date();
-            const y = today.getFullYear(), m = today.getMonth();
-            const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-            document.getElementById('statsStartDate').value = fmt(new Date(y, m, 1));
-            document.getElementById('statsEndDate').value = fmt(new Date(y, m + 1, 0));
-        };
-
-        document.getElementById('calcStatsBtn').onclick = () => updateStats();
-        
-        function updateStats() {
-            const sDate = document.getElementById('statsStartDate').value;
-            const eDate = document.getElementById('statsEndDate').value;
-            if(!sDate || !eDate) return;
             
-            // 期間内集計
-            const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
-            const bookingCount = rangeBookings.length;
-            
-            let capacityCount = 0;
-            let d = new Date(sDate);
-            const end = new Date(eDate);
-            while(d <= end) {
-                const dStr = d.toISOString().split('T')[0];
-                if(currentSettings.schedule && currentSettings.schedule[dStr]) {
-                    currentSettings.schedule[dStr].forEach(s => capacityCount += parseInt(s.capacity || 0));
+            window.removeIp = (index) => {
+                globalAllowedIps.splice(index, 1);
+                renderIpList();
+            };
+
+            document.getElementById('manageIpBtn').onclick = () => {
+                document.getElementById('ipSettingsModal').classList.remove('hidden');
+                renderIpList();
+            };
+
+            document.getElementById('addIpBtn').onclick = () => {
+                const ip = document.getElementById('newIpInput').value.trim();
+                if (ip && !globalAllowedIps.includes(ip)) {
+                    globalAllowedIps.push(ip);
+                    document.getElementById('newIpInput').value = '';
+                    renderIpList();
                 }
-                d.setDate(d.getDate() + 1);
-            }
+            };
             
-            const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
-            
-            document.getElementById('statsBookingCount').textContent = bookingCount;
-            document.getElementById('statsCapacityCount').textContent = capacityCount;
-            document.getElementById('statsRate').textContent = `${rate}%`;
-            
-            updateChart();
-            updateFunnelChart(sDate, eDate);
-            updateContentPerformanceChart(sDate, eDate);
-        }
+            document.getElementById('addCurrentIpBtn').onclick = async () => {
+                 const ip = await fetchIpAddress();
+                 if(ip && !globalAllowedIps.includes(ip)) {
+                     globalAllowedIps.push(ip);
+                     renderIpList();
+                 }
+            };
 
-        function updateChart() {
-            const sDate = document.getElementById('statsStartDate').value;
-            const eDate = document.getElementById('statsEndDate').value;
-            
-            const contentMap = {};
-            (currentSettings.contents || []).forEach(c => {
-                contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
-            });
-            contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
-            
-            const labels = [];
-            let d = new Date(sDate);
-            const end = new Date(eDate);
-            while(d <= end) {
-                const dStr = d.toISOString().split('T')[0];
-                labels.push(dStr);
-                for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
-                d.setDate(d.getDate() + 1);
+            document.getElementById('saveIpSettingsBtn').onclick = async () => {
+                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), { list: globalAllowedIps });
+                 document.getElementById('ipSettingsModal').classList.add('hidden');
+                 showToast("IP制限設定を保存しました");
+            };
+
+
+            // --- Data ---
+            const loadSchools = () => {
+                onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'schools'), (snap) => {
+                    schools = [];
+                    snap.forEach(d => schools.push({id:d.id, ...d.data()}));
+                    renderSchoolList();
+                });
+            };
+
+            function renderSchoolList() {
+                const con = document.getElementById('schoolListContainer');
+                con.innerHTML = '';
+                schools.forEach(s => {
+                    const div = document.createElement('div');
+                    div.className = "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-slate-200 relative group";
+                    div.innerHTML = `
+                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                        <h3 class="text-xl font-bold text-slate-700 mb-1">${s.name}校</h3>
+                        <p class="text-xs text-slate-400">ID: ${s.id}</p>
+                        <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
+                    `;
+                    div.onclick = (e) => {
+                        if(e.target.closest('.delete-school')) return;
+                        selectSchool(s.id);
+                    };
+                    div.querySelector('.delete-school').onclick = async (e) => {
+                        e.stopPropagation();
+                        if(confirm('削除しますか？')) {
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', s.id));
+                            await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', s.id));
+                        }
+                    };
+                    con.appendChild(div);
+                });
             }
 
-            allBookings.forEach(b => {
-                let targetDate = (chartMode === 'event') ? b.date : (b.createdAt?.toDate().toISOString().split('T')[0] || '');
-                if(targetDate >= sDate && targetDate <= eDate) {
-                    const cid = (currentSettings.contents || []).find(c => c.id === b.contentId) ? b.contentId : 'unknown';
-                    if(contentMap[cid] && contentMap[cid].data[targetDate] !== undefined) {
-                        contentMap[cid].data[targetDate]++;
+            function selectSchool(id) {
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
+                if (unsubscribeInquiries) unsubscribeInquiries(); // Clean up inquiry listener
+
+                currentSchoolId = id;
+                document.getElementById('schoolSelectionView').classList.add('hidden');
+                document.getElementById('schoolAdminView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.remove('hidden');
+                document.getElementById('currentSchoolNameDisplay').classList.remove('hidden');
+                document.getElementById('previewPageBtn').classList.remove('hidden');
+                document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
+                
+                // Load Settings
+                unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
+                    if(snap.exists()) currentSettings = snap.data();
+                    else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
+                    
+                    if(!currentSettings.contents) currentSettings.contents = [];
+                    if(!currentSettings.schedule) currentSettings.schedule = {};
+
+                    document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
+                    
+                    // Populate Form
+                    document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
+                    document.getElementById('settingAddress').value = currentSettings.address || '';
+                    document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
+                    document.getElementById('settingPageTitle').value = currentSettings.pageTitle || '';
+                    document.getElementById('settingPageDesc').value = currentSettings.pageDescription || '';
+                    document.getElementById('settingHeaderImage').value = currentSettings.headerImageUrl || '';
+                    
+                    renderLocalContents();
+                    renderSchedCalendar();
+                    updateStats(); // 集計更新
+                });
+                
+                // Load Bookings
+                unsubscribeBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
+                    allBookings = [];
+                    snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
+                    renderDashboard();
+                    renderBookingTable();
+                    updateStats(); // 集計更新
+                });
+                
+                // Load Inquiries (NEW)
+                const inqQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'inquiries'), where("schoolId", "==", id));
+                unsubscribeInquiries = onSnapshot(inqQuery, (snap) => {
+                    allInquiries = [];
+                    snap.forEach(d => allInquiries.push({id: d.id, ...d.data()}));
+                    renderInquiryTable();
+                });
+
+                // Load Logs (Access Analytics)
+                const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
+                unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
+                    allLogs = [];
+                    snap.forEach(d => allLogs.push(d.data()));
+                    updateStats(); // 集計更新
+                });
+            }
+
+            // Inquiry Rendering & Logic
+            function renderInquiryTable() {
+                const tbody = document.getElementById('inquiryTableBody');
+                tbody.innerHTML = '';
+                
+                // Sort by date desc
+                allInquiries.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+
+                if (allInquiries.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" class="px-6 py-8 text-center text-slate-400 text-sm">お問い合わせはありません。</td></tr>';
+                    return;
+                }
+
+                allInquiries.forEach(inq => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b last:border-0";
+                    
+                    // Date Format
+                    let dateStr = '-';
+                    if(inq.createdAt && inq.createdAt.toDate) {
+                        const d = inq.createdAt.toDate();
+                        dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
                     }
-                }
-            });
 
-            const datasets = Object.values(contentMap).map(c => ({
-                label: c.label,
-                data: labels.map(l => c.data[l]),
-                backgroundColor: c.color,
-            })).filter(ds => ds.data.some(v => v > 0));
+                    // Status Config
+                    const status = inq.status || 'pending';
+                    let selectBg = 'bg-white';
+                    if (status === 'pending') selectBg = 'bg-red-50 text-red-700 border-red-200';
+                    else if (status === 'in_progress') selectBg = 'bg-yellow-50 text-yellow-700 border-yellow-200';
+                    else if (status === 'completed') selectBg = 'bg-gray-50 text-gray-500 border-gray-200';
 
-            if(bookingChart) bookingChart.destroy();
-            bookingChart = new Chart(document.getElementById('bookingChart').getContext('2d'), {
-                type: 'bar',
-                data: { labels: labels.map(l => l.substring(5)), datasets: datasets },
-                options: {
-                    responsive: true, maintainAspectRatio: false,
-                    scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } },
-                    plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
-                }
-            });
-        }
-
-        // ファネル分析 (ログ集計)
-        function updateFunnelChart(sDate, eDate) {
-            const rangeLogs = allLogs.filter(log => {
-                const dStr = log.timestamp?.toDate().toISOString().split('T')[0];
-                return dStr >= sDate && dStr <= eDate;
-            });
-
-            const counts = { page_view: 0, form_input: 0, conversion: 0 };
-            rangeLogs.forEach(log => {
-                if (counts[log.event] !== undefined) counts[log.event]++;
-            });
-
-            const data = [counts.page_view, counts.form_input, counts.conversion];
-            const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
-            document.getElementById('analyticsCvr').textContent = `${cvr}%`;
-
-            if (funnelChart) funnelChart.destroy();
-            funnelChart = new Chart(document.getElementById('funnelChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: ['PV', '入力', '完了'],
-                    datasets: [{ label: '数', data: data, backgroundColor: ['#e2e8f0', '#64748b', '#3b82f6'] }]
-                },
-                options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false }
-            });
-        }
-        
-        // コンテンツ別予実管理チャート
-        function updateContentPerformanceChart(sDate, eDate) {
-            const statsMap = {};
-            (currentSettings.contents || []).forEach(c => {
-                statsMap[c.id] = { name: c.name, capacity: 0, booking: 0 };
-            });
-            statsMap['unknown'] = { name: 'その他', capacity: 0, booking: 0 };
-
-            let d = new Date(sDate);
-            const end = new Date(eDate);
-            while(d <= end) {
-                const dStr = d.toISOString().split('T')[0];
-                if(currentSettings.schedule && currentSettings.schedule[dStr]) {
-                    currentSettings.schedule[dStr].forEach(evt => {
-                        const cid = statsMap[evt.contentId] ? evt.contentId : 'unknown';
-                        statsMap[cid].capacity += parseInt(evt.capacity || 0);
-                    });
-                }
-                d.setDate(d.getDate() + 1);
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 text-xs font-mono text-slate-500 whitespace-nowrap">${dateStr}</td>
+                        <td class="px-6 py-4 font-bold text-slate-700">${inq.name} 様</td>
+                        <td class="px-6 py-4 text-xs text-slate-600">
+                            <div>${inq.email}</div>
+                            <div>${inq.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-sm text-slate-600 whitespace-pre-wrap">${inq.preferredSchedule}</td>
+                        <td class="px-6 py-4 text-center">
+                            <select onchange="updateInquiryStatus('${inq.id}', this.value)" class="text-xs p-1 rounded border ${selectBg} font-bold focus:outline-none focus:ring-2 focus:ring-blue-300 transition-colors cursor-pointer">
+                                <option value="pending" ${status === 'pending' ? 'selected' : ''}>未対応</option>
+                                <option value="in_progress" ${status === 'in_progress' ? 'selected' : ''}>対応中</option>
+                                <option value="completed" ${status === 'completed' ? 'selected' : ''}>完了</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
             }
 
-            allBookings.forEach(b => {
-                if(b.date >= sDate && b.date <= eDate) {
-                    const cid = statsMap[b.contentId] ? b.contentId : 'unknown';
-                    statsMap[cid].booking += 1;
+            // Expose update function to window
+            window.updateInquiryStatus = async (id, status) => {
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inquiries', id), { status: status });
+                    showToast("ステータスを更新しました");
+                } catch (err) {
+                    alert("更新に失敗しました: " + err.message);
                 }
-            });
+            };
 
-            const labels = [], dataCap = [], dataBook = [];
-            Object.values(statsMap).forEach(i => {
-                if(i.capacity > 0 || i.booking > 0) {
-                    labels.push(i.name); dataCap.push(i.capacity); dataBook.push(i.booking);
-                }
-            });
 
-            if (contentPerformanceChart) contentPerformanceChart.destroy();
-            contentPerformanceChart = new Chart(document.getElementById('contentPerformanceChart').getContext('2d'), {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        { label: '予約', data: dataBook, backgroundColor: '#f97316' },
-                        { label: '定員', data: dataCap, backgroundColor: '#cbd5e1' }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true } } }
-            });
-        }
-
-        // ---------------------------------------------------------
-        // スケジュールエディタ (UI & DragDrop)
-        // ---------------------------------------------------------
-        
-        document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
-        document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
-        document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
-
-        function renderSchedCalendar() {
-            const y = adminDate.getFullYear(), m = adminDate.getMonth();
-            document.getElementById('schedTitle').textContent = `${y}年 ${m+1}月`;
-            const grid = document.getElementById('schedGrid');
-            grid.innerHTML = '';
+            // --- Features ---
             
-            const firstDay = new Date(y, m, 1).getDay();
-            const days = new Date(y, m+1, 0).getDate();
-            
-            for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
-            
-            for(let d=1; d<=days; d++) {
-                const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-                const cell = document.createElement('div');
-                cell.className = "bg-white min-h-[60px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer relative";
-                cell.innerHTML = `<div class="font-bold text-slate-400 mb-1 text-xs">${d}</div>`;
+            // 1. Content Management (Local)
+            function renderLocalContents() {
+                const con = document.getElementById('localContentList');
+                con.innerHTML = '';
+                (currentSettings.contents || []).forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm";
+                    div.innerHTML = `<div><span class="font-bold text-slate-700">${c.name}</span> <span class="text-xs text-slate-500">${c.type === 'event' ? 'イベント' : '体験'} ¥${c.price}</span></div><div><button class="text-blue-500 text-xs mr-2 edit-cnt" data-idx="${idx}">編集</button><button class="text-red-500 text-xs del-cnt" data-idx="${idx}">削除</button></div>`;
+                    con.appendChild(div);
+                });
                 
-                if(currentSettings.schedule[dateStr]) {
-                    currentSettings.schedule[dateStr].forEach(evt => {
-                        const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
-                        const div = document.createElement('div');
-                        div.className = "bg-blue-500 text-white rounded px-1 mb-1 text-[10px] truncate";
-                        div.textContent = `${evt.startTime} ${c.name}`;
-                        cell.appendChild(div);
-                    });
-                }
-                cell.onclick = () => openScheduleModal(dateStr);
-                grid.appendChild(cell);
+                con.querySelectorAll('.edit-cnt').forEach(b => b.onclick = () => openContentModal(b.dataset.idx));
+                con.querySelectorAll('.del-cnt').forEach(b => b.onclick = async () => {
+                    if(confirm("削除しますか？")) {
+                        // Ensure index is number
+                        const idx = parseInt(b.dataset.idx);
+                        currentSettings.contents.splice(idx, 1);
+                        await saveSettings();
+                    }
+                });
             }
-        }
 
-        function openScheduleModal(dateStr) {
-            selectedDateStr = dateStr; 
-            document.getElementById('modalDateDisplay').textContent = dateStr;
-            document.getElementById('scheduleModal').classList.remove('hidden');
-            
-            const sel = document.getElementById('schedContentSelect');
-            sel.innerHTML = '';
-            currentSettings.contents.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.id; opt.textContent = `${c.name} (¥${c.price})`;
-                sel.appendChild(opt);
-            });
-            
-            resetSchedForm();
-            renderTimeline();
-            renderDayList();
-        }
-
-        function renderTimeline() {
-            const tracks = document.getElementById('timelineTracks');
-            const axis = document.getElementById('timelineAxis');
-            tracks.innerHTML = ''; axis.innerHTML = '';
-            
-            const pxPerMin = 720 / ((20 - 9) * 60); // 9:00-20:00
-
-            for(let h=9; h<=20; h++) {
-                const top = (h-9)*60 * pxPerMin;
-                const l = document.createElement('div');
-                l.className = "absolute w-full text-center transform -translate-y-1/2";
-                l.style.top = top + 'px'; l.textContent = `${h}:00`;
-                axis.appendChild(l);
+            function openContentModal(idxStr = null) {
+                const isNew = idxStr === null;
+                document.getElementById('contentFormTitle').textContent = isNew ? "新規作成" : "コンテンツ編集";
+                document.getElementById('editContentId').value = isNew ? 'new' : idxStr;
                 
-                const line = document.createElement('div');
-                line.className = "absolute w-full border-t border-slate-200 pointer-events-none";
-                line.style.top = top + 'px';
-                tracks.appendChild(line);
+                const idInput = document.getElementById('editContentCustomId');
+                idInput.value = '';
+                idInput.disabled = !isNew; 
+                
+                if (isNew) {
+                    document.getElementById('editContentName').value = '';
+                    document.getElementById('editContentPrice').value = '';
+                    document.getElementById('editContentImage').value = '';
+                    // NEW FIELDS
+                    document.getElementById('editContentDescription').value = '';
+                    document.getElementById('editContentDuration').value = '';
+                    document.getElementById('editContentNotes').value = '';
+                } else {
+                    const c = currentSettings.contents[idxStr];
+                    document.getElementById('editContentName').value = c.name;
+                    document.getElementById('editContentCustomId').value = c.id; 
+                    document.getElementById('editContentType').value = c.type;
+                    document.getElementById('editContentPrice').value = c.price;
+                    document.getElementById('editContentImage').value = c.imageUrl || '';
+                    // NEW FIELDS
+                    document.getElementById('editContentDescription').value = c.description || '';
+                    document.getElementById('editContentDuration').value = c.duration || '';
+                    document.getElementById('editContentNotes').value = c.notes || '';
+                }
+                document.getElementById('contentModal').classList.remove('hidden');
             }
             
-            const evts = currentSettings.schedule[selectedDateStr] || [];
-            evts.forEach((evt, idx) => {
-                const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
-                const [sh, sm] = evt.startTime.split(':').map(Number);
-                const [eh, em] = evt.endTime.split(':').map(Number);
+            document.getElementById('closeContentModal').onclick = () => document.getElementById('contentModal').classList.add('hidden');
+            document.getElementById('openContentModalBtn').onclick = () => openContentModal();
+
+            document.getElementById('saveContentBtn').onclick = async () => {
+                const idxStr = document.getElementById('editContentId').value;
+                const name = document.getElementById('editContentName').value;
+                const type = document.getElementById('editContentType').value;
+                const price = document.getElementById('editContentPrice').value;
+                const img = document.getElementById('editContentImage').value;
+                const customId = document.getElementById('editContentCustomId').value.trim();
                 
-                const top = ((sh-9)*60 + sm) * pxPerMin;
-                const height = ((eh*60+em) - (sh*60+sm)) * pxPerMin;
+                const description = document.getElementById('editContentDescription').value;
+                const duration = document.getElementById('editContentDuration').value;
+                const notes = document.getElementById('editContentNotes').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
                 
-                const blk = document.createElement('div');
-                blk.className = `timeline-event-block bg-blue-500`;
-                blk.style.top = top+'px'; blk.style.height = `${Math.max(20, height)}px`;
-                blk.textContent = `${evt.startTime} ${c.name}`;
-                
-                blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
-                blk.draggable = true;
-                blk.ondragstart = (e) => {
-                    e.stopPropagation();
-                    draggingItemIndex = idx;
-                    dragStartY = e.clientY - blk.getBoundingClientRect().top;
+                let newId;
+                if (idxStr === 'new') {
+                     if (customId) {
+                         if (currentSettings.contents.some(c => c.id === customId)) {
+                             return alert("指定されたIDは既に使用されています。");
+                         }
+                         newId = customId;
+                     } else {
+                         newId = 'c' + Date.now();
+                     }
+                } else {
+                    newId = currentSettings.contents[idxStr].id;
+                }
+
+                const newData = {
+                    id: newId,
+                    name, type, price: parseInt(price), imageUrl: img,
+                    description, duration, notes
                 };
                 
-                tracks.appendChild(blk);
-            });
-            
-            const con = document.getElementById('timelineContainer');
-            con.ondragover = (e) => e.preventDefault();
-            con.ondrop = async (e) => {
-                e.preventDefault();
-                if(draggingItemIndex === null) return;
+                if(idxStr === 'new') currentSettings.contents.push(newData);
+                else currentSettings.contents[idxStr] = newData;
                 
-                // 簡易計算: ドラッグ位置から新しい時刻を算出
-                const idx = draggingItemIndex;
-                const rect = tracks.getBoundingClientRect();
-                const y = e.clientY - rect.top - dragStartY; 
-                const mins = y / pxPerMin;
-                const newTotal = 9*60 + mins;
-                const rounded = Math.round(newTotal/10)*10;
-                
-                const h = Math.floor(rounded/60);
-                const m = rounded%60;
-                
-                const evt = evts[idx];
-                // 終了時刻計算
-                const [osh, osm] = evt.startTime.split(':').map(Number);
-                const [oeh, oem] = evt.endTime.split(':').map(Number);
-                const dur = (oeh*60+oem) - (osh*60+osm);
-                const endTotal = rounded + dur;
-                const eh = Math.floor(endTotal/60);
-                const em = endTotal%60;
-                
-                if(h < 9 || eh > 20) return;
+                await saveSettings();
+                document.getElementById('contentModal').classList.add('hidden');
+            };
 
-                evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+            // 2. Schedule
+            document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
+            document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
+            document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
+
+            function renderSchedCalendar() {
+                const y = adminDate.getFullYear(), m = adminDate.getMonth();
+                document.getElementById('schedTitle').textContent = `${y}年 ${m+1}月`;
+                const grid = document.getElementById('schedGrid');
+                grid.innerHTML = '';
+                
+                const firstDay = new Date(y, m, 1).getDay();
+                const days = new Date(y, m+1, 0).getDate();
+                
+                for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+                
+                for(let d=1; d<=days; d++) {
+                    const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const cell = document.createElement('div');
+                    cell.className = "bg-white min-h-[60px] p-1 border-r border-b hover:bg-yellow-50 cursor-pointer relative";
+                    cell.innerHTML = `<div class="font-bold text-slate-400 mb-1 text-xs">${d}</div>`;
+                    
+                    if(currentSettings.schedule[dateStr]) {
+                        currentSettings.schedule[dateStr].forEach(evt => {
+                            const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
+                            let col = "bg-blue-500";
+                            if(evt.grades && evt.grades.length > 0) {
+                                if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
+                                else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
+                                else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d] text-white";
+                                else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc] text-white";
+                            }
+                            const div = document.createElement('div');
+                            div.className = `${col} rounded px-1 mb-1 text-[10px] truncate border border-white`;
+                            div.textContent = `${evt.startTime} ${c.name}`;
+                            cell.appendChild(div);
+                        });
+                    }
+                    cell.onclick = () => openScheduleModal(dateStr);
+                    grid.appendChild(cell);
+                }
+            }
+
+            function openScheduleModal(dateStr) {
+                selectedDateStr = dateStr; 
+                document.getElementById('modalDateDisplay').textContent = dateStr;
+                document.getElementById('scheduleModal').classList.remove('hidden');
+                
+                const sel = document.getElementById('schedContentSelect');
+                sel.innerHTML = '';
+                currentSettings.contents.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id; opt.textContent = `${c.name} (¥${c.price})`;
+                    sel.appendChild(opt);
+                });
+                
+                resetSchedForm();
+                renderTimeline();
+                renderDayList();
+            }
+
+            function renderTimeline() {
+                const tracks = document.getElementById('timelineTracks');
+                const axis = document.getElementById('timelineAxis');
+                tracks.innerHTML = ''; axis.innerHTML = '';
+                
+                const startHour = 9;
+                const endHour = 20;
+                const pxPerMin = 720 / ((endHour - startHour) * 60);
+
+                for(let h=9; h<=20; h++) {
+                    const top = (h-9)*60 * pxPerMin;
+                    const l = document.createElement('div');
+                    l.className = "absolute w-full text-center transform -translate-y-1/2";
+                    l.style.top = top + 'px'; l.textContent = `${h}:00`;
+                    axis.appendChild(l);
+                    
+                    const line = document.createElement('div');
+                    line.className = "absolute w-full border-t border-slate-200 pointer-events-none";
+                    line.style.top = top + 'px';
+                    tracks.appendChild(line);
+                }
+                
+                const evts = currentSettings.schedule[selectedDateStr] || [];
+                evts.forEach((evt, idx) => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: 'Unknown'};
+                    const [sh, sm] = evt.startTime.split(':').map(Number);
+                    const [eh, em] = evt.endTime.split(':').map(Number);
+                    
+                    const sMin = (sh-9)*60 + sm;
+                    const eMin = (eh-9)*60 + em;
+                    const top = sMin * pxPerMin;
+                    const height = (eMin - sMin) * pxPerMin;
+                    
+                    const blk = document.createElement('div');
+                    let col = "bg-blue-500";
+                    if(evt.grades && evt.grades.length > 0) {
+                        if(evt.grades.length === 3) col = "bg-[#5abe50]";
+                        else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                        else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
+                        else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
+                    }
+                    blk.className = `timeline-event-block ${col}`;
+                    blk.style.top = top+'px'; blk.style.height = `${Math.max(20, height)}px`;
+                    blk.style.left = '4px'; blk.style.right = '4px';
+                    blk.textContent = `${evt.startTime} ${c ? c.name : ''}`;
+                    blk.title = `${evt.startTime}-${evt.endTime} ${c ? c.name : ''}`;
+                    blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
+                    
+                    // Simple Drag
+                    blk.draggable = true;
+                    blk.ondragstart = (e) => {
+                        e.stopPropagation();
+                        draggingItemIndex = idx;
+                        const rect = blk.getBoundingClientRect();
+                        dragStartY = e.clientY - rect.top; // Offset inside the block
+                    };
+                    
+                    tracks.appendChild(blk);
+                });
+                
+                // Drop
+                const con = document.getElementById('timelineContainer');
+                con.ondragover = (e) => e.preventDefault();
+                con.ondrop = async (e) => {
+                    e.preventDefault();
+                    if(draggingItemIndex === null) return;
+                    
+                    const idx = draggingItemIndex;
+                    const rect = tracks.getBoundingClientRect();
+                    // Scroll calculation fix: e.clientY is viewport relative. rect.top is viewport relative.
+                    // Correct: e.clientY - rect.top gives position relative to the top of the tracks container
+                    const y = e.clientY - rect.top - dragStartY; 
+                    
+                    const pxPerMin = 720 / ((20 - 9) * 60);
+                    const mins = y / pxPerMin;
+                    const newTotal = 9*60 + mins;
+                    const rounded = Math.round(newTotal/10)*10;
+                    
+                    const h = Math.floor(rounded/60);
+                    const m = rounded%60;
+                    
+                    const evt = evts[idx];
+                    const [osh, osm] = evt.startTime.split(':').map(Number);
+                    const [oeh, oem] = evt.endTime.split(':').map(Number);
+                    const dur = (oeh*60+oem) - (osh*60+osm);
+                    
+                    const endTotal = rounded + dur;
+                    const eh = Math.floor(endTotal/60);
+                    const em = endTotal%60;
+                    
+                    if(h < 9 || eh > 20) return; // Bounds check
+
+                    // Overlap check
+                    const newStartMins = h * 60 + m;
+                    const newEndMins = eh * 60 + em;
+                    const existingEvents = currentSettings.schedule[selectedDateStr] || [];
+                    for (let i = 0; i < existingEvents.length; i++) {
+                        if (i === idx) continue; // Skip self
+                        const ex = existingEvents[i];
+                        const [exSh, exSm] = ex.startTime.split(':').map(Number);
+                        const [exEh, exEm] = ex.endTime.split(':').map(Number);
+                        const exStartMins = exSh * 60 + exSm;
+                        const exEndMins = exEh * 60 + exEm;
+
+                        if (newStartMins < exEndMins && newEndMins > exStartMins) {
+                            alert("時間が重複しているため変更できません。");
+                            draggingItemIndex = null;
+                            return;
+                        }
+                    }
+
+                    evt.startTime = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    evt.endTime = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+                    
+                    await saveSettings();
+                    renderTimeline();
+                    renderDayList();
+                    renderSchedCalendar();
+                    draggingItemIndex = null;
+                };
+                
+                // Click to add
+                con.onclick = (e) => {
+                    if(e.target.closest('.timeline-event-block')) return;
+                    const rect = tracks.getBoundingClientRect();
+                    const y = e.clientY - rect.top; // Relative to tracks top (already accounts for scroll)
+                    const pxPerMin = 720 / 660;
+                    const mins = y / pxPerMin;
+                    const newTotal = 9*60 + mins;
+                    const rounded = Math.round(newTotal/10)*10;
+                    
+                    const h = Math.floor(rounded/60);
+                    const m = rounded%60;
+                    const eh = Math.floor((rounded+60)/60);
+                    const em = (rounded+60)%60;
+                    
+                    resetSchedForm();
+                    document.getElementById('schedStart').value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+                    document.getElementById('schedEnd').value = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
+                };
+            }
+
+            function renderDayList() {
+                const list = document.getElementById('daySchedList');
+                list.innerHTML = '';
+                const evts = currentSettings.schedule[selectedDateStr] || [];
+                evts.forEach((evt, idx) => {
+                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
+                    const d = document.createElement('div');
+                    d.className = "flex justify-between items-center p-2 border rounded bg-white";
+                    d.innerHTML = `
+                        <div class="cursor-pointer" onclick="window.editSched(${idx})"><b>${evt.startTime}</b> ${c.name}</div>
+                        <div class="flex gap-1">
+                            <button class="text-blue-500 cp-btn" data-idx="${idx}">複製</button>
+                            <button class="text-red-500 del-s-btn" data-idx="${idx}">削除</button>
+                        </div>
+                    `;
+                    list.appendChild(d);
+                });
+                
+                list.querySelectorAll('.cp-btn').forEach(b => b.onclick = (e) => {
+                    e.stopPropagation();
+                    scheduleToCopy = evts[b.dataset.idx];
+                    document.getElementById('copyDialog').classList.remove('hidden');
+                });
+                list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
+                    e.stopPropagation();
+                    const idx = parseInt(b.dataset.idx);
+                    const evt = evts[idx];
+
+                    // 予約チェック
+                    const hasBooking = allBookings.some(booking => 
+                        booking.date === selectedDateStr && 
+                        booking.startTime === evt.startTime && 
+                        booking.contentId === evt.contentId
+                    );
+
+                    if (hasBooking) {
+                        alert("この枠には既に予約が入っているため削除できません。\n予約管理タブから予約を確認・キャンセルしてください。");
+                        return;
+                    }
+
+                    if(confirm("削除しますか？")) {
+                        currentSettings.schedule[selectedDateStr].splice(idx, 1);
+                        await saveSettings();
+                        renderTimeline(); renderDayList(); renderSchedCalendar();
+                    }
+                });
+            }
+
+            window.editSched = (idx) => {
+                const evt = currentSettings.schedule[selectedDateStr][idx];
+                document.getElementById('schedEditIndex').value = idx;
+                document.getElementById('schedContentSelect').value = evt.contentId;
+                document.getElementById('schedStart').value = evt.startTime;
+                document.getElementById('schedEnd').value = evt.endTime;
+                document.getElementById('schedCap').value = evt.capacity;
+                document.querySelectorAll('.sched-grade').forEach(c => c.checked = evt.grades && evt.grades.includes(c.value));
+                document.getElementById('schedFormTitle').textContent = "枠を編集";
+                document.getElementById('schedSaveBtn').textContent = "更新";
+                document.getElementById('schedDeleteBtn').classList.remove('hidden');
+                document.getElementById('schedCancelBtn').classList.remove('hidden');
+            };
+
+            const resetSchedForm = () => {
+                document.getElementById('schedEditIndex').value = -1;
+                document.getElementById('schedStart').value = '';
+                document.getElementById('schedEnd').value = '';
+                document.getElementById('schedCap').value = 5;
+                document.querySelectorAll('.sched-grade').forEach(c => c.checked = false);
+                document.getElementById('schedFormTitle').textContent = "新規枠を追加";
+                document.getElementById('schedSaveBtn').textContent = "保存";
+                document.getElementById('schedDeleteBtn').classList.add('hidden');
+                document.getElementById('schedCancelBtn').classList.add('hidden');
+            };
+            document.getElementById('schedCancelBtn').onclick = resetSchedForm;
+
+            document.getElementById('schedSaveBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('schedEditIndex').value);
+                const cid = document.getElementById('schedContentSelect').value;
+                const start = document.getElementById('schedStart').value;
+                const end = document.getElementById('schedEnd').value;
+                const cap = document.getElementById('schedCap').value;
+                const gr = Array.from(document.querySelectorAll('.sched-grade:checked')).map(c=>c.value);
+                
+                if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
+
+                // Overlap Check Logic
+                const [nh, nm] = start.split(':').map(Number);
+                const [neh, nem] = end.split(':').map(Number);
+                const newStartMins = nh * 60 + nm;
+                const newEndMins = neh * 60 + nem;
+
+                const existingEvents = currentSettings.schedule[selectedDateStr] || [];
+                for (let i = 0; i < existingEvents.length; i++) {
+                    if (idx !== -1 && i === idx) continue; // Skip self if editing
+
+                    const ex = existingEvents[i];
+                    const [exSh, exSm] = ex.startTime.split(':').map(Number);
+                    const [exEh, exEm] = ex.endTime.split(':').map(Number);
+                    const exStartMins = exSh * 60 + exSm;
+                    const exEndMins = exEh * 60 + exEm;
+
+                    // Check for overlap: (StartA < EndB) and (EndA > StartB)
+                    if (newStartMins < exEndMins && newEndMins > exStartMins) {
+                        return alert("時間が重複しているため登録できません。");
+                    }
+                }
+                
+                const newEvt = {
+                    id: idx !== -1 ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
+                    contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
+                };
+                
+                if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
+                
+                if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
+                else currentSettings.schedule[selectedDateStr].push(newEvt);
+                
+                currentSettings.schedule[selectedDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
                 
                 await saveSettings();
                 renderTimeline(); renderDayList(); renderSchedCalendar();
-                draggingItemIndex = null;
-            };
-
-            // クリックで新規追加
-            con.onclick = (e) => {
-                if(e.target.closest('.timeline-event-block')) return;
-                const rect = tracks.getBoundingClientRect();
-                const y = e.clientY - rect.top;
-                const mins = y / pxPerMin;
-                const rounded = Math.round((9*60 + mins)/30)*30; // 30分単位スナップ
-                
-                const h = Math.floor(rounded/60);
-                const m = rounded%60;
-                const eh = Math.floor((rounded+90)/60); // デフォルト90分
-                const em = (rounded+90)%60;
-
                 resetSchedForm();
-                document.getElementById('schedStart').value = `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
-                document.getElementById('schedEnd').value = `${eh.toString().padStart(2,'0')}:${em.toString().padStart(2,'0')}`;
             };
-        }
+            
+            document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
+            
+            document.getElementById('execCopyBtn').onclick = async () => {
+                const d = document.getElementById('copyDate').value;
+                if(!d) return;
+                if(!currentSettings.schedule[d]) currentSettings.schedule[d] = [];
+                currentSettings.schedule[d].push({...scheduleToCopy, id: 's'+Date.now()});
+                await saveSettings();
+                document.getElementById('copyDialog').classList.add('hidden');
+                showToast("複製しました");
+                renderSchedCalendar();
+            };
 
-        function renderDayList() {
-            const list = document.getElementById('daySchedList');
-            list.innerHTML = '';
-            (currentSettings.schedule[selectedDateStr] || []).forEach((evt, idx) => {
-                const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
-                const d = document.createElement('div');
-                d.className = "flex justify-between items-center p-2 border rounded bg-white";
-                d.innerHTML = `
-                    <div class="cursor-pointer" onclick="window.editSched(${idx})"><b>${evt.startTime}</b> ${c.name}</div>
-                    <div class="flex gap-1">
-                        <button class="text-blue-500 cp-btn" data-idx="${idx}">複製</button>
-                        <button class="text-red-500 del-s-btn" data-idx="${idx}">削除</button>
-                    </div>
-                `;
-                list.appendChild(d);
+            // 3. Settings Save
+            document.getElementById('schoolSettingsForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                currentSettings.schoolName = fd.get('schoolName');
+                currentSettings.address = fd.get('address');
+                currentSettings.phoneNumber = fd.get('phoneNumber');
+                currentSettings.pageTitle = fd.get('pageTitle');
+                currentSettings.pageDescription = fd.get('pageDescription');
+                currentSettings.headerImageUrl = fd.get('headerImageUrl');
+                await saveSettings();
+                
+                // Update School List meta
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { id: currentSchoolId, name: currentSettings.schoolName }, {merge: true});
+                showToast("保存しました");
+            };
+
+            // 4. Dashboard & Booking List (Read-only view)
+            function renderDashboard() {
+                const total = allBookings.length;
+                document.getElementById('totalBookings').textContent = total;
+                const m = new Date();
+                const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
+                document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
+                
+                // 売上計算 (今月)
+                let monthSales = 0;
+                allBookings.forEach(b => {
+                    if(b.date.startsWith(mPrefix)) {
+                        // find content price
+                        const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
+                        if(content && content.price) {
+                            monthSales += parseInt(content.price);
+                        }
+                    }
+                });
+                document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
+                
+                document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()-1); renderAdminDashboard(); };
+                document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth()+1); renderAdminDashboard(); };
+                renderAdminDashboard();
+            }
+
+            function renderAdminDashboard() {
+                 const y = adminDashboardDate.getFullYear(), m = adminDashboardDate.getMonth();
+                 document.getElementById('dashboardCalendarTitle').textContent = `${y}年 ${m+1}月`;
+                 const grid = document.getElementById('dashGrid');
+                 grid.innerHTML = '';
+                 
+                 const firstDay = new Date(y, m, 1).getDay();
+                 const days = new Date(y, m+1, 0).getDate();
+                 
+                 for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+                 
+                 for(let d=1; d<=days; d++) {
+                     const dateStr = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                     const cell = document.createElement('div');
+                     cell.className = "bg-white dashboard-calendar-cell min-h-[50px] border-r border-b p-1";
+                     cell.innerHTML = `<div class="text-xs font-bold text-slate-500 mb-1">${d}</div>`;
+                     
+                     if(currentSettings.schedule[dateStr]) {
+                         currentSettings.schedule[dateStr].forEach(evt => {
+                             const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name:'?'};
+                             const count = allBookings.filter(b => b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId).length;
+                             const remaining = Math.max(0, parseInt(evt.capacity) - count);
+                             
+                             const item = document.createElement('div');
+                             let col = "bg-gray-400";
+                             if(evt.grades && evt.grades.length > 0) {
+                                 if(evt.grades.length === 3) col = "bg-[#5abe50]";
+                                 else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa]";
+                                 else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d]";
+                                 else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc]";
+                             }
+                             item.className = `dashboard-event-item ${col}`;
+                             item.innerHTML = `<div class="font-bold">${evt.startTime}</div><div class="truncate">${c.name}</div><div class="flex justify-between items-center mt-1"><span class="font-bold">予約:${count}/${evt.capacity}</span><span class="text-xs bg-white text-slate-600 px-1 rounded font-bold">残:${remaining}</span></div>`;
+                             cell.appendChild(item);
+                          });
+                       }
+                       grid.appendChild(cell);
+                  }
+            }
+            
+            function renderBookingTable() {
+                const tbody = document.getElementById('bookingTableBody');
+                tbody.innerHTML = '';
+                allBookings.sort((a,b) => b.date.localeCompare(a.date)).forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50";
+                    
+                    let sourceBadge = '';
+                    if (b.sourceType === 'admin') {
+                        sourceBadge = '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200">管理画面</span>';
+                    } else {
+                        if (b.utmSource) {
+                            sourceBadge = `<span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs border border-indigo-100 block w-fit mb-1">${b.utmSource}</span>`;
+                            if(b.utmMedium) sourceBadge += `<span class="text-[10px] text-slate-400">${b.utmMedium}</span>`;
+                        } else {
+                            sourceBadge = '<span class="text-xs text-slate-400">Web予約</span>';
+                        }
+                    }
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4">${b.date} ${b.startTime}</td>
+                        <td class="px-6 py-4">${b.courseName}</td>
+                        <td class="px-6 py-4 font-bold">${b.childName} <span class="text-xs font-normal">(${b.parentName})</span></td>
+                        <td class="px-6 py-4 text-xs">${b.email}<br>${b.phone}</td>
+                        <td class="px-6 py-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">確定</span></td>
+                        <td class="px-6 py-4 text-center">${sourceBadge}</td>
+                        <td class="px-6 py-4 text-center">
+                            <div class="flex flex-col gap-2">
+                                <button onclick="openBookingEditModal('${b.id}')" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 font-bold">編集</button>
+                                <button onclick="cancelBooking('${b.id}')" class="text-xs bg-red-50 text-red-600 px-2 py-1 rounded border border-red-200 hover:bg-red-100 font-bold">キャンセル</button>
+                            </div>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+            
+            // Booking Edit & Cancel Logic
+            window.openBookingEditModal = (bookingId) => {
+                const booking = allBookings.find(b => b.id === bookingId);
+                if (!booking) return;
+
+                document.getElementById('editBookingId').value = booking.id;
+                document.getElementById('editChildName').value = booking.childName || '';
+                document.getElementById('editParentName').value = booking.parentName || '';
+                document.getElementById('editEmail').value = booking.email || '';
+                document.getElementById('editPhone').value = booking.phone || '';
+                
+                // Set original values
+                document.getElementById('originalDate').value = booking.date;
+                document.getElementById('originalStartTime').value = booking.startTime;
+                document.getElementById('originalContentId').value = booking.contentId;
+                
+                // Reset edit date/time
+                const dInput = document.getElementById('editBookingDate');
+                dInput.value = booking.date; // Default to current date
+                
+                // Populate schedule select for the current date
+                // We need to construct the current value object to pre-select it
+                const currentValObj = {
+                    contentId: booking.contentId,
+                    startTime: booking.startTime,
+                    courseName: booking.courseName
+                };
+                updateScheduleSelect(booking.date, 'editBookingScheduleId', JSON.stringify(currentValObj));
+                
+                document.getElementById('bookingEditModal').classList.remove('hidden');
+            };
+
+            document.getElementById('editBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'editBookingScheduleId');
             });
-            // イベント設定
-            list.querySelectorAll('.cp-btn').forEach(b => b.onclick = (e) => {
-                e.stopPropagation();
-                scheduleToCopy = currentSettings.schedule[selectedDateStr][b.dataset.idx];
-                document.getElementById('copyDialog').classList.remove('hidden');
-            });
-            list.querySelectorAll('.del-s-btn').forEach(b => b.onclick = async (e) => {
-                e.stopPropagation();
-                const idx = parseInt(b.dataset.idx);
-                if(confirm("削除しますか？")) {
-                    currentSettings.schedule[selectedDateStr].splice(idx, 1);
-                    await saveSettings();
-                    renderTimeline(); renderDayList(); renderSchedCalendar();
+
+            document.getElementById('bookingEditForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const bookingId = document.getElementById('editBookingId').value;
+                if (!bookingId) return;
+                
+                const updateData = {
+                    childName: document.getElementById('editChildName').value,
+                    parentName: document.getElementById('editParentName').value,
+                    email: document.getElementById('editEmail').value,
+                    phone: document.getElementById('editPhone').value
+                };
+
+                // Check for schedule change
+                const newDate = document.getElementById('editBookingDate').value;
+                const newScheduleVal = document.getElementById('editBookingScheduleId').value;
+                
+                // If a schedule is selected (it's not empty)
+                if (newScheduleVal) {
+                      const schedData = JSON.parse(newScheduleVal);
+                      // If date OR content/time changed from original
+                      const origDate = document.getElementById('originalDate').value;
+                      const origStart = document.getElementById('originalStartTime').value;
+                      const origContent = document.getElementById('originalContentId').value;
+
+                      if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                          updateData.date = newDate;
+                          updateData.startTime = schedData.startTime;
+                          updateData.contentId = schedData.contentId;
+                          updateData.courseName = schedData.courseName;
+                      }
                 }
-            });
-        }
 
-        window.editSched = (idx) => {
-            const evt = currentSettings.schedule[selectedDateStr][idx];
-            document.getElementById('schedEditIndex').value = idx;
-            document.getElementById('schedContentSelect').value = evt.contentId;
-            document.getElementById('schedStart').value = evt.startTime;
-            document.getElementById('schedEnd').value = evt.endTime;
-            document.getElementById('schedCap').value = evt.capacity;
-            document.querySelectorAll('.sched-grade').forEach(c => c.checked = evt.grades && evt.grades.includes(c.value));
-            
-            document.getElementById('schedFormTitle').textContent = "枠を編集";
-            document.getElementById('schedSaveBtn').textContent = "更新";
-            document.getElementById('schedDeleteBtn').classList.remove('hidden');
-            document.getElementById('schedCancelBtn').classList.remove('hidden');
-        };
-
-        const resetSchedForm = () => {
-            document.getElementById('schedEditIndex').value = -1;
-            document.getElementById('schedStart').value = '';
-            document.getElementById('schedEnd').value = '';
-            document.getElementById('schedCap').value = 5;
-            document.querySelectorAll('.sched-grade').forEach(c => c.checked = false);
-            
-            document.getElementById('schedFormTitle').textContent = "新規枠を追加";
-            document.getElementById('schedSaveBtn').textContent = "保存";
-            document.getElementById('schedDeleteBtn').classList.add('hidden');
-            document.getElementById('schedCancelBtn').classList.add('hidden');
-        };
-        document.getElementById('schedCancelBtn').onclick = resetSchedForm;
-
-        document.getElementById('schedSaveBtn').onclick = async () => {
-            const idx = parseInt(document.getElementById('schedEditIndex').value);
-            const cid = document.getElementById('schedContentSelect').value;
-            const start = document.getElementById('schedStart').value;
-            const end = document.getElementById('schedEnd').value;
-            const cap = document.getElementById('schedCap').value;
-            const gr = Array.from(document.querySelectorAll('.sched-grade:checked')).map(c=>c.value);
-            
-            if(!cid || !start || !end) return alert("必須項目を入力してください");
-
-            const newEvt = {
-                id: (idx !== -1) ? currentSettings.schedule[selectedDateStr][idx].id : 's'+Date.now(),
-                contentId: cid, startTime: start, endTime: end, capacity: parseInt(cap), grades: gr
-            };
-            
-            if(!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
-            
-            if(idx !== -1) currentSettings.schedule[selectedDateStr][idx] = newEvt;
-            else currentSettings.schedule[selectedDateStr].push(newEvt);
-            
-            currentSettings.schedule[selectedDateStr].sort((a,b)=>a.startTime.localeCompare(b.startTime));
-            
-            await saveSettings();
-            renderTimeline(); renderDayList(); renderSchedCalendar();
-            resetSchedForm();
-        };
-
-        // 複製実行
-        document.getElementById('execCopyBtn').onclick = async () => {
-            const d = document.getElementById('copyDate').value;
-            if(!d) return;
-            if(!currentSettings.schedule[d]) currentSettings.schedule[d] = [];
-            currentSettings.schedule[d].push({...scheduleToCopy, id: 's'+Date.now()});
-            await saveSettings();
-            document.getElementById('copyDialog').classList.add('hidden');
-            showToast("複製しました");
-            renderSchedCalendar();
-        };
-        document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
-
-        // ---------------------------------------------------------
-        // 予約・お問い合わせ管理
-        // ---------------------------------------------------------
-
-        // 予約一覧描画
-        function renderBookingTable() {
-            const tbody = document.getElementById('bookingTableBody');
-            tbody.innerHTML = '';
-            if (allBookings.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-slate-400">予約データがありません</td></tr>';
-                return;
-            }
-            allBookings.sort((a,b) => b.date.localeCompare(a.date)).forEach(b => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50";
-                
-                let sourceBadge = (b.sourceType === 'admin') ? 
-                    '<span class="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs border border-gray-200">管理画面</span>' :
-                    (b.utmSource ? `<span class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded text-xs border border-indigo-100">${b.utmSource}</span>` : '<span class="text-xs text-slate-400">Web予約</span>');
-
-                tr.innerHTML = `
-                    <td class="px-6 py-4">${b.date} ${b.startTime}</td>
-                    <td class="px-6 py-4">${b.courseName}</td>
-                    <td class="px-6 py-4 font-bold">${b.childName} <span class="text-xs font-normal">(${b.parentName})</span></td>
-                    <td class="px-6 py-4 text-xs">${b.email}<br>${b.phone}</td>
-                    <td class="px-6 py-4 text-center"><span class="bg-green-100 text-green-700 px-2 py-1 rounded text-xs">確定</span></td>
-                    <td class="px-6 py-4 text-center">${sourceBadge}</td>
-                    <td class="px-6 py-4 text-center">
-                        <div class="flex flex-col gap-2">
-                            <button onclick="openBookingEditModal('${b.id}')" class="text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded border border-blue-200 hover:bg-blue-100 font-bold">編集</button>
-                            <button onclick="cancelBooking('${b.id}')" class="text-xs bg-red-50 text-red-600 px-2 py-1 rounded border border-red-200 hover:bg-red-100 font-bold">キャンセル</button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-
-        // 新規予約登録
-        document.getElementById('addBookingForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const date = document.getElementById('newBookingDate').value;
-            const scheduleVal = document.getElementById('newBookingScheduleId').value;
-            if (!date || !scheduleVal) return alert("日時とコースを選択してください");
-
-            const scheduleData = JSON.parse(scheduleVal);
-            try {
-                await addDoc(collection(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'bookings'), {
-                    schoolId: currentSchoolId,
-                    schoolName: currentSettings.schoolName,
-                    date: date,
-                    startTime: scheduleData.startTime,
-                    contentId: scheduleData.contentId,
-                    courseName: scheduleData.courseName,
-                    childName: document.getElementById('newChildName').value,
-                    parentName: document.getElementById('newParentName').value,
-                    email: document.getElementById('newEmail').value,
-                    phone: document.getElementById('newPhone').value,
-                    grade: document.getElementById('newGrade').value,
-                    sourceType: 'admin',
-                    createdAt: serverTimestamp()
-                });
-                document.getElementById('addBookingModal').classList.add('hidden');
-                showToast("予約を登録しました");
-            } catch (err) {
-                alert("登録失敗: " + err.message);
-            }
-        };
-
-        // 予約編集・キャンセル
-        window.openBookingEditModal = (bid) => {
-            const b = allBookings.find(x => x.id === bid);
-            if(!b) return;
-            document.getElementById('editBookingId').value = b.id;
-            document.getElementById('editChildName').value = b.childName;
-            document.getElementById('editParentName').value = b.parentName;
-            document.getElementById('editEmail').value = b.email;
-            document.getElementById('editPhone').value = b.phone;
-            document.getElementById('bookingEditModal').classList.remove('hidden');
-        };
-
-        document.getElementById('bookingEditForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const bid = document.getElementById('editBookingId').value;
-            await updateDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'bookings', bid), {
-                childName: document.getElementById('editChildName').value,
-                parentName: document.getElementById('editParentName').value,
-                email: document.getElementById('editEmail').value,
-                phone: document.getElementById('editPhone').value
-            });
-            document.getElementById('bookingEditModal').classList.add('hidden');
-            showToast("更新しました");
-        };
-
-        window.cancelBooking = async (bid) => {
-            if(confirm("予約をキャンセル（削除）しますか？")) {
-                await deleteDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'bookings', bid));
-                showToast("予約をキャンセルしました");
-            }
-        };
-
-        // お問い合わせ一覧描画
-        function renderInquiryTable() {
-            const tbody = document.getElementById('inquiryTableBody');
-            tbody.innerHTML = '';
-            if (allInquiries.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-slate-400">お問い合わせはありません</td></tr>';
-                return;
-            }
-            allInquiries.sort((a,b) => (b.createdAt?.seconds||0) - (a.createdAt?.seconds||0)).forEach(inq => {
-                const tr = document.createElement('tr');
-                tr.className = "hover:bg-slate-50 border-b last:border-0";
-                const d = inq.createdAt ? inq.createdAt.toDate() : new Date();
-                const status = inq.status || 'pending';
-                const bg = status === 'pending' ? 'bg-red-50 text-red-700' : (status === 'in_progress' ? 'bg-yellow-50 text-yellow-700' : 'bg-gray-50 text-gray-500');
-
-                tr.innerHTML = `
-                    <td class="px-6 py-4 text-xs font-mono">${d.toLocaleDateString()} ${d.toLocaleTimeString()}</td>
-                    <td class="px-6 py-4 font-bold">${inq.name} 様</td>
-                    <td class="px-6 py-4 text-xs">${inq.email}<br>${inq.phone}</td>
-                    <td class="px-6 py-4 text-sm whitespace-pre-wrap">${inq.preferredSchedule}</td>
-                    <td class="px-6 py-4 text-center">
-                         <select onchange="window.updateInquiry('${inq.id}', this.value)" class="text-xs p-1 rounded border ${bg} font-bold">
-                            <option value="pending" ${status==='pending'?'selected':''}>未対応</option>
-                            <option value="in_progress" ${status==='in_progress'?'selected':''}>対応中</option>
-                            <option value="completed" ${status==='completed'?'selected':''}>完了</option>
-                        </select>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
-        
-        window.updateInquiry = async (id, status) => {
-            await updateDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'inquiries', id), { status });
-            showToast("ステータスを更新しました");
-        };
-
-        // ---------------------------------------------------------
-        // ユーティリティ・その他
-        // ---------------------------------------------------------
-        
-        async function saveSettings() {
-            await setDoc(doc(db, 'artifacts', APP_ID_PATH, 'public', 'data', 'settings', currentSchoolId), currentSettings);
-        }
-        
-        function showToast(msg) {
-            const t = document.getElementById('toast');
-            t.textContent = msg;
-            t.classList.remove('opacity-0');
-            setTimeout(() => t.classList.add('opacity-0'), 3000);
-        }
-        
-        function getColorForId(str) {
-            let hash = 0;
-            for (let i = 0; i < str.length; i++) hash = str.charCodeAt(i) + ((hash << 5) - hash);
-            const c = (hash & 0x00FFFFFF).toString(16).toUpperCase();
-            return '#' + "00000".substring(0, 6 - c.length) + c;
-        }
-
-        // タブ切り替え
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.onclick = () => {
-                document.querySelectorAll('.tab-btn').forEach(b => {
-                    b.classList.remove('border-blue-600', 'text-blue-600');
-                    b.classList.add('border-transparent', 'text-slate-500');
-                });
-                btn.classList.remove('border-transparent', 'text-slate-500');
-                btn.classList.add('border-blue-600', 'text-blue-600');
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
-                document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
-                
-                if(btn.dataset.tab === 'dashboard') {
-                    renderDashboard(); // ダッシュボード再描画 (Part 4にはrenderDashboardの実装は含まれていないため、Part 3の関数を参照)
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), updateData);
+                    document.getElementById('bookingEditModal').classList.add('hidden');
+                    showToast("予約情報を更新しました");
+                } catch (err) {
+                    alert("更新に失敗しました: " + err.message);
                 }
             };
+
+            window.cancelBooking = async (bookingId) => {
+                if (!confirm("本当にこの予約をキャンセル（削除）しますか？\nこの操作は取り消せません。")) return;
+                
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
+                    showToast("予約をキャンセルしました");
+                } catch (err) {
+                    alert("削除に失敗しました: " + err.message);
+                }
+            };
+
+            // URL Generator Logic (New)
+            const updateGeneratedUrl = () => {
+                const source = document.getElementById('utmSource').value.trim();
+                const medium = document.getElementById('utmMedium').value.trim();
+                const campaign = document.getElementById('utmCampaign').value.trim();
+                
+                if (!currentSchoolId) return;
+
+                // Base URL: Replace current filename with 'index.html'
+                let path = window.location.pathname;
+                const lastSlash = path.lastIndexOf('/');
+                if (lastSlash !== -1) {
+                    path = path.substring(0, lastSlash + 1) + 'index.html';
+                } else {
+                    path = '/index.html';
+                }
+                const baseUrl = `${window.location.origin}${path}?school=${currentSchoolId}`;
+                
+                let finalUrl = baseUrl;
+
+                const params = [];
+                if (source) params.push(`utm_source=${encodeURIComponent(source)}`);
+                if (medium) params.push(`utm_medium=${encodeURIComponent(medium)}`);
+                if (campaign) params.push(`utm_campaign=${encodeURIComponent(campaign)}`);
+
+                if (params.length > 0) {
+                    finalUrl += '&' + params.join('&');
+                }
+                
+                document.getElementById('generatedUrl').value = finalUrl;
+            };
+
+            ['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateGeneratedUrl);
+            });
+
+            document.getElementById('copyUrlBtn').onclick = () => {
+                const urlInput = document.getElementById('generatedUrl');
+                urlInput.select();
+                urlInput.setSelectionRange(0, 99999); 
+                document.execCommand('copy'); 
+                showToast("URLをコピーしました");
+            };
+
+            // Utils
+            async function saveSettings() {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
+            }
+            
+            function showToast(msg) {
+                const t = document.getElementById('toast');
+                t.textContent = msg;
+                t.classList.remove('opacity-0');
+                setTimeout(() => t.classList.add('opacity-0'), 3000);
+            }
+
+            document.getElementById('backToSchoolSelectBtn').onclick = () => {
+                if (unsubscribeSettings) unsubscribeSettings();
+                if (unsubscribeBookings) unsubscribeBookings();
+                if (unsubscribeLogs) unsubscribeLogs();
+                
+                document.getElementById('schoolAdminView').classList.add('hidden');
+                document.getElementById('schoolSelectionView').classList.remove('hidden');
+                document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
+                document.getElementById('currentSchoolNameDisplay').classList.add('hidden');
+                document.getElementById('previewPageBtn').classList.add('hidden');
+                currentSchoolId = null;
+            };
+
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.onclick = () => {
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('border-blue-600', 'text-blue-600');
+                        b.classList.add('border-transparent', 'text-slate-500');
+                    });
+                    btn.classList.remove('border-transparent', 'text-slate-500');
+                    btn.classList.add('border-blue-600', 'text-blue-600');
+                    document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
+                    document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
+                    
+                    if(btn.dataset.tab === 'dashboard') renderDashboard(); // Refresh
+                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); // Init URL gen
+                };
+            });
+
+            // Add School
+            document.getElementById('addSchoolForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const name = document.getElementById('newSchoolName').value;
+                const id = document.getElementById('newSchoolId').value;
+                if(schools.some(s=>s.id===id)) return alert("ID重複");
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', id), { name, id });
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), { 
+                    schoolName: name, schoolId: id, contents: [], schedule: {} 
+                });
+                document.getElementById('addSchoolModal').classList.add('hidden');
+                e.target.reset();
+            };
+
+            initFirebase();
         });
-        
-        // 簡易ダッシュボード (Local) - Booking Tableとは別
-        function renderDashboard() {
-            // Part 4では簡易実装。実際はカレンダー描画などがここに入ります。
-            // 予約数更新
-            document.getElementById('totalBookings').textContent = allBookings.length;
-            const m = new Date();
-            const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
-            document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
-            
-            // 売上計算
-            let monthSales = 0;
-            allBookings.forEach(b => {
-                if(b.date.startsWith(mPrefix)) {
-                    const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
-                    if(content && content.price) monthSales += parseInt(content.price);
-                }
-            });
-            document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
-        }
-
-        // アプリ起動
-        initApp();
     </script>
 </body>
 </html>
-
