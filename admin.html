@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ロボット教室 管理コンソール</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Chart.js CDN -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,13 +24,11 @@
 </head>
 <body>
 
-    <!-- ログイン画面 -->
     <div id="loginView" class="min-h-screen flex items-center justify-center bg-slate-800">
         <div class="bg-white p-8 rounded-2xl shadow-2xl w-full max-w-sm">
             <h1 class="text-2xl font-extrabold text-center text-slate-700 mb-2">管理者ログイン</h1>
             <p class="text-xs text-center text-slate-400 mb-4">ロボットプログラミング教室 管理システム</p>
             
-            <!-- IPアドレス表示 -->
             <div class="bg-slate-100 p-2 rounded text-center mb-6 border border-slate-200">
                 <p class="text-[10px] text-slate-500">あなたのIPアドレス</p>
                 <p id="currentIpDisplay" class="text-xs font-mono font-bold text-slate-700">取得中...</p>
@@ -52,7 +49,6 @@
         </div>
     </div>
 
-    <!-- 管理画面コンテナ -->
     <div id="adminMain" class="hidden min-h-screen">
         <nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -75,12 +71,10 @@
             </div>
         </nav>
 
-        <!-- 1. 校舎選択画面 (Admin) -->
         <div id="schoolSelectionView" class="max-w-6xl mx-auto px-4 py-8">
             <h2 class="text-2xl font-bold text-slate-700 mb-6">管理する校舎を選択</h2>
             <div id="schoolListContainer" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- JS Generated -->
-            </div>
+                </div>
             
             <div class="mt-12 bg-white p-6 rounded-xl border border-slate-200 text-center">
                 <h3 class="text-lg font-bold text-slate-700 mb-4 flex justify-center items-center gap-2">
@@ -88,13 +82,11 @@
                     本部管理メニュー
                 </h3>
                 <div class="flex justify-center gap-4 flex-wrap">
-                    <!-- 全校舎ダッシュボードボタン -->
                     <button id="openGlobalDashBtn" class="bg-indigo-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-indigo-700 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         全校舎集計ダッシュボード
                     </button>
 
-                    <!-- 共通コンテンツ設定ボタン -->
                     <button id="manageCommonContentsBtn" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         共通コンテンツ設定
@@ -104,7 +96,6 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         新しい校舎を追加
                     </button>
-                    <!-- IP制限設定ボタン -->
                     <button id="manageIpBtn" class="bg-gray-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-gray-500 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
                         IP制限設定
@@ -113,9 +104,7 @@
             </div>
         </div>
 
-        <!-- 2. 全校舎集計ダッシュボード -->
         <div id="globalDashboardView" class="hidden min-h-screen bg-slate-100">
-            <!-- Header -->
             <nav class="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
                 <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div class="flex justify-between h-16">
@@ -129,9 +118,7 @@
                     </div>
                 </div>
             </nav>
-            <!-- (Global Dashboard Content) -->
             <div class="max-w-7xl mx-auto px-4 py-8">
-                <!-- KPIs -->
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-xs font-bold text-slate-400 uppercase">全校舎 予約総数 (累計)</h3>
@@ -151,7 +138,6 @@
                     </div>
                 </div>
 
-                <!-- 期間指定集計機能 -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
                         <h3 class="text-lg font-bold text-slate-700 flex items-center">
@@ -159,7 +145,6 @@
                             期間指定分析
                         </h3>
                         <div class="flex items-center gap-4 flex-wrap">
-                            <!-- 集計基準切り替えタブ -->
                             <div class="flex bg-slate-100 rounded p-1">
                                 <button id="gTabCreated" class="px-4 py-2 text-xs font-bold rounded bg-white text-indigo-600 shadow-sm transition g-chart-tab-btn" data-type="created">予約受付日ベース</button>
                                 <button id="gTabEvent" class="px-4 py-2 text-xs font-bold rounded text-slate-500 hover:text-slate-700 transition g-chart-tab-btn" data-type="event">予約参加日ベース</button>
@@ -174,24 +159,22 @@
                         </div>
                     </div>
                     
-                    <!-- 期間内KPI -->
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-6">
                         <div class="text-center p-4 bg-indigo-50 rounded-lg border border-indigo-100">
                             <p class="text-xs font-bold text-indigo-400 uppercase mb-1">期間内 予約合計</p>
                             <p class="text-3xl font-black text-indigo-700" id="gPeriodBookingCount">-</p>
                         </div>
-                        <div class="text-center p-4 bg-slate-50 rounded-lg border border-slate-100">
+                        <div class="text-center p-4 bg-slate-5 rounded-lg border border-slate-100">
                             <p class="text-xs font-bold text-slate-400 uppercase mb-1">予約獲得校舎数</p>
                             <p class="text-3xl font-black text-slate-700" id="gPeriodActiveSchools">-</p>
                         </div>
-                        <div class="text-center p-4 bg-slate-50 rounded-lg border border-slate-100">
+                        <div class="text-center p-4 bg-slate-5 rounded-lg border border-slate-100">
                             <p class="text-xs font-bold text-slate-400 uppercase mb-1">最も予約が多い日</p>
                             <p class="text-xl font-bold text-slate-700" id="gPeriodPeakDay">-</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- 予約実績推移 (積み上げグラフ) -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
                     <div class="flex flex-wrap items-center justify-between mb-4">
                         <h3 class="font-bold text-slate-700 flex items-center">
@@ -205,7 +188,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Chart: Bookings by School -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center justify-between">
                             <div class="flex items-center">
@@ -219,14 +201,12 @@
                         </div>
                     </div>
 
-                    <!-- Recent Bookings Stream -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col h-[400px]">
                         <h3 class="font-bold text-slate-700 mb-4 flex items-center">
                             <span class="w-2 h-6 bg-green-500 rounded mr-2"></span>
                             最新の予約状況 (全校舎タイムライン)
                         </h3>
                         <div class="flex-1 overflow-y-auto space-y-3 pr-2" id="globalRecentBookings">
-                            <!-- JS populated -->
                             <div class="text-center text-slate-400 text-sm mt-10">読み込み中...</div>
                         </div>
                     </div>
@@ -234,9 +214,7 @@
             </div>
         </div>
 
-        <!-- 3. 校舎管理ダッシュボード -->
         <div id="schoolAdminView" class="hidden max-w-7xl mx-auto px-4 py-8">
-            <!-- Tabs -->
             <div class="flex border-b border-slate-300 mb-6 bg-white rounded-t-lg overflow-x-auto">
                 <button class="tab-btn px-6 py-4 font-bold text-blue-600 border-b-2 border-blue-600" data-tab="dashboard">ダッシュボード</button>
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="booking-management">予約管理</button>
@@ -246,9 +224,7 @@
                 <button class="tab-btn px-6 py-4 font-bold text-slate-500 hover:text-blue-600" data-tab="school-settings">教室設定</button>
             </div>
 
-            <!-- Tab: Dashboard -->
             <div id="tab-dashboard" class="tab-content">
-                <!-- KPI Cards -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                         <h3 class="text-xs font-bold text-slate-400 uppercase">現在の予約総数</h3>
@@ -264,9 +240,7 @@
                     </div>
                 </div>
 
-                <!-- 期間指定集計 & グラフ -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                    <!-- 集計パネル -->
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-200 h-full">
                         <h3 class="text-sm font-bold text-slate-700 mb-3 flex items-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
@@ -301,7 +275,6 @@
                         </div>
                     </div>
 
-                    <!-- グラフエリア -->
                     <div class="bg-white p-4 rounded-lg border border-slate-200 h-full flex flex-col">
                         <div class="flex justify-between items-center mb-2">
                             <h3 class="text-sm font-bold text-slate-700">予約実績推移 (積み上げ)</h3>
@@ -316,7 +289,17 @@
                     </div>
                 </div>
 
-                <!-- アクセス解析 (ファネル) -->
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 mb-8">
+                    <h3 class="font-bold text-slate-700 mb-4 flex items-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        コンテンツ別 予実管理 (総枠数 vs 予約数)
+                        <span class="text-xs font-normal text-slate-400 ml-2">※指定期間内の開催分を集計</span>
+                    </h3>
+                    <div class="relative w-full h-[300px]">
+                        <canvas id="contentPerformanceChart"></canvas>
+                    </div>
+                </div>
+
                 <div class="mb-6 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <h3 class="text-sm font-bold text-slate-700 mb-4 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>
@@ -324,7 +307,6 @@
                         <span class="text-[10px] ml-2 text-slate-400 font-normal">※指定期間のログ集計値</span>
                     </h3>
                     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <!-- Left: Stats -->
                         <div class="lg:col-span-1 space-y-4">
                             <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 text-center">
                                 <p class="text-xs text-blue-500 font-bold uppercase tracking-wider">コンバージョン率 (CVR)</p>
@@ -332,10 +314,8 @@
                                 <p class="text-[10px] text-blue-400 mt-1">申込完了数 / ページPV数</p>
                             </div>
                             <div id="analyticsList" class="space-y-1 text-sm text-slate-600">
-                                <!-- JS Generated Content -->
-                            </div>
+                                </div>
                         </div>
-                        <!-- Right: Funnel Chart -->
                         <div class="lg:col-span-2">
                             <div class="relative w-full h-64">
                                 <canvas id="funnelChart"></canvas>
@@ -344,7 +324,6 @@
                     </div>
                 </div>
                 
-                <!-- Calendar Section -->
                 <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
                     <div class="flex items-center justify-between mb-4 bg-slate-50 p-3 rounded-lg">
                         <button id="prevDashboardMonth" class="px-3 py-1 bg-white border border-slate-300 rounded hover:bg-slate-100 font-bold text-slate-600">&lt; 前月</button>
@@ -362,7 +341,6 @@
                 </div>
             </div>
 
-            <!-- Tab: Booking Management -->
             <div id="tab-booking-management" class="tab-content hidden">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <div class="flex justify-between items-center mb-4">
@@ -391,7 +369,6 @@
                 </div>
             </div>
 
-            <!-- Tab: Inquiries (NEW) -->
             <div id="tab-inquiries" class="tab-content hidden">
                 <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
                     <h3 class="text-lg font-bold text-slate-700 mb-4">お問い合わせ (日時リクエスト) 一覧</h3>
@@ -412,17 +389,14 @@
                 </div>
             </div>
 
-            <!-- Tab: Course Settings -->
             <div id="tab-course-settings" class="tab-content hidden">
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <!-- Contents -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
                         <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">1. コンテンツ管理</h3>
                         <div class="mb-4 space-y-3">
                              <button id="openContentModalBtn" class="bg-orange-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-orange-600 transition w-full shadow-md flex items-center justify-center gap-2">
                                 <span class="text-2xl font-bold leading-none">+</span> 新規作成
                             </button>
-                             <!-- 共通コンテンツからのコピーボタン -->
                              <button id="openImportCommonModalBtn" class="bg-slate-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-slate-600 transition w-full shadow-md flex items-center justify-center gap-2 text-sm">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
                                 共通コンテンツからコピー
@@ -431,7 +405,6 @@
                         <div id="localContentList" class="space-y-2 max-h-[500px] overflow-y-auto"></div>
                     </div>
 
-                    <!-- Schedule -->
                     <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 h-fit">
                         <h3 class="text-lg font-bold text-slate-700 mb-4 pb-2 border-b">2. 開催日程登録</h3>
                         <div class="flex justify-between items-center mb-4">
@@ -450,7 +423,6 @@
                 </div>
             </div>
 
-            <!-- Tab: URL Generator (NEW) -->
             <div id="tab-url-generator" class="tab-content hidden">
                 <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
                     <h3 class="text-xl font-bold text-slate-700 mb-6 flex items-center gap-2">
@@ -492,7 +464,6 @@
                 </div>
             </div>
 
-            <!-- Tab: School Settings -->
             <div id="tab-school-settings" class="tab-content hidden">
                  <div class="bg-white p-8 rounded-xl shadow-sm border border-slate-200 max-w-2xl mx-auto">
                     <h3 class="text-xl font-bold text-slate-700 mb-6">教室基本情報</h3>
@@ -530,9 +501,6 @@
         </div>
     </div>
 
-    <!-- === Modals === -->
-
-    <!-- 新規予約登録モーダル -->
     <div id="addBookingModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[80]">
         <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="font-bold text-lg mb-4 text-slate-700">新規予約登録</h3>
@@ -583,7 +551,6 @@
         </div>
     </div>
 
-    <!-- 予約編集モーダル -->
     <div id="bookingEditModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[70]">
         <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="font-bold text-lg mb-4 text-slate-700">予約情報の変更</h3>
@@ -593,7 +560,6 @@
                 <input type="hidden" id="originalStartTime">
                 <input type="hidden" id="originalContentId">
                 
-                <!-- 予約内容の変更エリア -->
                 <div class="bg-yellow-50 p-3 rounded border border-yellow-200 mb-2">
                     <p class="text-xs font-bold text-yellow-800 mb-2 flex items-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -635,7 +601,6 @@
         </div>
     </div>
 
-    <!-- 校舎追加 -->
     <div id="addSchoolModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-sm">
             <h3 class="font-bold mb-4">校舎を追加</h3>
@@ -648,7 +613,6 @@
         </div>
     </div>
 
-    <!-- IP制限設定モーダル -->
     <div id="ipSettingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-lg p-6 w-full max-w-md shadow-2xl">
             <h3 class="font-bold mb-4 text-slate-700">接続許可IPアドレス設定</h3>
@@ -668,8 +632,7 @@
             </div>
 
             <div class="bg-slate-50 border rounded h-40 overflow-y-auto p-2 mb-4 space-y-1" id="ipListContainer">
-                <!-- JSでリスト生成 -->
-            </div>
+                </div>
 
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('ipSettingsModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">閉じる</button>
@@ -678,7 +641,6 @@
         </div>
     </div>
 
-    <!-- 共通コンテンツ管理モーダル -->
     <div id="commonContentsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-lg shadow-2xl h-[80vh] flex flex-col">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center border-b pb-2">
@@ -701,7 +663,6 @@
                         </select>
                         <input type="number" id="commonPrice" placeholder="金額" class="w-24 p-2 border rounded text-sm">
                     </div>
-                    <!-- 新規追加項目 -->
                     <textarea id="commonDescription" placeholder="体験内容" class="w-full p-2 border rounded text-sm h-20"></textarea>
                     <div class="flex gap-2">
                         <input type="text" id="commonDuration" placeholder="所要時間 (例: 90分)" class="flex-1 p-2 border rounded text-sm">
@@ -715,14 +676,12 @@
         </div>
     </div>
 
-    <!-- 共通コンテンツ取り込みモーダル -->
     <div id="importCommonModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-[60]">
         <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-lg font-bold mb-4">共通コンテンツから取り込み</h3>
             <p class="text-xs text-slate-500 mb-4">以下のリストから取り込むコンテンツを選択してください。</p>
             <div id="importListContainer" class="space-y-2 max-h-64 overflow-y-auto border p-2 rounded mb-4">
-                <!-- JS Generated -->
-            </div>
+                </div>
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('importCommonModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
                 <button id="execImportBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">選択した項目を取り込む</button>
@@ -730,7 +689,6 @@
         </div>
     </div>
 
-    <!-- コンテンツ作成 (校舎独自) -->
     <div id="contentModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-sm shadow-2xl overflow-y-auto max-h-[90vh]">
             <h3 class="text-lg font-bold mb-4 flex justify-between items-center">
@@ -743,14 +701,12 @@
                     <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツ名 (ID設定可)</label>
                     <input type="text" id="editContentName" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="例: はじめてのロボット">
                 </div>
-                <!-- ID入力欄 -->
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">コンテンツID (任意・半角英数)</label>
                     <input type="text" id="editContentCustomId" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="空欄の場合は自動生成">
                     <p class="text-[10px] text-slate-400 mt-1">※指定したい場合のみ入力。作成後は変更できません。</p>
                 </div>
                 
-                <!-- 新規追加項目 -->
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">体験内容</label>
                     <textarea id="editContentDescription" class="w-full p-2 border border-slate-300 rounded text-sm h-24" placeholder="体験会の詳細な内容を記述してください"></textarea>
@@ -791,7 +747,6 @@
         </div>
     </div>
 
-    <!-- スケジュール登録 (Timeline) -->
     <div id="scheduleModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden z-50">
         <div class="bg-white rounded-xl p-6 w-full max-w-4xl h-[85vh] flex flex-col shadow-2xl">
             <div class="flex justify-between items-center mb-4 pb-2 border-b">
@@ -799,12 +754,10 @@
                 <button id="closeScheduleModal" class="text-2xl text-slate-400">×</button>
             </div>
             <div class="flex flex-1 overflow-hidden gap-6">
-                <!-- Timeline -->
                 <div class="w-1/2 relative border rounded bg-slate-50 overflow-y-auto h-full timeline-container" id="timelineContainer">
                     <div id="timelineAxis" class="absolute left-0 w-10 border-r h-[720px] bg-white text-[10px] text-slate-400 text-center pt-1"></div>
                     <div id="timelineTracks" class="absolute left-10 right-0 h-[720px]"></div>
                 </div>
-                <!-- Form -->
                 <div class="w-1/2 overflow-y-auto">
                     <div class="bg-slate-50 p-4 rounded-lg mb-6">
                         <h4 class="text-xs font-bold text-slate-500 mb-3" id="schedFormTitle">新規枠を追加</h4>
@@ -850,7 +803,6 @@
         </div>
     </div>
 
-    <!-- 複製ダイアログ -->
     <div id="copyDialog" class="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center p-4 hidden z-[60]">
         <div class="bg-white rounded-lg p-6 shadow-xl max-w-xs w-full">
             <h4 class="font-bold text-slate-700 mb-4">スケジュールの複製</h4>
@@ -912,6 +864,7 @@
             let funnelChart = null; 
             let schoolComparisonChart = null; 
             let globalBookingChart = null; 
+            let contentPerformanceChart = null; // ▼ 追加
             let chartMode = 'created'; 
             let globalChartMode = 'created'; 
 
@@ -1519,6 +1472,104 @@
                 // グラフ & ファネル更新
                 updateChart();
                 updateFunnelChart(sDate, eDate);
+
+                // ▼ 追加: コンテンツ別予実管理チャート更新
+                updateContentPerformanceChart(sDate, eDate);
+            }
+
+            // ▼▼▼ 追加: コンテンツ別予実管理チャートの更新関数 ▼▼▼
+            function updateContentPerformanceChart(sDate, eDate) {
+                const statsMap = {};
+                (currentSettings.contents || []).forEach(c => {
+                    statsMap[c.id] = { name: c.name, capacity: 0, booking: 0 };
+                });
+                statsMap['unknown'] = { name: 'その他・削除済', capacity: 0, booking: 0 };
+
+                let d = new Date(sDate);
+                const end = new Date(eDate);
+                while(d <= end) {
+                    const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                    if(currentSettings.schedule && currentSettings.schedule[dStr]) {
+                        currentSettings.schedule[dStr].forEach(evt => {
+                            const cid = statsMap[evt.contentId] ? evt.contentId : 'unknown';
+                            statsMap[cid].capacity += parseInt(evt.capacity || 0);
+                        });
+                    }
+                    d.setDate(d.getDate() + 1);
+                }
+
+                allBookings.forEach(b => {
+                    if(b.date >= sDate && b.date <= eDate) {
+                        const cid = statsMap[b.contentId] ? b.contentId : 'unknown';
+                        statsMap[cid].booking += 1;
+                    }
+                });
+
+                const labels = [];
+                const dataCapacity = [];
+                const dataBooking = [];
+
+                Object.values(statsMap).forEach(item => {
+                    if (item.capacity > 0 || item.booking > 0) {
+                        labels.push(item.name);
+                        dataCapacity.push(item.capacity);
+                        dataBooking.push(item.booking);
+                    }
+                });
+
+                if (contentPerformanceChart) contentPerformanceChart.destroy();
+                const ctx = document.getElementById('contentPerformanceChart').getContext('2d');
+
+                contentPerformanceChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: '予約数',
+                                data: dataBooking,
+                                backgroundColor: '#f97316', 
+                                borderRadius: 4,
+                                order: 1
+                            },
+                            {
+                                label: '総枠数(定員)',
+                                data: dataCapacity,
+                                backgroundColor: '#cbd5e1',
+                                borderRadius: 4,
+                                order: 2
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'top' },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.dataset.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed.y !== null) label += context.parsed.y;
+                                        if(context.dataset.label === '予約数') {
+                                            const index = context.dataIndex;
+                                            const cap = dataCapacity[index];
+                                            const val = context.parsed.y;
+                                            if(cap > 0) {
+                                                const rate = Math.round((val / cap) * 100);
+                                                label += ` (${rate}%)`;
+                                            }
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+                    }
+                });
             }
 
             // ファネルチャート更新ロジック (実際のログデータ使用)
