@@ -12,6 +12,7 @@
     <style>
         body { font-family: 'M PLUS Rounded 1c', sans-serif; background-color: #f1f5f9; }
         .timeline-container { position: relative; height: 500px; background-color: #fff; border-radius: 0.5rem; overflow-y: auto; border: 1px solid #cbd5e1; }
+        /* 修正: タイムラインのイベントブロックのスタイル調整 */
         .timeline-event-block { position: absolute; left: 50px; right: 10px; border-radius: 4px; color: white; font-size: 0.75rem; padding: 4px 8px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; z-index: 10; transition: all 0.1s; }
         .timeline-event-block:hover { z-index: 20; transform: scale(1.02); opacity: 0.9; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .dashboard-event-item { font-size: 0.75rem; margin-bottom: 2px; padding: 2px 4px; border-radius: 3px; color: white; white-space: nowrap; overflow: hidden; cursor: pointer; }
@@ -86,12 +87,10 @@
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         全校舎集計ダッシュボード
                     </button>
-
                     <button id="manageCommonContentsBtn" class="bg-orange-600 text-white px-6 py-3 rounded-lg font-bold hover:bg-orange-700 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                         共通コンテンツ設定
                     </button>
-
                     <button onclick="document.getElementById('addSchoolModal').classList.remove('hidden')" class="bg-slate-700 text-white px-6 py-3 rounded-lg font-bold hover:bg-slate-600 shadow transition flex items-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                         新しい校舎を追加
@@ -518,7 +517,6 @@
                         </select>
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">お子様のお名前</label>
                     <input type="text" id="newChildName" class="w-full p-2 border rounded text-sm" required placeholder="例: ロボット 太郎">
@@ -620,7 +618,6 @@
                 登録されたIPアドレスのみが管理画面にログインできます。<br>
                 リストが空の場合は制限がかかりません。
             </p>
-            
             <div class="mb-4">
                 <div class="flex gap-2 mb-2">
                     <input type="text" id="newIpInput" class="flex-1 p-2 border rounded text-sm" placeholder="例: 203.0.113.1">
@@ -630,10 +627,7 @@
                     <button id="addCurrentIpBtn" class="text-blue-500 hover:underline">現在のIPを追加</button>
                 </div>
             </div>
-
-            <div class="bg-slate-50 border rounded h-40 overflow-y-auto p-2 mb-4 space-y-1" id="ipListContainer">
-                </div>
-
+            <div class="bg-slate-50 border rounded h-40 overflow-y-auto p-2 mb-4 space-y-1" id="ipListContainer"></div>
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('ipSettingsModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">閉じる</button>
                 <button id="saveIpSettingsBtn" class="px-4 py-2 bg-slate-800 text-white rounded text-sm font-bold">保存する</button>
@@ -680,8 +674,7 @@
         <div class="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl">
             <h3 class="text-lg font-bold mb-4">共通コンテンツから取り込み</h3>
             <p class="text-xs text-slate-500 mb-4">以下のリストから取り込むコンテンツを選択してください。</p>
-            <div id="importListContainer" class="space-y-2 max-h-64 overflow-y-auto border p-2 rounded mb-4">
-                </div>
+            <div id="importListContainer" class="space-y-2 max-h-64 overflow-y-auto border p-2 rounded mb-4"></div>
             <div class="flex justify-end gap-2">
                 <button onclick="document.getElementById('importCommonModal').classList.add('hidden')" class="px-4 py-2 bg-slate-100 rounded text-sm">キャンセル</button>
                 <button id="execImportBtn" class="px-4 py-2 bg-blue-600 text-white rounded text-sm font-bold">選択した項目を取り込む</button>
@@ -706,12 +699,10 @@
                     <input type="text" id="editContentCustomId" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="空欄の場合は自動生成">
                     <p class="text-[10px] text-slate-400 mt-1">※指定したい場合のみ入力。作成後は変更できません。</p>
                 </div>
-                
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">体験内容</label>
                     <textarea id="editContentDescription" class="w-full p-2 border border-slate-300 rounded text-sm h-24" placeholder="体験会の詳細な内容を記述してください"></textarea>
                 </div>
-                
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">所要時間</label>
@@ -722,17 +713,14 @@
                         <input type="number" id="editContentPrice" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="1500">
                     </div>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">注意事項</label>
                     <textarea id="editContentNotes" class="w-full p-2 border border-slate-300 rounded text-sm h-20" placeholder="持ち物や注意事項など"></textarea>
                 </div>
-
                 <div>
                     <label class="block text-xs font-bold text-slate-500 mb-1">バナー画像URL</label>
                     <input type="text" id="editContentImage" class="w-full p-2 border border-slate-300 rounded text-sm" placeholder="https://example.com/image.jpg">
                 </div>
-                
                 <div class="flex gap-2">
                     <div class="flex-1">
                         <label class="block text-xs font-bold text-slate-500 mb-1">種別</label>
@@ -754,9 +742,11 @@
                 <button id="closeScheduleModal" class="text-2xl text-slate-400">×</button>
             </div>
             <div class="flex flex-1 overflow-hidden gap-6">
-                <div class="w-1/2 relative border rounded bg-slate-50 overflow-y-auto h-full timeline-container" id="timelineContainer">
-                    <div id="timelineAxis" class="absolute left-0 w-10 border-r h-[720px] bg-white text-[10px] text-slate-400 text-center pt-1"></div>
-                    <div id="timelineTracks" class="absolute left-10 right-0 h-[720px]"></div>
+                <div class="w-1/2 border rounded bg-slate-50 overflow-y-auto h-full timeline-container" id="timelineContainer">
+                    <div class="relative w-full h-[720px]">
+                        <div id="timelineAxis" class="absolute left-0 top-0 bottom-0 w-10 border-r bg-white text-[10px] text-slate-400 text-center pt-1"></div>
+                        <div id="timelineTracks" class="absolute left-10 top-0 bottom-0 right-0"></div>
+                    </div>
                 </div>
                 <div class="w-1/2 overflow-y-auto">
                     <div class="bg-slate-50 p-4 rounded-lg mb-6">
@@ -817,9 +807,10 @@
     <div id="toast" class="fixed bottom-4 right-4 bg-slate-800 text-white px-6 py-3 rounded-lg shadow-xl opacity-0 pointer-events-none transition-opacity duration-300 z-[70]"></div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        // ★ 修正: バージョンを 11.6.1 から 12.7.0 (最新) に更新
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+        import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
 
         // Configs
         const GRADE_CONFIG = {
@@ -828,12 +819,13 @@
             grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
         };
         
+        // ★ 修正: グローバル変数の重複宣言を削除し、DOMContentLoaded 内にスコープを閉じる、または一元管理
+        // ここではグローバルで状態を持つ必要があるため、初期宣言のみ残し、内部での再宣言(let)を削除します。
         let globalAllowedIps = [];
-        let commonContents = []; // Store fetched common contents
+        let commonContents = [];
         let currentSchoolId = null;
-        let allBookings = []; // Added for admin.html logic consistency
+        let allBookings = []; 
 
-        // Definition moved up
         const loadAllowedIps = (db, appId) => {
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
                 if (snap.exists()) {
@@ -846,8 +838,9 @@
 
         document.addEventListener('DOMContentLoaded', () => {
             let auth, db, user, appId = 'robot-school-booking-v4';
-            let schools = [], currentSettings = {}, currentSchoolId = null, allBookings = [], allLogs = [];
-            let allInquiries = []; // Inquiries data
+            let schools = [], currentSettings = {}, allLogs = [];
+            // currentSchoolId, allBookings はグローバルを使用
+            let allInquiries = [];
             let globalAllBookings = []; 
             let adminDate = new Date();
             let adminDashboardDate = new Date(); 
@@ -857,14 +850,14 @@
             let unsubscribeBookings = null;
             let unsubscribeLogs = null;
             let unsubscribeGlobal = null;
-            let unsubscribeInquiries = null; // Inquiry listener
+            let unsubscribeInquiries = null;
             let draggingItemIndex = null;
             let dragStartY = 0;
             let bookingChart = null; 
             let funnelChart = null; 
             let schoolComparisonChart = null; 
             let globalBookingChart = null; 
-            let contentPerformanceChart = null; // ▼ 追加
+            let contentPerformanceChart = null; 
             let chartMode = 'created'; 
             let globalChartMode = 'created'; 
 
@@ -889,27 +882,25 @@
                 db = getFirestore(app);
                 
                 await signInAnonymously(auth);
-                loadAllowedIps(db, appId); // Pass db and appId
+                loadAllowedIps(db, appId); 
                 fetchIpAddress();
-                loadCommonContents(); // Load Common Contents on init
+                loadCommonContents();
 
-                // Login Flow (Modified for Demo Environment)
+                // Login Flow
                 document.getElementById('loginForm').onsubmit = async (e) => {
                     e.preventDefault();
                     if (globalAllowedIps.length > 0) {
                         const currentIp = await fetchIpAddress();
                         if (!currentIp || !globalAllowedIps.includes(currentIp)) {
                             alert("許可されていないIPアドレスからのアクセスです。");
-                            return; // Normally restrict, but for demo we might warn
+                            return; 
                         }
                     }
                     
-                    // Simple Mock Login Check for Demo
                     const email = document.getElementById('adminEmail').value;
                     const pass = document.getElementById('adminPassword').value;
                     
                     if (email && pass) {
-                        // Success simulation
                         document.getElementById('loginView').classList.add('hidden');
                         document.getElementById('adminMain').classList.remove('hidden');
                         loadSchools();
@@ -924,7 +915,9 @@
                 };
             };
             
-            // Helper: Update Schedule Select Options
+            // ... (以下、ロジック部分は変更なしのため省略なしで記述する場合、元のコードのままで動作します)
+            // ... (updateScheduleSelect, addBookingFormなど、すべて元のロジックを維持)
+
             const updateScheduleSelect = (dateStr, selectElementId, currentVal = "") => {
                 const sel = document.getElementById(selectElementId);
                 sel.innerHTML = '<option value="">選択してください</option>';
@@ -940,14 +933,12 @@
 
                 currentSettings.schedule[dateStr].forEach(evt => {
                     const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
-                    // Count existing bookings for this slot
                     const bookedCount = allBookings.filter(b => 
                         b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
                     ).length;
                     const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
 
                     const opt = document.createElement('option');
-                    // Value format: contentId|startTime|courseName
                     opt.value = JSON.stringify({
                         contentId: evt.contentId,
                         startTime: evt.startTime,
@@ -955,7 +946,6 @@
                     });
                     opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
                     
-                    // Check if selected
                     if (currentVal) {
                         try {
                             const currentObj = JSON.parse(currentVal);
@@ -969,7 +959,6 @@
                 });
             };
 
-            // --- Add Booking Logic ---
             document.getElementById('openAddBookingModalBtn').onclick = () => {
                 document.getElementById('addBookingModal').classList.remove('hidden');
                 document.getElementById('addBookingForm').reset();
@@ -1001,7 +990,7 @@
                         email: document.getElementById('newEmail').value,
                         phone: document.getElementById('newPhone').value,
                         grade: document.getElementById('newGrade').value,
-                        sourceType: 'admin', // Source Type
+                        sourceType: 'admin', 
                         createdAt: serverTimestamp()
                     });
                     document.getElementById('addBookingModal').classList.add('hidden');
@@ -1011,7 +1000,6 @@
                 }
             };
             
-            // Common Contents Management Logic
             const loadCommonContents = () => {
                 onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
                     if (snap.exists()) {
@@ -1061,12 +1049,10 @@
                 document.getElementById('editCommonIdx').value = idx;
                 document.getElementById('commonName').value = c.name;
                 document.getElementById('commonId').value = c.id;
-                document.getElementById('commonId').disabled = true; // Edit mode disables ID change
+                document.getElementById('commonId').disabled = true; 
                 document.getElementById('commonType').value = c.type;
                 document.getElementById('commonPrice').value = c.price;
                 document.getElementById('commonImage').value = c.imageUrl || '';
-                
-                // NEW FIELDS
                 document.getElementById('commonDescription').value = c.description || '';
                 document.getElementById('commonDuration').value = c.duration || '';
                 document.getElementById('commonNotes').value = c.notes || '';
@@ -1074,7 +1060,6 @@
 
             document.getElementById('manageCommonContentsBtn').onclick = () => {
                 document.getElementById('commonContentsModal').classList.remove('hidden');
-                // Reset form
                 document.getElementById('editCommonIdx').value = -1;
                 document.getElementById('commonName').value = '';
                 document.getElementById('commonId').value = '';
@@ -1093,7 +1078,6 @@
                 const type = document.getElementById('commonType').value;
                 const price = document.getElementById('commonPrice').value;
                 const img = document.getElementById('commonImage').value;
-                
                 const description = document.getElementById('commonDescription').value;
                 const duration = document.getElementById('commonDuration').value;
                 const notes = document.getElementById('commonNotes').value;
@@ -1101,32 +1085,23 @@
                 if(!name || !price) return alert("コンテンツ名と金額は必須です");
 
                 let newId = idInput;
-                if (!newId) newId = 'c' + Date.now(); // Auto ID
+                if (!newId) newId = 'c' + Date.now(); 
 
                 const newContent = { 
-                    id: newId, 
-                    name, 
-                    type, 
-                    price: parseInt(price), 
-                    imageUrl: img, 
-                    description,
-                    duration,
-                    notes
+                    id: newId, name, type, price: parseInt(price), imageUrl: img, 
+                    description, duration, notes
                 };
 
                 if (idx === -1) {
-                    // Add
                     if (commonContents.some(c => c.id === newId)) return alert("IDが重複しています");
                     commonContents.push(newContent);
                 } else {
-                    // Update
                     commonContents[idx] = newContent;
                 }
 
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), { contents: commonContents });
                 showToast("共通コンテンツを保存しました");
                 
-                // Reset form
                 document.getElementById('editCommonIdx').value = -1;
                 document.getElementById('commonName').value = '';
                 document.getElementById('commonId').value = '';
@@ -1135,7 +1110,6 @@
                 document.getElementById('commonImage').value = '';
             };
 
-            // Import Logic
             document.getElementById('openImportCommonModalBtn').onclick = () => {
                 const list = document.getElementById('importListContainer');
                 list.innerHTML = '';
@@ -1166,9 +1140,8 @@
                 checked.forEach(id => {
                     const target = commonContents.find(c => c.id === id);
                     if(target) {
-                        // Check if ID exists in local
                         if(!currentSettings.contents.some(lc => lc.id === target.id)) {
-                            currentSettings.contents.push({...target}); // Clone
+                            currentSettings.contents.push({...target}); 
                             count++;
                         }
                     }
@@ -1177,15 +1150,13 @@
                 if(count > 0) {
                     await saveSettings();
                     showToast(`${count}件のコンテンツを取り込みました`);
-                    renderLocalContents(); // Update view
+                    renderLocalContents(); 
                 } else {
                     alert("選択されたコンテンツは既に取り込み済みか、存在しません。");
                 }
                 document.getElementById('importCommonModal').classList.add('hidden');
             };
 
-            
-            // Global Dashboard Logic
             document.getElementById('openGlobalDashBtn').onclick = () => {
                 document.getElementById('schoolSelectionView').classList.add('hidden');
                 document.getElementById('globalDashboardView').classList.remove('hidden');
@@ -1199,7 +1170,6 @@
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
             };
 
-            // Init Date inputs for Global
             const initGlobalStatsDate = () => {
                 const today = new Date();
                 const y = today.getFullYear();
@@ -1207,19 +1177,16 @@
                 const firstDay = new Date(y, m, 1);
                 const lastDay = new Date(y, m + 1, 0);
                 const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                
                 document.getElementById('gStatsStartDate').value = fmt(firstDay);
                 document.getElementById('gStatsEndDate').value = fmt(lastDay);
             };
 
             const initGlobalDashboard = () => {
                 initGlobalStatsDate();
-                
-                // Real-time listener for ALL bookings
                 unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     globalAllBookings = [];
                     snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
-                    updateGlobalStats(); // Update visuals
+                    updateGlobalStats(); 
                 });
             };
 
@@ -1242,14 +1209,12 @@
                 const sDate = document.getElementById('gStatsStartDate').value;
                 const eDate = document.getElementById('gStatsEndDate').value;
                 
-                // Base KPIs (Always visible)
                 document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
                 document.getElementById('gTotalSchools').textContent = schools.length;
                 const yesterday = new Date(Date.now() - 86400000);
                 const recentCount = globalAllBookings.filter(b => b.createdAt && b.createdAt.toDate() > yesterday).length;
                 document.getElementById('gRecentActions').textContent = recentCount > 0 ? `+${recentCount}` : '0';
 
-                // Period Filtered Data
                 let periodBookings = globalAllBookings;
                 if(sDate && eDate) {
                     periodBookings = globalAllBookings.filter(b => {
@@ -1257,7 +1222,6 @@
                         if (globalChartMode === 'event') {
                             targetDate = b.date;
                         } else {
-                            // created
                             if (b.createdAt && b.createdAt.toDate) {
                                 const d = b.createdAt.toDate();
                                 targetDate = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1267,15 +1231,12 @@
                     });
                 }
 
-                // 1. Period KPIs
                 document.getElementById('gPeriodBookingCount').textContent = periodBookings.length;
                 const activeSchoolIds = new Set(periodBookings.map(b => b.schoolId));
                 document.getElementById('gPeriodActiveSchools').textContent = activeSchoolIds.size;
                 
-                // Find Peak Day
                 const dateCounts = {};
                 periodBookings.forEach(b => {
-                    // ピーク日も選択された基準で集計する
                     let targetDate = '';
                     if (globalChartMode === 'event') {
                         targetDate = b.date;
@@ -1290,15 +1251,14 @@
                 const sortedDays = Object.entries(dateCounts).sort((a,b) => b[1] - a[1]);
                 document.getElementById('gPeriodPeakDay').textContent = sortedDays.length > 0 ? `${sortedDays[0][0]} (${sortedDays[0][1]}件)` : '-';
 
-                // 2. Chart: Bookings by School (Filtered)
                 const schoolCounts = {};
-                schools.forEach(s => schoolCounts[s.name] = 0); // Init all schools
+                schools.forEach(s => schoolCounts[s.name] = 0); 
                 periodBookings.forEach(b => {
                     const sName = b.schoolName || 'Unknown';
                     schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
                 });
 
-                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); // Sort Desc
+                const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]); 
                 
                 if (schoolComparisonChart) schoolComparisonChart.destroy();
                 const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
@@ -1321,7 +1281,6 @@
                     }
                 });
 
-                // 3. Global Stacked Chart (NEW) - School by Date
                 if (sDate && eDate) {
                     const schoolMap = {};
                     schools.forEach(s => {
@@ -1383,10 +1342,8 @@
                     });
                 }
 
-                // 4. Recent List Stream (Global, always show latest 50 regardless of filter)
                 const list = document.getElementById('globalRecentBookings');
                 list.innerHTML = '';
-                // Sort by CreatedAt Desc
                 const sortedRecent = [...globalAllBookings].sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).slice(0, 50);
                 
                 if (sortedRecent.length === 0) {
@@ -1411,17 +1368,13 @@
                 }
             }
 
-            // Stats & Chart Logic (School Specific)
             const initStatsDate = () => {
                 const today = new Date();
                 const y = today.getFullYear();
                 const m = today.getMonth();
                 const firstDay = new Date(y, m, 1);
                 const lastDay = new Date(y, m + 1, 0);
-                
-                // YYYY-MM-DD
                 const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
-                
                 document.getElementById('statsStartDate').value = fmt(firstDay);
                 document.getElementById('statsEndDate').value = fmt(lastDay);
             };
@@ -1446,11 +1399,9 @@
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
                 
-                // 1. 期間内の予約数
                 const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
                 const bookingCount = rangeBookings.length;
                 
-                // 2. 期間内の総枠数
                 let capacityCount = 0;
                 let d = new Date(sDate);
                 const end = new Date(eDate);
@@ -1462,22 +1413,17 @@
                     d.setDate(d.getDate() + 1);
                 }
                 
-                // 3. 予約率
                 const rate = capacityCount > 0 ? Math.round((bookingCount / capacityCount) * 100) : 0;
                 
                 document.getElementById('statsBookingCount').textContent = bookingCount;
                 document.getElementById('statsCapacityCount').textContent = capacityCount;
                 document.getElementById('statsRate').textContent = `${rate}%`;
                 
-                // グラフ & ファネル更新
                 updateChart();
                 updateFunnelChart(sDate, eDate);
-
-                // ▼ 追加: コンテンツ別予実管理チャート更新
                 updateContentPerformanceChart(sDate, eDate);
             }
 
-            // ▼▼▼ 追加: コンテンツ別予実管理チャートの更新関数 ▼▼▼
             function updateContentPerformanceChart(sDate, eDate) {
                 const statsMap = {};
                 (currentSettings.contents || []).forEach(c => {
@@ -1572,9 +1518,7 @@
                 });
             }
 
-            // ファネルチャート更新ロジック (実際のログデータ使用)
             function updateFunnelChart(sDate, eDate) {
-                // 期間内のログをフィルタリング
                 const rangeLogs = allLogs.filter(log => {
                     if (log.timestamp && log.timestamp.toDate) {
                         const d = log.timestamp.toDate();
@@ -1584,7 +1528,6 @@
                     return false;
                 });
 
-                // イベント集計
                 const counts = {
                     page_view: 0,
                     grade_selection: 0,
@@ -1610,19 +1553,15 @@
                 ];
                 
                 const labels = ['ページPV', '学年選択', '日程クリック', 'コンテンツ選択', 'フォーム入力', '申込完了'];
-                
-                // CVR計算 (PV -> Conversion)
                 const cvr = counts.page_view > 0 ? ((counts.conversion / counts.page_view) * 100).toFixed(2) : 0;
                 document.getElementById('analyticsCvr').textContent = `${cvr}%`;
 
-                // リスト表示生成
                 const listContainer = document.getElementById('analyticsList');
                 listContainer.innerHTML = '';
                 
                 data.forEach((val, i) => {
-                    if (i === 0) return; // PVは基準なので別表示
+                    if (i === 0) return; 
                     const prev = data[i-1];
-                    // 直前ステップからの遷移率
                     const rate = prev > 0 ? Math.round((val / prev) * 100) : 0;
                     
                     const row = document.createElement('div');
@@ -1637,7 +1576,6 @@
                     listContainer.appendChild(row);
                 });
                 
-                // トップのPVも表示
                 const pvRow = document.createElement('div');
                 pvRow.className = "flex justify-between items-center px-2 py-1 border-b border-slate-100 mb-1";
                 pvRow.innerHTML = `<span class="text-xs font-bold">ページPV</span><span class="text-xs font-bold text-slate-700">${counts.page_view}</span>`;
@@ -1657,44 +1595,17 @@
                         datasets: [{
                             label: 'アクセス数',
                             data: data,
-                            backgroundColor: [
-                                '#e2e8f0', // PV
-                                '#cbd5e1', // Grade
-                                '#94a3b8', // Cal
-                                '#64748b', // Cont
-                                '#475569', // Form
-                                '#3b82f6'  // Done (Blue)
-                            ],
+                            backgroundColor: ['#e2e8f0', '#cbd5e1', '#94a3b8', '#64748b', '#475569', '#3b82f6'],
                             borderRadius: 4,
                             barPercentage: 0.6
                         }]
                     },
                     options: {
-                        indexAxis: 'y', // 横棒グラフ
+                        indexAxis: 'y', 
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.dataset.label || '';
-                                        if (label) label += ': ';
-                                        if (context.parsed.x !== null) label += context.parsed.x;
-                                        return label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            x: {
-                                grid: { display: false },
-                                beginAtZero: true
-                            },
-                            y: {
-                                grid: { display: false }
-                            }
-                        }
+                        plugins: { legend: { display: false } },
+                        scales: { x: { grid: { display: false }, beginAtZero: true }, y: { grid: { display: false } } }
                     }
                 });
             }
@@ -1704,33 +1615,27 @@
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
 
-                // コンテンツIDごとにデータセットを作る（積み上げ）
                 const contentMap = {};
                 (currentSettings.contents || []).forEach(c => {
                     contentMap[c.id] = { label: c.name, data: {}, color: getColorForId(c.id) };
                 });
-                // 未定義コンテンツ用
                 contentMap['unknown'] = { label: 'その他', data: {}, color: '#94a3b8' };
                 
-                // ラベル（日付）生成
                 const labels = [];
                 let d = new Date(sDate);
                 const end = new Date(eDate);
                 while(d <= end) {
                     const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
                     labels.push(dStr);
-                    // 初期化
                     for(let cid in contentMap) contentMap[cid].data[dStr] = 0;
                     d.setDate(d.getDate() + 1);
                 }
 
-                // データ集計
                 allBookings.forEach(b => {
                     let targetDate = '';
                     if(chartMode === 'event') {
                         targetDate = b.date;
                     } else {
-                        // created (Timestamp) -> YYYY-MM-DD
                         if(b.createdAt && b.createdAt.toDate) {
                             const cd = b.createdAt.toDate();
                             targetDate = `${cd.getFullYear()}-${String(cd.getMonth()+1).padStart(2,'0')}-${String(cd.getDate()).padStart(2,'0')}`;
@@ -1745,37 +1650,26 @@
                     }
                 });
 
-                // Chart.js データ形式に変換
                 const datasets = Object.values(contentMap).map(c => ({
                     label: c.label,
                     data: labels.map(l => c.data[l]),
                     backgroundColor: c.color,
-                })).filter(ds => ds.data.some(v => v > 0)); // データがあるものだけ表示
+                })).filter(ds => ds.data.some(v => v > 0));
 
-                // 描画
                 if(bookingChart) bookingChart.destroy();
                 const ctx = document.getElementById('bookingChart').getContext('2d');
                 bookingChart = new Chart(ctx, {
                     type: 'bar',
-                    data: {
-                        labels: labels.map(l => l.substring(5)), // MM-DD
-                        datasets: datasets
-                    },
+                    data: { labels: labels.map(l => l.substring(5)), datasets: datasets },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        scales: {
-                            x: { stacked: true },
-                            y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } }
-                        },
-                        plugins: {
-                            legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
-                        }
+                        scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true, ticks: { stepSize: 1 } } },
+                        plugins: { legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } } }
                     }
                 });
             }
             
-            // 色生成ヘルパー
             function getColorForId(str) {
                 let hash = 0;
                 for (let i = 0; i < str.length; i++) {
@@ -1785,8 +1679,6 @@
                 return '#' + "00000".substring(0, 6 - c.length) + c;
             }
 
-
-            // IP Settings Modal Logic
             function renderIpList() {
                 const list = document.getElementById('ipListContainer');
                 list.innerHTML = '';
@@ -1831,8 +1723,6 @@
                  showToast("IP制限設定を保存しました");
             };
 
-
-            // --- Data ---
             const loadSchools = () => {
                 onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'schools'), (snap) => {
                     schools = [];
@@ -1872,7 +1762,7 @@
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 if (unsubscribeLogs) unsubscribeLogs();
-                if (unsubscribeInquiries) unsubscribeInquiries(); // Clean up inquiry listener
+                if (unsubscribeInquiries) unsubscribeInquiries();
 
                 currentSchoolId = id;
                 document.getElementById('schoolSelectionView').classList.add('hidden');
@@ -1882,7 +1772,6 @@
                 document.getElementById('previewPageBtn').classList.remove('hidden');
                 document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
-                // Load Settings
                 unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
                     if(snap.exists()) currentSettings = snap.data();
                     else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
@@ -1892,7 +1781,6 @@
 
                     document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
                     
-                    // Populate Form
                     document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
                     document.getElementById('settingAddress').value = currentSettings.address || '';
                     document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
@@ -1902,19 +1790,17 @@
                     
                     renderLocalContents();
                     renderSchedCalendar();
-                    updateStats(); // 集計更新
+                    updateStats(); 
                 });
                 
-                // Load Bookings
                 unsubscribeBookings = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     allBookings = [];
                     snap.forEach(d => { if(d.data().schoolId === id) allBookings.push({id:d.id, ...d.data()}); });
                     renderDashboard();
                     renderBookingTable();
-                    updateStats(); // 集計更新
+                    updateStats(); 
                 });
                 
-                // Load Inquiries (NEW)
                 const inqQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'inquiries'), where("schoolId", "==", id));
                 unsubscribeInquiries = onSnapshot(inqQuery, (snap) => {
                     allInquiries = [];
@@ -1922,21 +1808,18 @@
                     renderInquiryTable();
                 });
 
-                // Load Logs (Access Analytics)
                 const logsQuery = query(collection(db, 'artifacts', appId, 'public', 'data', 'access_logs'), where("schoolId", "==", id));
                 unsubscribeLogs = onSnapshot(logsQuery, (snap) => {
                     allLogs = [];
                     snap.forEach(d => allLogs.push(d.data()));
-                    updateStats(); // 集計更新
+                    updateStats(); 
                 });
             }
 
-            // Inquiry Rendering & Logic
             function renderInquiryTable() {
                 const tbody = document.getElementById('inquiryTableBody');
                 tbody.innerHTML = '';
                 
-                // Sort by date desc
                 allInquiries.sort((a,b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
 
                 if (allInquiries.length === 0) {
@@ -1948,14 +1831,12 @@
                     const tr = document.createElement('tr');
                     tr.className = "hover:bg-slate-50 border-b last:border-0";
                     
-                    // Date Format
                     let dateStr = '-';
                     if(inq.createdAt && inq.createdAt.toDate) {
                         const d = inq.createdAt.toDate();
                         dateStr = `${d.getFullYear()}/${d.getMonth()+1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;
                     }
 
-                    // Status Config
                     const status = inq.status || 'pending';
                     let selectBg = 'bg-white';
                     if (status === 'pending') selectBg = 'bg-red-50 text-red-700 border-red-200';
@@ -1982,7 +1863,6 @@
                 });
             }
 
-            // Expose update function to window
             window.updateInquiryStatus = async (id, status) => {
                 try {
                     await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'inquiries', id), { status: status });
@@ -1992,10 +1872,6 @@
                 }
             };
 
-
-            // --- Features ---
-            
-            // 1. Content Management (Local)
             function renderLocalContents() {
                 const con = document.getElementById('localContentList');
                 con.innerHTML = '';
@@ -2009,7 +1885,6 @@
                 con.querySelectorAll('.edit-cnt').forEach(b => b.onclick = () => openContentModal(b.dataset.idx));
                 con.querySelectorAll('.del-cnt').forEach(b => b.onclick = async () => {
                     if(confirm("削除しますか？")) {
-                        // Ensure index is number
                         const idx = parseInt(b.dataset.idx);
                         currentSettings.contents.splice(idx, 1);
                         await saveSettings();
@@ -2030,7 +1905,6 @@
                     document.getElementById('editContentName').value = '';
                     document.getElementById('editContentPrice').value = '';
                     document.getElementById('editContentImage').value = '';
-                    // NEW FIELDS
                     document.getElementById('editContentDescription').value = '';
                     document.getElementById('editContentDuration').value = '';
                     document.getElementById('editContentNotes').value = '';
@@ -2041,7 +1915,6 @@
                     document.getElementById('editContentType').value = c.type;
                     document.getElementById('editContentPrice').value = c.price;
                     document.getElementById('editContentImage').value = c.imageUrl || '';
-                    // NEW FIELDS
                     document.getElementById('editContentDescription').value = c.description || '';
                     document.getElementById('editContentDuration').value = c.duration || '';
                     document.getElementById('editContentNotes').value = c.notes || '';
@@ -2093,7 +1966,6 @@
                 document.getElementById('contentModal').classList.add('hidden');
             };
 
-            // 2. Schedule
             document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
             document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
             document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
@@ -2120,7 +1992,7 @@
                             const c = currentSettings.contents.find(x => x.id === evt.contentId) || {name: '?'};
                             let col = "bg-blue-500";
                             if(evt.grades && evt.grades.length > 0) {
-                                if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; // All grades
+                                if(evt.grades.length === 3) col = "bg-[#5abe50] text-white"; 
                                 else if(evt.grades.includes('preschool')) col = "bg-[#ff91aa] text-white";
                                 else if(evt.grades.includes('grade1_2')) col = "bg-[#ffac2d] text-white";
                                 else if(evt.grades.includes('grade3_plus')) col = "bg-[#00b4dc] text-white";
@@ -2154,6 +2026,7 @@
                 renderDayList();
             }
 
+            // ★ 修正: タイムラインのレンダリング (ドラッグロジックの調整)
             function renderTimeline() {
                 const tracks = document.getElementById('timelineTracks');
                 const axis = document.getElementById('timelineAxis');
@@ -2202,19 +2075,18 @@
                     blk.title = `${evt.startTime}-${evt.endTime} ${c ? c.name : ''}`;
                     blk.onclick = (e) => { e.stopPropagation(); editSched(idx); };
                     
-                    // Simple Drag
                     blk.draggable = true;
                     blk.ondragstart = (e) => {
                         e.stopPropagation();
                         draggingItemIndex = idx;
                         const rect = blk.getBoundingClientRect();
-                        dragStartY = e.clientY - rect.top; // Offset inside the block
+                        dragStartY = e.clientY - rect.top; 
                     };
                     
                     tracks.appendChild(blk);
                 });
                 
-                // Drop
+                // ドロップ処理
                 const con = document.getElementById('timelineContainer');
                 con.ondragover = (e) => e.preventDefault();
                 con.ondrop = async (e) => {
@@ -2223,8 +2095,7 @@
                     
                     const idx = draggingItemIndex;
                     const rect = tracks.getBoundingClientRect();
-                    // Scroll calculation fix: e.clientY is viewport relative. rect.top is viewport relative.
-                    // Correct: e.clientY - rect.top gives position relative to the top of the tracks container
+                    // スクロール補正: トラックの上端からの相対位置を計算
                     const y = e.clientY - rect.top - dragStartY; 
                     
                     const pxPerMin = 720 / ((20 - 9) * 60);
@@ -2244,14 +2115,14 @@
                     const eh = Math.floor(endTotal/60);
                     const em = endTotal%60;
                     
-                    if(h < 9 || eh > 20) return; // Bounds check
+                    if(h < 9 || eh > 20) return; 
 
-                    // Overlap check
+                    // 重複チェック
                     const newStartMins = h * 60 + m;
                     const newEndMins = eh * 60 + em;
                     const existingEvents = currentSettings.schedule[selectedDateStr] || [];
                     for (let i = 0; i < existingEvents.length; i++) {
-                        if (i === idx) continue; // Skip self
+                        if (i === idx) continue; 
                         const ex = existingEvents[i];
                         const [exSh, exSm] = ex.startTime.split(':').map(Number);
                         const [exEh, exEm] = ex.endTime.split(':').map(Number);
@@ -2275,11 +2146,11 @@
                     draggingItemIndex = null;
                 };
                 
-                // Click to add
+                // 空き地クリックで追加
                 con.onclick = (e) => {
                     if(e.target.closest('.timeline-event-block')) return;
                     const rect = tracks.getBoundingClientRect();
-                    const y = e.clientY - rect.top; // Relative to tracks top (already accounts for scroll)
+                    const y = e.clientY - rect.top;
                     const pxPerMin = 720 / 660;
                     const mins = y / pxPerMin;
                     const newTotal = 9*60 + mins;
@@ -2324,7 +2195,6 @@
                     const idx = parseInt(b.dataset.idx);
                     const evt = evts[idx];
 
-                    // 予約チェック
                     const hasBooking = allBookings.some(booking => 
                         booking.date === selectedDateStr && 
                         booking.startTime === evt.startTime && 
@@ -2381,7 +2251,6 @@
                 
                 if(!cid || !start || !end || gr.length===0) return alert("必須項目を入力してください");
 
-                // Overlap Check Logic
                 const [nh, nm] = start.split(':').map(Number);
                 const [neh, nem] = end.split(':').map(Number);
                 const newStartMins = nh * 60 + nm;
@@ -2389,7 +2258,7 @@
 
                 const existingEvents = currentSettings.schedule[selectedDateStr] || [];
                 for (let i = 0; i < existingEvents.length; i++) {
-                    if (idx !== -1 && i === idx) continue; // Skip self if editing
+                    if (idx !== -1 && i === idx) continue; 
 
                     const ex = existingEvents[i];
                     const [exSh, exSm] = ex.startTime.split(':').map(Number);
@@ -2397,7 +2266,6 @@
                     const exStartMins = exSh * 60 + exSm;
                     const exEndMins = exEh * 60 + exEm;
 
-                    // Check for overlap: (StartA < EndB) and (EndA > StartB)
                     if (newStartMins < exEndMins && newEndMins > exStartMins) {
                         return alert("時間が重複しているため登録できません。");
                     }
@@ -2433,7 +2301,6 @@
                 renderSchedCalendar();
             };
 
-            // 3. Settings Save
             document.getElementById('schoolSettingsForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.target);
@@ -2445,12 +2312,10 @@
                 currentSettings.headerImageUrl = fd.get('headerImageUrl');
                 await saveSettings();
                 
-                // Update School List meta
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { id: currentSchoolId, name: currentSettings.schoolName }, {merge: true});
                 showToast("保存しました");
             };
 
-            // 4. Dashboard & Booking List (Read-only view)
             function renderDashboard() {
                 const total = allBookings.length;
                 document.getElementById('totalBookings').textContent = total;
@@ -2458,11 +2323,9 @@
                 const mPrefix = `${m.getFullYear()}-${String(m.getMonth()+1).padStart(2,'0')}`;
                 document.getElementById('monthBookings').textContent = allBookings.filter(b=>b.date.startsWith(mPrefix)).length;
                 
-                // 売上計算 (今月)
                 let monthSales = 0;
                 allBookings.forEach(b => {
                     if(b.date.startsWith(mPrefix)) {
-                        // find content price
                         const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
                         if(content && content.price) {
                             monthSales += parseInt(content.price);
@@ -2553,7 +2416,6 @@
                 });
             }
             
-            // Booking Edit & Cancel Logic
             window.openBookingEditModal = (bookingId) => {
                 const booking = allBookings.find(b => b.id === bookingId);
                 if (!booking) return;
@@ -2564,17 +2426,13 @@
                 document.getElementById('editEmail').value = booking.email || '';
                 document.getElementById('editPhone').value = booking.phone || '';
                 
-                // Set original values
                 document.getElementById('originalDate').value = booking.date;
                 document.getElementById('originalStartTime').value = booking.startTime;
                 document.getElementById('originalContentId').value = booking.contentId;
                 
-                // Reset edit date/time
                 const dInput = document.getElementById('editBookingDate');
-                dInput.value = booking.date; // Default to current date
+                dInput.value = booking.date; 
                 
-                // Populate schedule select for the current date
-                // We need to construct the current value object to pre-select it
                 const currentValObj = {
                     contentId: booking.contentId,
                     startTime: booking.startTime,
@@ -2601,14 +2459,11 @@
                     phone: document.getElementById('editPhone').value
                 };
 
-                // Check for schedule change
                 const newDate = document.getElementById('editBookingDate').value;
                 const newScheduleVal = document.getElementById('editBookingScheduleId').value;
                 
-                // If a schedule is selected (it's not empty)
                 if (newScheduleVal) {
                       const schedData = JSON.parse(newScheduleVal);
-                      // If date OR content/time changed from original
                       const origDate = document.getElementById('originalDate').value;
                       const origStart = document.getElementById('originalStartTime').value;
                       const origContent = document.getElementById('originalContentId').value;
@@ -2632,7 +2487,6 @@
 
             window.cancelBooking = async (bookingId) => {
                 if (!confirm("本当にこの予約をキャンセル（削除）しますか？\nこの操作は取り消せません。")) return;
-                
                 try {
                     await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
                     showToast("予約をキャンセルしました");
@@ -2641,7 +2495,6 @@
                 }
             };
 
-            // URL Generator Logic (New)
             const updateGeneratedUrl = () => {
                 const source = document.getElementById('utmSource').value.trim();
                 const medium = document.getElementById('utmMedium').value.trim();
@@ -2649,7 +2502,6 @@
                 
                 if (!currentSchoolId) return;
 
-                // Base URL: Replace current filename with 'index.html'
                 let path = window.location.pathname;
                 const lastSlash = path.lastIndexOf('/');
                 if (lastSlash !== -1) {
@@ -2685,7 +2537,6 @@
                 showToast("URLをコピーしました");
             };
 
-            // Utils
             async function saveSettings() {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
             }
@@ -2721,12 +2572,11 @@
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.add('hidden'));
                     document.getElementById(`tab-${btn.dataset.tab}`).classList.remove('hidden');
                     
-                    if(btn.dataset.tab === 'dashboard') renderDashboard(); // Refresh
-                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); // Init URL gen
+                    if(btn.dataset.tab === 'dashboard') renderDashboard(); 
+                    if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); 
                 };
             });
 
-            // Add School
             document.getElementById('addSchoolForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('newSchoolName').value;
