@@ -2112,13 +2112,137 @@
                 };
             });
             
-            // (以下省略なしで記述)
-            // ... (renderLocalContents, openContentModal, saveContentBtn などは既存のまま)
-            // ... (schedPrev, schedNext なども既存のまま)
-            // ... (renderSchedCalendar, openScheduleModal, renderTimeline, renderDayList なども既存のまま)
-            // ... (copyDialog ロジックなども既存のまま)
+// ▼▼▼ 追加・復元するコード ▼▼▼
 
-            // ... (saveSettings, addSchoolForm も既存のまま)
+const renderLocalContents = () => {
+    const list = document.getElementById('localContentList');
+    list.innerHTML = '';
+    
+    if (!currentSettings.contents || currentSettings.contents.length === 0) {
+        list.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録されたコンテンツはありません</p>';
+        return;
+    }
+
+    currentSettings.contents.forEach((c, idx) => {
+        const div = document.createElement('div');
+        div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm mb-2";
+        div.innerHTML = `
+            <div>
+                <div class="font-bold text-slate-700">${c.name}</div>
+                <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+            </div>
+            <div class="flex gap-2">
+                <button class="text-blue-500 text-xs font-bold edit-local" data-idx="${idx}">編集</button>
+                <button class="text-red-500 text-xs font-bold del-local" data-idx="${idx}">削除</button>
+            </div>
+        `;
+        list.appendChild(div);
+    });
+
+    // 編集ボタンのイベント設定
+    list.querySelectorAll('.edit-local').forEach(btn => {
+        btn.onclick = () => {
+            const idx = btn.dataset.idx;
+            const content = currentSettings.contents[idx];
+            openContentModal(content, idx);
+        };
+    });
+
+    // 削除ボタンのイベント設定
+    list.querySelectorAll('.del-local').forEach(btn => {
+        btn.onclick = async () => {
+            if (confirm('このコンテンツを削除しますか？')) {
+                currentSettings.contents.splice(btn.dataset.idx, 1);
+                await saveSettings();
+                renderLocalContents();
+                showToast("コンテンツを削除しました");
+            }
+        };
+    });
+};
+
+const openContentModal = (content = null, idx = -1) => {
+    const modal = document.getElementById('contentModal');
+    modal.classList.remove('hidden');
+    
+    // 編集時と新規作成時でタイトルなどを切り替え
+    const isEdit = content !== null;
+    document.getElementById('contentFormTitle').textContent = isEdit ? 'コンテンツ編集' : '新規作成';
+    document.getElementById('editContentId').value = idx; // インデックスを保存 (-1なら新規)
+
+    if (isEdit) {
+        document.getElementById('editContentName').value = content.name || '';
+        document.getElementById('editContentCustomId').value = content.id || '';
+        document.getElementById('editContentCustomId').disabled = true; // IDは編集不可
+        document.getElementById('editContentDescription').value = content.description || '';
+        document.getElementById('editContentDuration').value = content.duration || '';
+        document.getElementById('editContentPrice').value = content.price || '';
+        document.getElementById('editContentNotes').value = content.notes || '';
+        document.getElementById('editContentImage').value = content.imageUrl || '';
+        document.getElementById('editContentType').value = content.type || 'trial';
+    } else {
+        // フォームをリセット
+        document.getElementById('editContentName').value = '';
+        document.getElementById('editContentCustomId').value = '';
+        document.getElementById('editContentCustomId').disabled = false;
+        document.getElementById('editContentDescription').value = '';
+        document.getElementById('editContentDuration').value = '';
+        document.getElementById('editContentPrice').value = '';
+        document.getElementById('editContentNotes').value = '';
+        document.getElementById('editContentImage').value = '';
+        document.getElementById('editContentType').value = 'trial';
+    }
+};
+
+document.getElementById('closeContentModal').onclick = () => {
+    document.getElementById('contentModal').classList.add('hidden');
+};
+
+document.getElementById('openContentModalBtn').onclick = () => {
+    openContentModal(null, -1);
+};
+
+document.getElementById('saveContentBtn').onclick = async () => {
+    const idx = parseInt(document.getElementById('editContentId').value);
+    const name = document.getElementById('editContentName').value;
+    const price = document.getElementById('editContentPrice').value;
+    
+    if (!name || !price) return alert("コンテンツ名と金額は必須です");
+
+    const newData = {
+        name: name,
+        price: parseInt(price),
+        description: document.getElementById('editContentDescription').value,
+        duration: document.getElementById('editContentDuration').value,
+        notes: document.getElementById('editContentNotes').value,
+        imageUrl: document.getElementById('editContentImage').value,
+        type: document.getElementById('editContentType').value,
+    };
+
+    if (idx === -1) {
+        // 新規作成
+        let customId = document.getElementById('editContentCustomId').value.trim();
+        if (!customId) customId = 'c_' + Date.now();
+        
+        // ID重複チェック
+        if (currentSettings.contents.some(c => c.id === customId)) {
+            return alert("そのIDは既に使用されています");
+        }
+        newData.id = customId;
+        currentSettings.contents.push(newData);
+    } else {
+        // 更新（IDは維持）
+        newData.id = currentSettings.contents[idx].id;
+        currentSettings.contents[idx] = newData;
+    }
+
+    await saveSettings();
+    document.getElementById('contentModal').classList.add('hidden');
+    renderLocalContents();
+    showToast("コンテンツを保存しました");
+};
+
+// ▲▲▲ 追加・復元ここまで ▲▲▲
             async function saveSettings() {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
             }
@@ -2141,3 +2265,4 @@
     </script>
 </body>
 </html>
+
