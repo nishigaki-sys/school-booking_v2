@@ -1,23 +1,25 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { initializeApp, getApp, getApps, deleteApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, serverTimestamp, query, where, getDocs } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
 // ==========================================
 // 1. Config & State Management
 // ==========================================
+const firebaseConfig = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
+
 const GRADE_CONFIG = {
     preschool: { bg: 'bg-[#ff91aa]', text: 'text-white' },
     grade1_2: { bg: 'bg-[#ffac2d]', text: 'text-white' },
     grade3_plus: { bg: 'bg-[#00b4dc]', text: 'text-white' }
 };
 
-let auth, db, user, appId = 'robot-school-booking-v4';
+let app, auth, db, appId = 'robot-school-booking-v4';
 let schools = [], currentSettings = {}, currentSchoolId = null;
 let allBookings = [], allLogs = [], allInquiries = [];
 let globalAllBookings = [];
 let globalAllowedIps = [];
 let commonContents = [];
-let users = []; // 管理者ユーザーリスト
+let users = []; 
 
 // Date Management
 let adminDate = new Date();
@@ -25,7 +27,7 @@ let adminDashboardDate = new Date();
 let selectedDateStr = "";
 let scheduleToCopy = null;
 
-// Listeners (for cleanup)
+// Listeners
 let unsubscribeSettings = null; 
 let unsubscribeBookings = null;
 let unsubscribeLogs = null;
@@ -39,12 +41,12 @@ let funnelChart = null;
 let schoolComparisonChart = null; 
 let globalBookingChart = null; 
 let contentPerformanceChart = null;
-let trafficSourceChart = null; // NEW: 流入元チャート
+let trafficSourceChart = null;
 let chartMode = 'created'; 
 let globalChartMode = 'created'; 
 
 // Current Login User Info
-let currentUserData = null; // { email, role, assignedSchoolId, name }
+let currentUserData = null; // { uid, email, role, assignedSchoolId, name }
 
 // ==========================================
 // 2. Initialization & Auth
@@ -68,24 +70,66 @@ const fetchIpAddress = async () => {
 };
 
 const initFirebase = async () => {
-    const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
-    const app = initializeApp(config);
+    // Main App Init
+    app = initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
     
-    await signInAnonymously(auth);
-    
-    // Load Global Configs
+    // Load Global Configs (Public Read)
     loadAllowedIps(db, appId);
     fetchIpAddress();
-    loadCommonContents();
+    
+    // Auth State Listener
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // Logged In
+            try {
+                // Fetch User Role from Firestore
+                const userDoc = await getDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid));
+                if (userDoc.exists()) {
+                    currentUserData = { uid: user.uid, email: user.email, ...userDoc.data() };
+                    
+                    // IP Check (Post-login security check)
+                    if (globalAllowedIps.length > 0) {
+                        const currentIp = await fetchIpAddress();
+                        if (!currentIp || !globalAllowedIps.includes(currentIp)) {
+                            alert("許可されていないIPアドレスからのアクセスです。ログアウトします。");
+                            await signOut(auth);
+                            return;
+                        }
+                    }
 
-    // Event Bindings
+                    showAdminScreen();
+                } else {
+                    // AuthにはいるがDBにデータがない（不正な状態 or 初期管理者）
+                    if (user.email === 'admin@example.com') {
+                        // Recovery for initial admin
+                        currentUserData = { uid: user.uid, email: user.email, role: 'global', name: '初期管理者' };
+                        // DB修復
+                        await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), currentUserData);
+                        showAdminScreen();
+                    } else {
+                        alert("ユーザー権限情報が見つかりません。管理者に問い合わせてください。");
+                        await signOut(auth);
+                    }
+                }
+            } catch (e) {
+                console.error("Auth Error", e);
+                alert("認証情報の取得に失敗しました。");
+            }
+        } else {
+            // Logged Out
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('adminMain').classList.add('hidden');
+            currentUserData = null;
+        }
+    });
+
     setupAuthEvents();
     setupNavigationEvents();
     setupGlobalAdminEvents();
     setupSchoolAdminEvents();
-    setupUserManagementEvents(); // New
+    setupUserManagementEvents();
 };
 
 const loadAllowedIps = (db, appId) => {
@@ -103,7 +147,12 @@ const setupAuthEvents = () => {
     document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
         
-        // 1. IP Check
+        const email = document.getElementById('adminEmail').value.trim();
+        const pass = document.getElementById('adminPassword').value.trim();
+
+        if (!email || !pass) return alert("メールアドレスとパスワードを入力してください");
+
+        // IP Check (Pre-login)
         if (globalAllowedIps.length > 0) {
             const currentIp = await fetchIpAddress();
             if (!currentIp || !globalAllowedIps.includes(currentIp)) {
@@ -111,77 +160,61 @@ const setupAuthEvents = () => {
                 return; 
             }
         }
-        
-        const email = document.getElementById('adminEmail').value.trim();
-        const pass = document.getElementById('adminPassword').value.trim();
-
-        if (!email || !pass) return alert("メールアドレスとパスワードを入力してください");
 
         try {
-            // Firestoreからユーザーを検索
-            const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'users'), where("email", "==", email));
-            const querySnapshot = await getDocs(q);
-            
-            let matchedUser = null;
-            querySnapshot.forEach((doc) => {
-                const u = doc.data();
-                if (u.password === pass) { // 簡易的な平文パスワードチェック(Demo用)
-                    matchedUser = { id: doc.id, ...u };
-                }
-            });
-
-            if (matchedUser) {
-                // Login Success
-                currentUserData = matchedUser;
-                document.getElementById('loginView').classList.add('hidden');
-                document.getElementById('adminMain').classList.remove('hidden');
-                
-                // UI Update based on Role
-                const infoEl = document.getElementById('loginUserInfo');
-                infoEl.textContent = `${matchedUser.name} (${matchedUser.role === 'global' ? '本部' : '校舎'})`;
-                infoEl.classList.remove('hidden');
-
-                if (matchedUser.role === 'global') {
-                    document.getElementById('globalAdminMenu').classList.remove('hidden');
-                    loadUsers(); // ユーザー管理用データのロード
-                } else {
-                    document.getElementById('globalAdminMenu').classList.add('hidden');
-                }
-
-                loadSchools();
-                initStatsDate();
-                showToast(`ようこそ、${matchedUser.name}さん`);
-            } else {
-                alert("メールアドレスまたはパスワードが間違っています。");
-            }
+            await signInWithEmailAndPassword(auth, email, pass);
+            // Success -> onAuthStateChanged will handle UI update
         } catch (err) {
             console.error(err);
-            alert("ログイン処理中にエラーが発生しました: " + err.message);
+            alert("ログイン失敗: メールアドレスまたはパスワードが間違っています。");
         }
     };
 
     // Logout
     document.getElementById('logoutBtn').onclick = async () => {
+        await signOut(auth);
         location.reload();
     };
+};
+
+const showAdminScreen = () => {
+    document.getElementById('loginView').classList.add('hidden');
+    document.getElementById('adminMain').classList.remove('hidden');
+    
+    // UI Update based on Role
+    const infoEl = document.getElementById('loginUserInfo');
+    infoEl.textContent = `${currentUserData.name} (${currentUserData.role === 'global' ? '本部' : '校舎'})`;
+    infoEl.classList.remove('hidden');
+
+    if (currentUserData.role === 'global') {
+        document.getElementById('globalAdminMenu').classList.remove('hidden');
+        loadUsers(); 
+        loadCommonContents();
+    } else {
+        document.getElementById('globalAdminMenu').classList.add('hidden');
+    }
+
+    loadSchools();
+    initStatsDate();
+    showToast(`ようこそ、${currentUserData.name}さん`);
 };
 
 // ==========================================
 // 3. Global Admin Features
 // ==========================================
 
-// --- User Management (New Feature) ---
+// --- User Management (SECURE VERSION) ---
 const setupUserManagementEvents = () => {
     document.getElementById('manageUsersBtn').onclick = () => {
         renderUserList();
-        renderSchoolSelectOptions('userAssignedSchool'); // 担当校舎選択肢の更新
+        renderSchoolSelectOptions('userAssignedSchool'); 
         resetUserForm();
         document.getElementById('userManagementModal').classList.remove('hidden');
     };
 
     document.getElementById('userManagementForm').onsubmit = async (e) => {
         e.preventDefault();
-        const uid = document.getElementById('editUserId').value;
+        const uid = document.getElementById('editUserId').value; // Firestore Doc ID (Auth UID)
         const email = document.getElementById('userEmail').value.trim();
         const pass = document.getElementById('userPassword').value.trim();
         const name = document.getElementById('userName').value.trim();
@@ -191,27 +224,49 @@ const setupUserManagementEvents = () => {
         if (role === 'school' && !schoolId) return alert("校舎管理者の場合は、担当校舎を選択してください。");
 
         const userData = {
-            email, password: pass, name, role, assignedSchoolId: role === 'school' ? schoolId : null,
+            email, name, role, assignedSchoolId: role === 'school' ? schoolId : null,
             updatedAt: serverTimestamp()
         };
 
         try {
             if (uid) {
-                // Update
-                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid), userData);
-                showToast("ユーザー情報を更新しました");
-            } else {
-                // Add
-                // Check email duplicate (Client-side simple check)
-                if (users.some(u => u.email === email)) return alert("このメールアドレスは既に登録されています");
+                // Update (Firestore Only)
+                // Note: Client SDK cannot update other user's password/email in Auth.
+                if (pass) alert("注意: 既存ユーザーのパスワード変更は管理画面からは行えません。ユーザー自身で再設定するか、再作成してください。");
                 
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'users'), {
-                    ...userData, createdAt: serverTimestamp()
-                });
-                showToast("新規ユーザーを追加しました");
+                await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', uid), userData);
+                showToast("ユーザー権限情報を更新しました");
+            } else {
+                // Add New User
+                if (!pass) return alert("新規作成時はパスワードが必要です");
+                
+                // 【重要】自分のログインセッションを維持したまま、他人のアカウントを作るテクニック
+                // 別のFirebase Appインスタンスを一時的に作成して、そちらでcreateUserする
+                const secondaryApp = initializeApp(firebaseConfig, "Secondary");
+                const secondaryAuth = getAuth(secondaryApp);
+
+                try {
+                    const userCredential = await createUserWithEmailAndPassword(secondaryAuth, email, pass);
+                    const newUid = userCredential.user.uid;
+                    
+                    // Store Role Info to Firestore using Main App's DB connection
+                    await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', newUid), {
+                        ...userData, createdAt: serverTimestamp()
+                    });
+                    
+                    // Cleanup
+                    await signOut(secondaryAuth);
+                    await deleteApp(secondaryApp);
+                    
+                    showToast("新規ユーザーを作成しました");
+                } catch (createErr) {
+                    await deleteApp(secondaryApp); // Ensure cleanup
+                    throw createErr;
+                }
             }
             resetUserForm();
         } catch(err) {
+            console.error(err);
             alert("保存エラー: " + err.message);
         }
     };
@@ -270,28 +325,31 @@ const editUser = (id) => {
     if (!u) return;
     document.getElementById('editUserId').value = u.id;
     document.getElementById('userEmail').value = u.email;
-    document.getElementById('userPassword').value = u.password;
+    document.getElementById('userPassword').value = ""; // Security: Password not editable/visible
+    document.getElementById('userPassword').placeholder = "変更不可 (新規作成時のみ)";
+    document.getElementById('userPassword').disabled = true;
     document.getElementById('userName').value = u.name;
     document.getElementById('userRole').value = u.role;
     document.getElementById('userAssignedSchool').value = u.assignedSchoolId || "";
     
-    // Trigger change to update UI
     document.getElementById('userRole').dispatchEvent(new Event('change'));
     
-    document.getElementById('userFormTitle').textContent = "ユーザー編集";
+    document.getElementById('userFormTitle').textContent = "ユーザー権限編集";
     document.getElementById('cancelUserEditBtn').classList.remove('hidden');
 };
 
 const deleteUser = async (id) => {
-    if (confirm("このユーザーを削除しますか？")) {
+    if (confirm("このユーザーの権限データを削除しますか？\n(注: Firebase Authのアカウント自体は管理画面からは削除されません。ログインできなくなります。)")) {
         await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', id));
-        showToast("ユーザーを削除しました");
+        showToast("ユーザー権限を削除しました");
     }
 };
 
 const resetUserForm = () => {
     document.getElementById('editUserId').value = "";
     document.getElementById('userManagementForm').reset();
+    document.getElementById('userPassword').disabled = false;
+    document.getElementById('userPassword').placeholder = "パスワード";
     document.getElementById('userFormTitle').textContent = "新規ユーザー追加";
     document.getElementById('cancelUserEditBtn').classList.add('hidden');
     document.getElementById('userRole').dispatchEvent(new Event('change'));
@@ -310,7 +368,6 @@ const renderSchoolSelectOptions = (selectId) => {
 
 // --- IP Management ---
 const setupGlobalAdminEvents = () => {
-    // IP Management
     const renderIpList = () => {
         const list = document.getElementById('ipListContainer');
         list.innerHTML = '';
