@@ -39,6 +39,7 @@ let funnelChart = null;
 let schoolComparisonChart = null; 
 let globalBookingChart = null; 
 let contentPerformanceChart = null;
+let trafficSourceChart = null; // NEW: 流入元チャート
 let chartMode = 'created'; 
 let globalChartMode = 'created'; 
 
@@ -1193,6 +1194,7 @@ function updateStats() {
     updateChart();
     updateFunnelChart(sDate, eDate);
     updateContentPerformanceChart(sDate, eDate);
+    updateTrafficSourceChart(sDate, eDate); // NEW
 }
 
 function updateContentPerformanceChart(sDate, eDate) {
@@ -1242,8 +1244,24 @@ function updateContentPerformanceChart(sDate, eDate) {
         data: {
             labels: labels,
             datasets: [
-                { label: '予約数', data: dataBooking, backgroundColor: '#f97316', borderRadius: 4, order: 1 },
-                { label: '総枠数(定員)', data: dataCapacity, backgroundColor: '#cbd5e1', borderRadius: 4, order: 2 }
+                {
+                    label: '予約数',
+                    data: dataBooking,
+                    backgroundColor: '#f97316', 
+                    borderRadius: 4,
+                    order: 1, // 手前に表示
+                    barPercentage: 0.5, // 少し細くする
+                    categoryPercentage: 0.8
+                },
+                {
+                    label: '総枠数(定員)',
+                    data: dataCapacity,
+                    backgroundColor: '#cbd5e1',
+                    borderRadius: 4,
+                    order: 2, // 奥に表示
+                    barPercentage: 0.8, // 太くする
+                    categoryPercentage: 0.8
+                }
             ]
         },
         options: {
@@ -1272,7 +1290,10 @@ function updateContentPerformanceChart(sDate, eDate) {
                     }
                 }
             },
-            scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+            scales: { 
+                x: { stacked: false }, // 積み上げ無効化
+                y: { beginAtZero: true } 
+            }
         }
     });
 }
@@ -1335,6 +1356,54 @@ function updateFunnelChart(sDate, eDate) {
             indexAxis: 'y', responsive: true, maintainAspectRatio: false,
             plugins: { legend: { display: false } },
             scales: { x: { display: false }, y: { grid: { display: false } } }
+        }
+    });
+}
+
+function updateTrafficSourceChart(sDate, eDate) {
+    const rangeBookings = allBookings.filter(b => b.date >= sDate && b.date <= eDate);
+    
+    const sourceCounts = {};
+    rangeBookings.forEach(b => {
+        let label = 'Direct / None';
+        if (b.sourceType === 'admin') {
+            label = '管理画面登録';
+        } else if (b.utmSource) {
+            label = b.utmSource;
+            if (b.utmMedium) label += ` (${b.utmMedium})`;
+        } else {
+            label = 'Web予約 (Direct)';
+        }
+        sourceCounts[label] = (sourceCounts[label] || 0) + 1;
+    });
+
+    const labels = Object.keys(sourceCounts);
+    const data = Object.values(sourceCounts);
+    
+    if (trafficSourceChart) trafficSourceChart.destroy();
+    const ctx = document.getElementById('trafficSourceChart').getContext('2d');
+    
+    const colors = [
+        '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#6366f1', '#14b8a6'
+    ];
+
+    trafficSourceChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: labels,
+            datasets: [{
+                data: data,
+                backgroundColor: colors.slice(0, labels.length),
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { boxWidth: 10, font: { size: 10 } } }
+            },
+            cutout: '60%'
         }
     });
 }
