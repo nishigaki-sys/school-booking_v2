@@ -871,6 +871,28 @@
         let allBookings = []; 
         let adminUsers = []; // 管理者ユーザーリスト
         let currentUser = null; // 現在ログイン中のユーザー
+        let currentSettings = {};
+        let allLogs = [];
+        let allInquiries = [];
+        let globalAllBookings = []; 
+        let adminDate = new Date();
+        let adminDashboardDate = new Date(); 
+        let selectedDateStr = "";
+        let scheduleToCopy = null;
+        let unsubscribeSettings = null; 
+        let unsubscribeBookings = null;
+        let unsubscribeLogs = null;
+        let unsubscribeGlobal = null;
+        let unsubscribeInquiries = null;
+        let bookingChart = null; 
+        let funnelChart = null; 
+        let schoolComparisonChart = null; 
+        let globalBookingChart = null; 
+        let contentPerformanceChart = null; 
+        let chartMode = 'created'; 
+        let globalChartMode = 'created'; 
+        let schools = [];
+        let appId = 'robot-school-booking-v4';
 
         const loadAllowedIps = (db, appId) => {
             onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'ip_allowlist'), (snap) => {
@@ -888,7 +910,7 @@
                 if(snap.exists()) {
                     adminUsers = snap.data().users || [];
                 } else {
-                    // 初期データがない場合はデフォルト管理者を設定（コード上の安全策）
+                    // 初期データがない場合はデフォルト管理者を設定
                     adminUsers = [
                         { email: 'admin@example.com', pass: 'password', role: 'super_admin', name: '初期管理者', schoolId: '' }
                     ];
@@ -926,7 +948,7 @@
             list.querySelectorAll('.del-admin').forEach(b => b.onclick = async () => {
                 if(confirm('この管理者を削除しますか？')) {
                     adminUsers.splice(b.dataset.idx, 1);
-                    await saveAdminUsers();
+                    await saveAdminUsersToDb();
                 }
             });
         }
@@ -935,251 +957,219 @@
             const u = adminUsers[idx];
             document.getElementById('editAdminUserIdx').value = idx;
             document.getElementById('adminUserEmail').value = u.email;
-            document.getElementById('adminUserPass').value = u.pass; // セキュリティ注意: 本来は表示すべきでない
+            document.getElementById('adminUserPass').value = u.pass; 
             document.getElementById('adminUserRole').value = u.role;
             document.getElementById('adminUserSchoolId').value = u.schoolId || '';
             document.getElementById('adminUserName').value = u.name || '';
         };
 
-        const saveAdminUsers = async () => {
-             // 外部スコープの db, appId を参照できないため、ここで取得するか、グローバル変数を利用する必要があります。
-             // このコードブロックは initFirebase 内に移動するか、引数を渡す必要があります。
-             // ※ここでは簡略化のため、initFirebase 内で定義された db, appId を利用する前提でコードを構成します。
+        const saveAdminUsersToDb = async () => {
+            await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin_users'), { users: adminUsers });
+            showToast("管理者設定を保存しました");
+            document.getElementById('editAdminUserIdx').value = -1;
+            document.getElementById('adminUserEmail').value = '';
+            document.getElementById('adminUserPass').value = '';
+            document.getElementById('adminUserName').value = '';
         };
 
-        document.addEventListener('DOMContentLoaded', () => {
-            let auth, db, user, appId = 'robot-school-booking-v4';
-            let schools = [], currentSettings = {}, allLogs = [];
-            let allInquiries = [];
-            let globalAllBookings = []; 
-            let adminDate = new Date();
-            let adminDashboardDate = new Date(); 
-            let selectedDateStr = "";
-            let scheduleToCopy = null;
-            let unsubscribeSettings = null; 
-            let unsubscribeBookings = null;
-            let unsubscribeLogs = null;
-            let unsubscribeGlobal = null;
-            let unsubscribeInquiries = null;
-            let draggingItemIndex = null;
-            let dragStartY = 0;
-            let bookingChart = null; 
-            let funnelChart = null; 
-            let schoolComparisonChart = null; 
-            let globalBookingChart = null; 
-            let contentPerformanceChart = null; 
-            let chartMode = 'created'; 
-            let globalChartMode = 'created'; 
+        const fetchIpAddress = async () => {
+            try {
+                const response = await fetch('https://api.ipify.org?format=json');
+                const data = await response.json();
+                const ip = data.ip;
+                const display = document.getElementById('currentIpDisplay');
+                if (display) display.textContent = ip;
+                return ip;
+            } catch (e) {
+                console.error("IP取得失敗", e);
+                return null;
+            }
+        };
 
-            const fetchIpAddress = async () => {
-                try {
-                    const response = await fetch('https://api.ipify.org?format=json');
-                    const data = await response.json();
-                    const ip = data.ip;
-                    const display = document.getElementById('currentIpDisplay');
-                    if (display) display.textContent = ip;
-                    return ip;
-                } catch (e) {
-                    console.error("IP取得失敗", e);
-                    return null;
-                }
-            };
+        let auth, db; // グローバルスコープで利用可能にする
+
+        const initFirebase = async () => {
+            const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
+            const app = initializeApp(config);
+            auth = getAuth(app);
+            db = getFirestore(app);
             
-            // 内部関数として定義（スコープ解決）
-            const saveAdminUsersToDb = async () => {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'admin_users'), { users: adminUsers });
-                showToast("管理者設定を保存しました");
-                document.getElementById('editAdminUserIdx').value = -1;
-                document.getElementById('adminUserEmail').value = '';
-                document.getElementById('adminUserPass').value = '';
-                document.getElementById('adminUserName').value = '';
-            };
+            await signInAnonymously(auth);
+            loadAllowedIps(db, appId); 
+            loadAdminUsers(db, appId); 
+            fetchIpAddress();
+            loadCommonContents();
+            loadSchools(); 
 
-            const initFirebase = async () => {
-                const config = { apiKey: "AIzaSyBYjDRWH0ldsP8WVHa9o8HcfGJ2XF9pdzU", authDomain: "robot-school-booking.firebaseapp.com", projectId: "robot-school-booking", appId: "1:443474003538:web:e3a17bd422bcee23f6418b" };
-                const app = initializeApp(config);
-                auth = getAuth(app);
-                db = getFirestore(app);
-                
-                await signInAnonymously(auth);
-                loadAllowedIps(db, appId); 
-                loadAdminUsers(db, appId); // 管理者リスト読み込み開始
-                fetchIpAddress();
-                loadCommonContents();
-                loadSchools(); // 校舎リストも裏で読み込んでおく（ログイン後の制御のため）
-
-                // Login Flow
-                document.getElementById('loginForm').onsubmit = async (e) => {
-                    e.preventDefault();
-                    if (globalAllowedIps.length > 0) {
-                        const currentIp = await fetchIpAddress();
-                        if (!currentIp || !globalAllowedIps.includes(currentIp)) {
-                            alert("許可されていないIPアドレスからのアクセスです。");
-                            return; 
-                        }
-                    }
-                    
-                    const email = document.getElementById('adminEmail').value;
-                    const pass = document.getElementById('adminPassword').value;
-                    
-                    // 認証ロジック: Firestoreのadmin_usersと照合
-                    const targetUser = adminUsers.find(u => u.email === email && u.pass === pass);
-                    
-                    if (targetUser) {
-                        currentUser = targetUser;
-                        document.getElementById('loginView').classList.add('hidden');
-                        document.getElementById('adminMain').classList.remove('hidden');
-                        
-                        // ユーザーロール表示
-                        const roleName = currentUser.role === 'super_admin' ? '本部管理者' : '校舎管理者';
-                        document.getElementById('currentUserRoleDisplay').textContent = `${roleName} : ${currentUser.name || currentUser.email}`;
-
-                        // 権限によるUI制御
-                        if (currentUser.role === 'super_admin') {
-                            // 本部管理者: すべて表示
-                            document.getElementById('hqAdminMenu').classList.remove('hidden');
-                            renderSchoolList(); // 全校舎表示
-                        } else {
-                            // 校舎管理者: 本部メニュー非表示、担当校舎のみ
-                            document.getElementById('hqAdminMenu').classList.add('hidden');
-                            renderSchoolList(); // フィルタリングされたリストを表示
-                        }
-
-                        initStatsDate();
-                    } else {
-                        alert("メールアドレスまたはパスワードが間違っています。\nまたは権限がありません。");
-                    }
-                };
-
-                document.getElementById('logoutBtn').onclick = async () => {
-                    location.reload();
-                };
-            };
-
-            // 管理者設定ボタン
-            document.getElementById('manageAdminUsersBtn').onclick = () => {
-                document.getElementById('adminUserModal').classList.remove('hidden');
-                // 校舎選択肢を更新
-                const sel = document.getElementById('adminUserSchoolId');
-                sel.innerHTML = '<option value="">担当校舎を選択 (本部管理者は不要)</option>';
-                schools.forEach(s => {
-                    const opt = document.createElement('option');
-                    opt.value = s.id;
-                    opt.textContent = s.name;
-                    sel.appendChild(opt);
-                });
-            };
-
-            document.getElementById('saveAdminUserBtn').onclick = async () => {
-                const idx = parseInt(document.getElementById('editAdminUserIdx').value);
-                const email = document.getElementById('adminUserEmail').value;
-                const pass = document.getElementById('adminUserPass').value;
-                const role = document.getElementById('adminUserRole').value;
-                const schoolId = document.getElementById('adminUserSchoolId').value;
-                const name = document.getElementById('adminUserName').value;
-
-                if(!email || !pass) return alert("メールアドレスとパスワードは必須です");
-                if(role === 'school_admin' && !schoolId) return alert("校舎管理者は担当校舎を選択してください");
-
-                const userData = { email, pass, role, schoolId, name };
-
-                if(idx === -1) {
-                    if(adminUsers.some(u => u.email === email)) return alert("このメールアドレスは既に登録されています");
-                    adminUsers.push(userData);
-                } else {
-                    adminUsers[idx] = userData;
-                }
-                
-                await saveAdminUsersToDb();
-                renderAdminUsersList();
-            };
-            
-            // ... (updateScheduleSelect, addBookingFormなど、既存のロジックは変更なし)
-
-            const updateScheduleSelect = (dateStr, selectElementId, currentVal = "") => {
-                // (省略なし: 既存コード同様)
-                 const sel = document.getElementById(selectElementId);
-                sel.innerHTML = '<option value="">選択してください</option>';
-                
-                if (!dateStr || !currentSettings.schedule || !currentSettings.schedule[dateStr]) {
-                    if (dateStr) {
-                         const opt = document.createElement('option');
-                         opt.text = "開催予定がありません";
-                         sel.add(opt);
-                    }
-                    return;
-                }
-
-                currentSettings.schedule[dateStr].forEach(evt => {
-                    const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
-                    const bookedCount = allBookings.filter(b => 
-                        b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
-                    ).length;
-                    const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
-
-                    const opt = document.createElement('option');
-                    opt.value = JSON.stringify({
-                        contentId: evt.contentId,
-                        startTime: evt.startTime,
-                        courseName: c.name
-                    });
-                    opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
-                    
-                    if (currentVal) {
-                        try {
-                            const currentObj = JSON.parse(currentVal);
-                             if (currentObj.contentId === evt.contentId && currentObj.startTime === evt.startTime) {
-                                opt.selected = true;
-                            }
-                        } catch(e) {}
-                    }
-                    
-                    sel.appendChild(opt);
-                });
-            };
-            
-            // ... (既存のイベントハンドラ群)
-             document.getElementById('openAddBookingModalBtn').onclick = () => {
-                document.getElementById('addBookingModal').classList.remove('hidden');
-                document.getElementById('addBookingForm').reset();
-                document.getElementById('newBookingScheduleId').innerHTML = '<option value="">先に日付を選択してください</option>';
-            };
-
-            document.getElementById('newBookingDate').addEventListener('change', (e) => {
-                updateScheduleSelect(e.target.value, 'newBookingScheduleId');
-            });
-
-            document.getElementById('addBookingForm').onsubmit = async (e) => {
+            // Login Flow
+            document.getElementById('loginForm').onsubmit = async (e) => {
                 e.preventDefault();
-                const date = document.getElementById('newBookingDate').value;
-                const scheduleVal = document.getElementById('newBookingScheduleId').value;
-                if (!date || !scheduleVal) return alert("日時とコースを選択してください");
+                if (globalAllowedIps.length > 0) {
+                    const currentIp = await fetchIpAddress();
+                    if (!currentIp || !globalAllowedIps.includes(currentIp)) {
+                        alert("許可されていないIPアドレスからのアクセスです。");
+                        return; 
+                    }
+                }
+                
+                const email = document.getElementById('adminEmail').value;
+                const pass = document.getElementById('adminPassword').value;
+                
+                // 認証ロジック: Firestoreのadmin_usersと照合
+                const targetUser = adminUsers.find(u => u.email === email && u.pass === pass);
+                
+                if (targetUser) {
+                    currentUser = targetUser;
+                    document.getElementById('loginView').classList.add('hidden');
+                    document.getElementById('adminMain').classList.remove('hidden');
+                    
+                    // ユーザーロール表示
+                    const roleName = currentUser.role === 'super_admin' ? '本部管理者' : '校舎管理者';
+                    document.getElementById('currentUserRoleDisplay').textContent = `${roleName} : ${currentUser.name || currentUser.email}`;
 
-                const scheduleData = JSON.parse(scheduleVal);
+                    // 権限によるUI制御
+                    if (currentUser.role === 'super_admin') {
+                        // 本部管理者: すべて表示
+                        document.getElementById('hqAdminMenu').classList.remove('hidden');
+                        renderSchoolList(); // 全校舎表示
+                    } else {
+                        // 校舎管理者: 本部メニュー非表示、担当校舎のみ
+                        document.getElementById('hqAdminMenu').classList.add('hidden');
+                        renderSchoolList(); // フィルタリングされたリストを表示
+                    }
 
-                try {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), {
-                        schoolId: currentSchoolId,
-                        schoolName: currentSettings.schoolName,
-                        date: date,
-                        startTime: scheduleData.startTime,
-                        contentId: scheduleData.contentId,
-                        courseName: scheduleData.courseName,
-                        childName: document.getElementById('newChildName').value,
-                        parentName: document.getElementById('newParentName').value,
-                        email: document.getElementById('newEmail').value,
-                        phone: document.getElementById('newPhone').value,
-                        grade: document.getElementById('newGrade').value,
-                        sourceType: 'admin', 
-                        createdAt: serverTimestamp()
-                    });
-                    document.getElementById('addBookingModal').classList.add('hidden');
-                    showToast("予約を登録しました");
-                } catch (err) {
-                    alert("登録失敗: " + err.message);
+                    initStatsDate();
+                } else {
+                    alert("メールアドレスまたはパスワードが間違っています。\nまたは権限がありません。");
                 }
             };
+
+            document.getElementById('logoutBtn').onclick = async () => {
+                location.reload();
+            };
+        };
+
+        // 管理者設定ボタン
+        document.getElementById('manageAdminUsersBtn').onclick = () => {
+            document.getElementById('adminUserModal').classList.remove('hidden');
+            // 校舎選択肢を更新
+            const sel = document.getElementById('adminUserSchoolId');
+            sel.innerHTML = '<option value="">担当校舎を選択 (本部管理者は不要)</option>';
+            schools.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.id;
+                opt.textContent = s.name;
+                sel.appendChild(opt);
+            });
+        };
+
+        document.getElementById('saveAdminUserBtn').onclick = async () => {
+            const idx = parseInt(document.getElementById('editAdminUserIdx').value);
+            const email = document.getElementById('adminUserEmail').value;
+            const pass = document.getElementById('adminUserPass').value;
+            const role = document.getElementById('adminUserRole').value;
+            const schoolId = document.getElementById('adminUserSchoolId').value;
+            const name = document.getElementById('adminUserName').value;
+
+            if(!email || !pass) return alert("メールアドレスとパスワードは必須です");
+            if(role === 'school_admin' && !schoolId) return alert("校舎管理者は担当校舎を選択してください");
+
+            const userData = { email, pass, role, schoolId, name };
+
+            if(idx === -1) {
+                if(adminUsers.some(u => u.email === email)) return alert("このメールアドレスは既に登録されています");
+                adminUsers.push(userData);
+            } else {
+                adminUsers[idx] = userData;
+            }
             
+            await saveAdminUsersToDb();
+            renderAdminUsersList();
+        };
+
+        const updateScheduleSelect = (dateStr, selectElementId, currentVal = "") => {
+            const sel = document.getElementById(selectElementId);
+            sel.innerHTML = '<option value="">選択してください</option>';
+            
+            if (!dateStr || !currentSettings.schedule || !currentSettings.schedule[dateStr]) {
+                if (dateStr) {
+                     const opt = document.createElement('option');
+                     opt.text = "開催予定がありません";
+                     sel.add(opt);
+                }
+                return;
+            }
+
+            currentSettings.schedule[dateStr].forEach(evt => {
+                const c = currentSettings.contents.find(x => x.id === evt.contentId) || { name: 'Unknown' };
+                const bookedCount = allBookings.filter(b => 
+                    b.date === dateStr && b.startTime === evt.startTime && b.contentId === evt.contentId
+                ).length;
+                const remaining = Math.max(0, parseInt(evt.capacity) - bookedCount);
+
+                const opt = document.createElement('option');
+                opt.value = JSON.stringify({
+                    contentId: evt.contentId,
+                    startTime: evt.startTime,
+                    courseName: c.name
+                });
+                opt.textContent = `${evt.startTime} ${c.name} (残${remaining})`;
+                
+                if (currentVal) {
+                    try {
+                        const currentObj = JSON.parse(currentVal);
+                         if (currentObj.contentId === evt.contentId && currentObj.startTime === evt.startTime) {
+                            opt.selected = true;
+                        }
+                    } catch(e) {}
+                }
+                
+                sel.appendChild(opt);
+            });
+        };
+
+        document.getElementById('openAddBookingModalBtn').onclick = () => {
+            document.getElementById('addBookingModal').classList.remove('hidden');
+            document.getElementById('addBookingForm').reset();
+            document.getElementById('newBookingScheduleId').innerHTML = '<option value="">先に日付を選択してください</option>';
+        };
+
+        document.getElementById('newBookingDate').addEventListener('change', (e) => {
+            updateScheduleSelect(e.target.value, 'newBookingScheduleId');
+        });
+
+        document.getElementById('addBookingForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const date = document.getElementById('newBookingDate').value;
+            const scheduleVal = document.getElementById('newBookingScheduleId').value;
+            if (!date || !scheduleVal) return alert("日時とコースを選択してください");
+
+            const scheduleData = JSON.parse(scheduleVal);
+
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), {
+                    schoolId: currentSchoolId,
+                    schoolName: currentSettings.schoolName,
+                    date: date,
+                    startTime: scheduleData.startTime,
+                    contentId: scheduleData.contentId,
+                    courseName: scheduleData.courseName,
+                    childName: document.getElementById('newChildName').value,
+                    parentName: document.getElementById('newParentName').value,
+                    email: document.getElementById('newEmail').value,
+                    phone: document.getElementById('newPhone').value,
+                    grade: document.getElementById('newGrade').value,
+                    sourceType: 'admin', 
+                    createdAt: serverTimestamp()
+                });
+                document.getElementById('addBookingModal').classList.add('hidden');
+                showToast("予約を登録しました");
+            } catch (err) {
+                alert("登録失敗: " + err.message);
+            }
+        };
+
+        // Common Contents Management Logic
             const loadCommonContents = () => {
                 onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'config', 'common_contents'), (snap) => {
                     if (snap.exists()) {
@@ -1192,7 +1182,7 @@
             };
 
             const renderCommonContentsList = () => {
-                 const con = document.getElementById('commonContentListContainer');
+                const con = document.getElementById('commonContentListContainer');
                 con.innerHTML = '';
                 if(commonContents.length === 0) {
                     con.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録された共通コンテンツはありません。</p>';
@@ -1225,7 +1215,7 @@
             };
 
             function editCommonContent(idx) {
-                 const c = commonContents[idx];
+                const c = commonContents[idx];
                 document.getElementById('editCommonIdx').value = idx;
                 document.getElementById('commonName').value = c.name;
                 document.getElementById('commonId').value = c.id;
@@ -1233,13 +1223,14 @@
                 document.getElementById('commonType').value = c.type;
                 document.getElementById('commonPrice').value = c.price;
                 document.getElementById('commonImage').value = c.imageUrl || '';
+                
                 document.getElementById('commonDescription').value = c.description || '';
                 document.getElementById('commonDuration').value = c.duration || '';
                 document.getElementById('commonNotes').value = c.notes || '';
             }
 
             document.getElementById('manageCommonContentsBtn').onclick = () => {
-                 document.getElementById('commonContentsModal').classList.remove('hidden');
+                document.getElementById('commonContentsModal').classList.remove('hidden');
                 document.getElementById('editCommonIdx').value = -1;
                 document.getElementById('commonName').value = '';
                 document.getElementById('commonId').value = '';
@@ -1252,12 +1243,13 @@
             };
 
             document.getElementById('saveCommonContentBtn').onclick = async () => {
-                 const idx = parseInt(document.getElementById('editCommonIdx').value);
+                const idx = parseInt(document.getElementById('editCommonIdx').value);
                 const name = document.getElementById('commonName').value;
                 const idInput = document.getElementById('commonId').value.trim();
                 const type = document.getElementById('commonType').value;
                 const price = document.getElementById('commonPrice').value;
                 const img = document.getElementById('commonImage').value;
+                
                 const description = document.getElementById('commonDescription').value;
                 const duration = document.getElementById('commonDuration').value;
                 const notes = document.getElementById('commonNotes').value;
@@ -1291,7 +1283,7 @@
             };
 
             document.getElementById('openImportCommonModalBtn').onclick = () => {
-                 const list = document.getElementById('importListContainer');
+                const list = document.getElementById('importListContainer');
                 list.innerHTML = '';
                 if(commonContents.length === 0) {
                     list.innerHTML = '<p class="text-sm text-slate-400 p-2">共通コンテンツがありません。</p>';
@@ -1313,7 +1305,7 @@
             };
 
             document.getElementById('execImportBtn').onclick = async () => {
-                 const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
+                const checked = Array.from(document.querySelectorAll('.import-check:checked')).map(cb => cb.value);
                 if(checked.length === 0) return alert("選択されていません");
 
                 let count = 0;
@@ -1337,8 +1329,8 @@
                 document.getElementById('importCommonModal').classList.add('hidden');
             };
 
-            // 全校舎ダッシュボードロジック (既存)
-             document.getElementById('openGlobalDashBtn').onclick = () => {
+            // Global Dashboard Logic
+            document.getElementById('openGlobalDashBtn').onclick = () => {
                 document.getElementById('schoolSelectionView').classList.add('hidden');
                 document.getElementById('globalDashboardView').classList.remove('hidden');
                 document.getElementById('backToSchoolSelectBtn').classList.add('hidden');
@@ -1350,30 +1342,30 @@
                 document.getElementById('globalDashboardView').classList.add('hidden');
                 document.getElementById('schoolSelectionView').classList.remove('hidden');
             };
-            
-            // ... (initGlobalDashboard 等、既存ロジックは省略せずにそのまま利用可能)
-             const initGlobalStatsDate = () => {
+
+            const initGlobalStatsDate = () => {
                 const today = new Date();
                 const y = today.getFullYear();
                 const m = today.getMonth();
                 const firstDay = new Date(y, m, 1);
                 const lastDay = new Date(y, m + 1, 0);
                 const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
                 document.getElementById('gStatsStartDate').value = fmt(firstDay);
                 document.getElementById('gStatsEndDate').value = fmt(lastDay);
             };
 
             const initGlobalDashboard = () => {
                 initGlobalStatsDate();
+                
                 unsubscribeGlobal = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'bookings'), (snap) => {
                     globalAllBookings = [];
                     snap.forEach(doc => globalAllBookings.push({id: doc.id, ...doc.data()}));
                     updateGlobalStats(); 
                 });
             };
-            
-            // ... (updateGlobalStats 等も既存のまま)
-             document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
+
+            document.getElementById('calcGlobalStatsBtn').onclick = () => updateGlobalStats();
 
             document.querySelectorAll('.g-chart-tab-btn').forEach(btn => {
                 btn.onclick = (e) => {
@@ -1389,7 +1381,7 @@
             });
 
             function updateGlobalStats() {
-                 const sDate = document.getElementById('gStatsStartDate').value;
+                const sDate = document.getElementById('gStatsStartDate').value;
                 const eDate = document.getElementById('gStatsEndDate').value;
                 
                 document.getElementById('gTotalBookings').textContent = globalAllBookings.length;
@@ -1551,18 +1543,19 @@
                 }
             }
 
+            // Stats & Chart Logic (School Specific)
             const initStatsDate = () => {
-                 const today = new Date();
+                const today = new Date();
                 const y = today.getFullYear();
                 const m = today.getMonth();
                 const firstDay = new Date(y, m, 1);
                 const lastDay = new Date(y, m + 1, 0);
                 const fmt = (d) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+                
                 document.getElementById('statsStartDate').value = fmt(firstDay);
                 document.getElementById('statsEndDate').value = fmt(lastDay);
             };
-            
-            // ... (updateStats, updateChart など既存ロジックそのまま)
+
             document.getElementById('calcStatsBtn').onclick = () => updateStats();
             
             document.querySelectorAll('.chart-tab-btn').forEach(btn => {
@@ -1579,7 +1572,7 @@
             });
 
             function updateStats() {
-                 const sDate = document.getElementById('statsStartDate').value;
+                const sDate = document.getElementById('statsStartDate').value;
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
                 
@@ -1609,7 +1602,7 @@
             }
 
             function updateContentPerformanceChart(sDate, eDate) {
-                 const statsMap = {};
+                const statsMap = {};
                 (currentSettings.contents || []).forEach(c => {
                     statsMap[c.id] = { name: c.name, capacity: 0, booking: 0 };
                 });
@@ -1703,7 +1696,7 @@
             }
 
             function updateFunnelChart(sDate, eDate) {
-                 const rangeLogs = allLogs.filter(log => {
+                const rangeLogs = allLogs.filter(log => {
                     if (log.timestamp && log.timestamp.toDate) {
                         const d = log.timestamp.toDate();
                         const dStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
@@ -1769,7 +1762,7 @@
             }
 
             function renderFunnel(data, labels) {
-                 if (funnelChart) funnelChart.destroy();
+                if (funnelChart) funnelChart.destroy();
                 const ctx = document.getElementById('funnelChart').getContext('2d');
                 
                 funnelChart = new Chart(ctx, {
@@ -1795,7 +1788,7 @@
             }
 
             function updateChart() {
-                 const sDate = document.getElementById('statsStartDate').value;
+                const sDate = document.getElementById('statsStartDate').value;
                 const eDate = document.getElementById('statsEndDate').value;
                 if(!sDate || !eDate) return;
 
@@ -1863,8 +1856,9 @@
                 return '#' + "00000".substring(0, 6 - c.length) + c;
             }
 
+            // IP Settings Modal Logic
             function renderIpList() {
-                 const list = document.getElementById('ipListContainer');
+                const list = document.getElementById('ipListContainer');
                 list.innerHTML = '';
                 globalAllowedIps.forEach((ip, index) => {
                     const div = document.createElement('div');
@@ -1907,6 +1901,7 @@
                  showToast("IP制限設定を保存しました");
             };
 
+        // --- Data Loading & School Management ---
             const loadSchools = () => {
                 onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'schools'), (snap) => {
                     schools = [];
@@ -1914,6 +1909,8 @@
                     
                     // すでにログインしていて、ユーザーが校舎管理者の場合、表示制御を行う
                     if (currentUser && currentUser.role === 'school_admin') {
+                        renderSchoolList();
+                    } else if (currentUser && currentUser.role === 'super_admin') {
                         renderSchoolList();
                     }
                 });
@@ -1937,7 +1934,7 @@
                     const div = document.createElement('div');
                     div.className = "bg-white p-6 rounded-xl shadow-sm hover:shadow-md transition cursor-pointer border border-slate-200 relative group";
                     div.innerHTML = `
-                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school ${currentUser.role === 'school_admin' ? 'hidden' : ''}" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
+                        <button class="absolute top-2 right-2 text-slate-300 hover:text-red-500 delete-school ${currentUser && currentUser.role === 'school_admin' ? 'hidden' : ''}" data-id="${s.id}"><svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" /></svg></button>
                         <h3 class="text-xl font-bold text-slate-700 mb-1">${s.name}校</h3>
                         <p class="text-xs text-slate-400">ID: ${s.id}</p>
                         <div class="mt-4 text-blue-600 font-bold text-sm">管理画面へ &rarr;</div>
@@ -1972,7 +1969,6 @@
                 document.getElementById('previewPageBtn').href = `index.html?school=${id}`;
                 
                 unsubscribeSettings = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'settings', id), (snap) => {
-                     // ... (既存ロジック)
                     if(snap.exists()) currentSettings = snap.data();
                     else currentSettings = { schoolName: schools.find(s=>s.id===id).name, contents:[], schedule:{} };
                     
@@ -1981,6 +1977,7 @@
 
                     document.getElementById('currentSchoolNameDisplay').textContent = currentSettings.schoolName;
                     
+                    // Populate Form
                     document.getElementById('settingSchoolName').value = currentSettings.schoolName || '';
                     document.getElementById('settingAddress').value = currentSettings.address || '';
                     document.getElementById('settingPhone').value = currentSettings.phoneNumber || '';
@@ -2015,9 +2012,8 @@
                     updateStats(); 
                 });
             }
-            
-            // ... (renderInquiryTable, updateInquiryStatus 等、既存ロジックはそのまま維持)
-             function renderInquiryTable() {
+
+            function renderInquiryTable() {
                 const tbody = document.getElementById('inquiryTableBody');
                 tbody.innerHTML = '';
                 
@@ -2072,18 +2068,588 @@
                     alert("更新に失敗しました: " + err.message);
                 }
             };
-            
-            // ... (その他の既存ロジックは変更なし)
 
+            // --- Features: Content & Schedule Management ---
+
+            const renderLocalContents = () => {
+                const list = document.getElementById('localContentList');
+                list.innerHTML = '';
+                
+                if (!currentSettings.contents || currentSettings.contents.length === 0) {
+                    list.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録されたコンテンツはありません</p>';
+                    return;
+                }
+
+                currentSettings.contents.forEach((c, idx) => {
+                    const div = document.createElement('div');
+                    div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm mb-2";
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-700">${c.name}</div>
+                            <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="text-blue-500 text-xs font-bold edit-local" data-idx="${idx}">編集</button>
+                            <button class="text-red-500 text-xs font-bold del-local" data-idx="${idx}">削除</button>
+                        </div>
+                    `;
+                    list.appendChild(div);
+                });
+
+                list.querySelectorAll('.edit-local').forEach(btn => {
+                    btn.onclick = () => {
+                        const idx = btn.dataset.idx;
+                        openContentModal(idx);
+                    };
+                });
+
+                list.querySelectorAll('.del-local').forEach(btn => {
+                    btn.onclick = async () => {
+                        if (confirm('このコンテンツを削除しますか？')) {
+                            currentSettings.contents.splice(btn.dataset.idx, 1);
+                            await saveSettings();
+                            showToast("コンテンツを削除しました");
+                        }
+                    };
+                });
+            };
+
+            function openContentModal(idxStr = null) {
+                const isNew = idxStr === null;
+                document.getElementById('contentFormTitle').textContent = isNew ? "新規作成" : "コンテンツ編集";
+                document.getElementById('editContentId').value = isNew ? 'new' : idxStr;
+                
+                const idInput = document.getElementById('editContentCustomId');
+                idInput.value = '';
+                idInput.disabled = !isNew; 
+                
+                if (isNew) {
+                    document.getElementById('editContentName').value = '';
+                    document.getElementById('editContentPrice').value = '';
+                    document.getElementById('editContentImage').value = '';
+                    document.getElementById('editContentDescription').value = '';
+                    document.getElementById('editContentDuration').value = '';
+                    document.getElementById('editContentNotes').value = '';
+                } else {
+                    const c = currentSettings.contents[idxStr];
+                    document.getElementById('editContentName').value = c.name;
+                    document.getElementById('editContentCustomId').value = c.id; 
+                    document.getElementById('editContentType').value = c.type || 'trial';
+                    document.getElementById('editContentPrice').value = c.price;
+                    document.getElementById('editContentImage').value = c.imageUrl || '';
+                    document.getElementById('editContentDescription').value = c.description || '';
+                    document.getElementById('editContentDuration').value = c.duration || '';
+                    document.getElementById('editContentNotes').value = c.notes || '';
+                }
+                document.getElementById('contentModal').classList.remove('hidden');
+            }
+            
+            document.getElementById('closeContentModal').onclick = () => document.getElementById('contentModal').classList.add('hidden');
+            document.getElementById('openContentModalBtn').onclick = () => openContentModal(null);
+
+            document.getElementById('saveContentBtn').onclick = async () => {
+                const idxStr = document.getElementById('editContentId').value;
+                const name = document.getElementById('editContentName').value;
+                const type = document.getElementById('editContentType').value;
+                const price = document.getElementById('editContentPrice').value;
+                const img = document.getElementById('editContentImage').value;
+                const customId = document.getElementById('editContentCustomId').value.trim();
+                
+                const description = document.getElementById('editContentDescription').value;
+                const duration = document.getElementById('editContentDuration').value;
+                const notes = document.getElementById('editContentNotes').value;
+
+                if(!name || !price) return alert("コンテンツ名と金額は必須です");
+                
+                let newId;
+                if (idxStr === 'new') {
+                     if (customId) {
+                         if (currentSettings.contents.some(c => c.id === customId)) {
+                             return alert("指定されたIDは既に使用されています。");
+                         }
+                         newId = customId;
+                     } else {
+                         newId = 'c' + Date.now();
+                     }
+                } else {
+                    newId = currentSettings.contents[idxStr].id;
+                }
+
+                const newData = {
+                    id: newId,
+                    name, type, price: parseInt(price), imageUrl: img,
+                    description, duration, notes
+                };
+                
+                if(idxStr === 'new') currentSettings.contents.push(newData);
+                else currentSettings.contents[idxStr] = newData;
+                
+                await saveSettings();
+                document.getElementById('contentModal').classList.add('hidden');
+                showToast("コンテンツを保存しました");
+            };
+
+            // 2. Schedule
+            document.getElementById('schedPrev').onclick = () => { adminDate.setMonth(adminDate.getMonth()-1); renderSchedCalendar(); };
+            document.getElementById('schedNext').onclick = () => { adminDate.setMonth(adminDate.getMonth()+1); renderSchedCalendar(); };
+            document.getElementById('closeScheduleModal').onclick = () => document.getElementById('scheduleModal').classList.add('hidden');
+
+            const renderSchedCalendar = () => {
+                const grid = document.getElementById('schedGrid');
+                if(!grid) return;
+                grid.innerHTML = '';
+                
+                const year = adminDate.getFullYear();
+                const month = adminDate.getMonth();
+                document.getElementById('schedTitle').textContent = `${year}年 ${month + 1}月`;
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const lastDate = new Date(year, month + 1, 0).getDate();
+
+                for(let i=0; i<firstDay; i++) grid.appendChild(document.createElement('div'));
+
+                for(let d=1; d<=lastDate; d++) {
+                    const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                    const cell = document.createElement('div');
+                    cell.className = "h-24 border bg-white p-1 cursor-pointer hover:bg-indigo-50 transition relative flex flex-col items-center justify-start group";
+                    
+                    const scheduleList = currentSettings.schedule ? (currentSettings.schedule[dateStr] || []) : [];
+                    const count = scheduleList.length;
+                    
+                    let contentHtml = '';
+                    if(count > 0) {
+                        contentHtml = `
+                            <div class="mt-1 flex flex-col gap-1 w-full px-1">
+                                <span class="text-[10px] bg-indigo-100 text-indigo-700 text-center rounded font-bold">${count}枠設定中</span>
+                                <div class="flex flex-wrap gap-0.5 justify-center">
+                                    ${scheduleList.slice(0, 3).map(() => '<span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>').join('')}
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                         contentHtml = `<span class="mt-4 text-xs text-slate-300 opacity-0 group-hover:opacity-100 font-bold">+ 設定</span>`;
+                    }
+
+                    cell.innerHTML = `
+                        <span class="text-sm font-bold text-slate-700">${d}</span>
+                        ${contentHtml}
+                    `;
+                    
+                    cell.onclick = () => openScheduleModal(dateStr);
+                    grid.appendChild(cell);
+                }
+            };
+
+            const openScheduleModal = (dateStr) => {
+                selectedDateStr = dateStr;
+                const d = new Date(dateStr);
+                document.getElementById('modalDateDisplay').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+                document.getElementById('scheduleModal').classList.remove('hidden');
+                
+                const sel = document.getElementById('schedContentSelect');
+                sel.innerHTML = '';
+                (currentSettings.contents || []).forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id;
+                    opt.textContent = `${c.name} (${c.duration} / ¥${c.price})`;
+                    sel.appendChild(opt);
+                });
+
+                resetSchedForm();
+                renderDayList();
+                renderTimeline();
+            };
+
+            const resetSchedForm = () => {
+                document.getElementById('schedFormTitle').textContent = "新規枠を追加";
+                document.getElementById('schedEditIndex').value = "-1";
+                document.getElementById('schedStart').value = "10:00";
+                document.getElementById('schedEnd').value = "11:30";
+                document.getElementById('schedCap').value = "5";
+                document.getElementById('schedDeleteBtn').classList.add('hidden');
+                document.getElementById('schedCancelBtn').classList.add('hidden');
+                document.querySelectorAll('.sched-grade').forEach(cb => cb.checked = true);
+            };
+
+            const renderDayList = () => {
+                const list = document.getElementById('daySchedList');
+                list.innerHTML = '';
+                
+                const schedules = (currentSettings.schedule && currentSettings.schedule[selectedDateStr]) ? currentSettings.schedule[selectedDateStr] : [];
+                
+                if (schedules.length === 0) {
+                    list.innerHTML = '<div class="text-center text-slate-400 py-4">設定された枠はありません</div>';
+                    return;
+                }
+
+                schedules.sort((a,b) => a.startTime.localeCompare(b.startTime));
+
+                schedules.forEach((s, idx) => {
+                    const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '不明なコンテンツ'};
+                    const div = document.createElement('div');
+                    div.className = "p-3 border rounded bg-white hover:bg-slate-50 cursor-pointer flex justify-between items-center";
+                    div.innerHTML = `
+                        <div>
+                            <div class="font-bold text-slate-700 text-xs">${s.startTime} - ${s.endTime}</div>
+                            <div class="font-bold text-slate-600">${content.name}</div>
+                            <div class="text-[10px] text-slate-400">定員: ${s.capacity}名</div>
+                        </div>
+                        <div class="flex gap-1">
+                            <button class="text-blue-500 text-xs font-bold mr-2 cp-btn" data-idx="${idx}">複製</button>
+                            <button class="text-blue-500 text-xs font-bold edit-btn" data-idx="${idx}">編集</button>
+                        </div>
+                    `;
+                    div.querySelector('.edit-btn').onclick = (e) => { e.stopPropagation(); editScheduleItem(idx, s); };
+                    div.querySelector('.cp-btn').onclick = (e) => { 
+                        e.stopPropagation();
+                        scheduleToCopy = s;
+                        document.getElementById('copyDialog').classList.remove('hidden');
+                    };
+                    list.appendChild(div);
+                });
+            };
+
+            const editScheduleItem = (idx, s) => {
+                document.getElementById('schedFormTitle').textContent = "枠を編集";
+                document.getElementById('schedEditIndex').value = idx;
+                document.getElementById('schedContentSelect').value = s.contentId;
+                document.getElementById('schedStart').value = s.startTime;
+                document.getElementById('schedEnd').value = s.endTime;
+                document.getElementById('schedCap').value = s.capacity;
+                const grades = s.grades || [];
+                document.querySelectorAll('.sched-grade').forEach(cb => {
+                    cb.checked = grades.includes(cb.value);
+                });
+                document.getElementById('schedDeleteBtn').classList.remove('hidden');
+                document.getElementById('schedCancelBtn').classList.remove('hidden');
+            };
+
+            document.getElementById('schedCancelBtn').onclick = resetSchedForm;
+
+            document.getElementById('schedSaveBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('schedEditIndex').value);
+                const contentId = document.getElementById('schedContentSelect').value;
+                const start = document.getElementById('schedStart').value;
+                const end = document.getElementById('schedEnd').value;
+                const cap = parseInt(document.getElementById('schedCap').value);
+                const grades = Array.from(document.querySelectorAll('.sched-grade:checked')).map(cb => cb.value);
+
+                if (!contentId || !start || !end || grades.length === 0) return alert("必須項目を入力してください");
+
+                if (!currentSettings.schedule) currentSettings.schedule = {};
+                if (!currentSettings.schedule[selectedDateStr]) currentSettings.schedule[selectedDateStr] = [];
+
+                const newItem = { id: idx!==-1?currentSettings.schedule[selectedDateStr][idx].id:'s'+Date.now(), contentId, startTime: start, endTime: end, capacity: cap, grades };
+
+                if (idx === -1) {
+                    currentSettings.schedule[selectedDateStr].push(newItem);
+                } else {
+                    currentSettings.schedule[selectedDateStr][idx] = newItem;
+                }
+
+                await saveSettings();
+                resetSchedForm();
+                renderDayList();
+                renderTimeline();
+                renderSchedCalendar();
+                showToast("スケジュールを保存しました");
+            };
+
+            document.getElementById('schedDeleteBtn').onclick = async () => {
+                const idx = parseInt(document.getElementById('schedEditIndex').value);
+                if(idx === -1) return;
+                
+                if(confirm("この枠を削除しますか？")) {
+                    currentSettings.schedule[selectedDateStr].splice(idx, 1);
+                    await saveSettings();
+                    resetSchedForm();
+                    renderDayList();
+                    renderTimeline();
+                    renderSchedCalendar();
+                    showToast("削除しました");
+                }
+            };
+
+            const renderTimeline = () => {
+                const container = document.getElementById('timelineTracks');
+                const axis = document.getElementById('timelineAxis');
+                container.innerHTML = '';
+                axis.innerHTML = '';
+
+                for(let h=9; h<=20; h++) {
+                    const div = document.createElement('div');
+                    div.className = "h-[60px] border-b text-[10px] text-slate-400 text-center relative";
+                    div.innerHTML = `<span class="absolute -top-2 left-0 right-0">${h}:00</span>`;
+                    axis.appendChild(div);
+                    const trackLine = document.createElement('div');
+                    trackLine.className = "h-[60px] border-b border-slate-100";
+                    container.appendChild(trackLine);
+                }
+
+                const schedules = (currentSettings.schedule && currentSettings.schedule[selectedDateStr]) ? currentSettings.schedule[selectedDateStr] : [];
+                
+                schedules.forEach((s, idx) => {
+                    const startH = parseInt(s.startTime.split(':')[0]);
+                    const startM = parseInt(s.startTime.split(':')[1]);
+                    const endH = parseInt(s.endTime.split(':')[0]);
+                    const endM = parseInt(s.endTime.split(':')[1]);
+
+                    const top = (startH - 9) * 60 + startM;
+                    const duration = ((endH * 60 + endM) - (startH * 60 + startM));
+                    const height = duration;
+
+                    const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '?'};
+
+                    const block = document.createElement('div');
+                    block.className = "timeline-event-block bg-blue-500 shadow-sm hover:bg-blue-600";
+                    block.style.top = `${top}px`;
+                    block.style.height = `${height}px`;
+                    block.innerHTML = `<span class="font-bold">${s.startTime}</span> ${content.name}`;
+                    block.onclick = () => editScheduleItem(idx, s);
+                    container.appendChild(block);
+                });
+            };
+
+            document.getElementById('cancelCopyBtn').onclick = () => document.getElementById('copyDialog').classList.add('hidden');
+            
+            document.getElementById('execCopyBtn').onclick = async () => {
+                const d = document.getElementById('copyDate').value;
+                if(!d) return;
+                if(!currentSettings.schedule[d]) currentSettings.schedule[d] = [];
+                currentSettings.schedule[d].push({...scheduleToCopy, id: 's'+Date.now()});
+                await saveSettings();
+                document.getElementById('copyDialog').classList.add('hidden');
+                showToast("複製しました");
+                renderSchedCalendar();
+            };
+
+            // --- Dashboard & Booking Management ---
+
+            const renderDashboard = () => {
+                const total = allBookings.length;
+                const today = new Date();
+                const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+                const thisMonthBookings = allBookings.filter(b => b.date && b.date.startsWith(currentMonthPrefix));
+                
+                let monthSales = 0;
+                thisMonthBookings.forEach(b => {
+                    const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
+                    if (content && content.price) monthSales += parseInt(content.price);
+                });
+
+                document.getElementById('totalBookings').textContent = total;
+                document.getElementById('monthBookings').textContent = thisMonthBookings.length;
+                document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
+
+                renderDashCalendar();
+            };
+
+            const renderDashCalendar = () => {
+                const title = document.getElementById('dashboardCalendarTitle');
+                const grid = document.getElementById('dashGrid');
+                if(!grid) return;
+                grid.innerHTML = '';
+
+                const year = adminDashboardDate.getFullYear();
+                const month = adminDashboardDate.getMonth();
+                title.textContent = `${year}年 ${month + 1}月`;
+
+                const firstDay = new Date(year, month, 1).getDay();
+                const lastDate = new Date(year, month + 1, 0).getDate();
+
+                for (let i = 0; i < firstDay; i++) {
+                    const cell = document.createElement('div');
+                    cell.className = "bg-slate-100 min-h-[80px]";
+                    grid.appendChild(cell);
+                }
+
+                for (let d = 1; d <= lastDate; d++) {
+                    const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+                    const cell = document.createElement('div');
+                    cell.className = "bg-white p-1 min-h-[80px] border hover:bg-slate-50 transition relative group";
+                    const count = allBookings.filter(b => b.date === dateStr).length;
+                    
+                    let badge = count > 0 ? `<span class="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">${count}件</span>` : '';
+
+                    cell.innerHTML = `
+                        <div class="text-xs font-bold text-slate-500 mb-1">${d}${badge}</div>
+                        <div class="space-y-1 overflow-y-auto max-h-[60px]">
+                            ${allBookings.filter(b => b.date === dateStr).map(b => 
+                                `<div class="text-[9px] bg-blue-50 text-blue-700 px-1 rounded truncate">${b.startTime} ${b.childName}</div>`
+                            ).join('')}
+                        </div>
+                    `;
+                    grid.appendChild(cell);
+                }
+            };
+
+            document.getElementById('prevDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth() - 1); renderDashCalendar(); };
+            document.getElementById('nextDashboardMonth').onclick = () => { adminDashboardDate.setMonth(adminDashboardDate.getMonth() + 1); renderDashCalendar(); };
+
+            const renderBookingTable = () => {
+                const tbody = document.getElementById('bookingTableBody');
+                tbody.innerHTML = '';
+                const sorted = [...allBookings].sort((a, b) => b.date.localeCompare(a.date) || a.startTime.localeCompare(b.startTime));
+
+                if (sorted.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">予約データはありません</td></tr>';
+                    return;
+                }
+
+                sorted.forEach(b => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 border-b last:border-0";
+                    
+                    let sourceDisplay = '<span class="text-xs text-slate-400">-</span>';
+                    if (b.sourceType === 'admin') sourceDisplay = '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">管理画面</span>';
+                    else if (b.utmSource) sourceDisplay = `<span class="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-xs font-bold">${b.utmSource}</span>`;
+                    else sourceDisplay = '<span class="bg-teal-50 text-teal-600 px-2 py-0.5 rounded text-xs font-bold">Web</span>';
+
+                    tr.innerHTML = `
+                        <td class="px-6 py-4 font-bold text-slate-700">${b.date} ${b.startTime}</td>
+                        <td class="px-6 py-4">
+                            <div class="text-xs font-bold text-slate-700">${b.courseName || '-'}</div>
+                            <div class="text-[10px] text-slate-400">ID: ${b.contentId}</div>
+                        </td>
+                        <td class="px-6 py-4">
+                            <div class="font-bold text-slate-700">${b.childName}</div>
+                            <div class="text-xs text-slate-500">保護者: ${b.parentName}</div>
+                        </td>
+                        <td class="px-6 py-4 text-xs text-slate-600">
+                            <div>${b.email}</div>
+                            <div>${b.phone}</div>
+                        </td>
+                        <td class="px-6 py-4 text-center">${getGradeLabel(b.grade)}</td>
+                        <td class="px-6 py-4 text-center">${sourceDisplay}</td>
+                        <td class="px-6 py-4 text-center">
+                            <button class="text-blue-600 hover:text-blue-800 font-bold text-xs mr-2 edit-booking" data-id="${b.id}">編集</button>
+                            <button class="text-red-500 hover:text-red-700 font-bold text-xs delete-booking" data-id="${b.id}">削除</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+
+                tbody.querySelectorAll('.edit-booking').forEach(btn => btn.onclick = () => openBookingEditModal(btn.dataset.id));
+                tbody.querySelectorAll('.delete-booking').forEach(btn => btn.onclick = () => deleteBooking(btn.dataset.id));
+            };
+
+            const getGradeLabel = (grade) => {
+                if (grade === 'preschool') return '<span class="bg-[#ff91aa] text-white px-2 py-1 rounded text-xs">年中・長</span>';
+                if (grade === 'grade1_2') return '<span class="bg-[#ffac2d] text-white px-2 py-1 rounded text-xs">小1-2</span>';
+                if (grade === 'grade3_plus') return '<span class="bg-[#00b4dc] text-white px-2 py-1 rounded text-xs">小3以上</span>';
+                return '<span class="bg-slate-200 text-slate-500 px-2 py-1 rounded text-xs">-</span>';
+            };
+
+            window.openBookingEditModal = (bookingId) => {
+                const booking = allBookings.find(b => b.id === bookingId);
+                if (!booking) return;
+                document.getElementById('editBookingId').value = booking.id;
+                document.getElementById('editChildName').value = booking.childName || '';
+                document.getElementById('editParentName').value = booking.parentName || '';
+                document.getElementById('editEmail').value = booking.email || '';
+                document.getElementById('editPhone').value = booking.phone || '';
+                
+                document.getElementById('originalDate').value = booking.date;
+                document.getElementById('originalStartTime').value = booking.startTime;
+                document.getElementById('originalContentId').value = booking.contentId;
+                
+                document.getElementById('editBookingDate').value = booking.date;
+                const currentValObj = { contentId: booking.contentId, startTime: booking.startTime, courseName: booking.courseName };
+                updateScheduleSelect(booking.date, 'editBookingScheduleId', JSON.stringify(currentValObj));
+                document.getElementById('bookingEditModal').classList.remove('hidden');
+            };
+
+            document.getElementById('editBookingDate').addEventListener('change', (e) => {
+                updateScheduleSelect(e.target.value, 'editBookingScheduleId');
+            });
+
+            document.getElementById('bookingEditForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const bookingId = document.getElementById('editBookingId').value;
+                if (!bookingId) return;
+                
+                const updateData = {
+                    childName: document.getElementById('editChildName').value,
+                    parentName: document.getElementById('editParentName').value,
+                    email: document.getElementById('editEmail').value,
+                    phone: document.getElementById('editPhone').value
+                };
+
+                const newDate = document.getElementById('editBookingDate').value;
+                const newScheduleVal = document.getElementById('editBookingScheduleId').value;
+                
+                if (newScheduleVal) {
+                      const schedData = JSON.parse(newScheduleVal);
+                      const origDate = document.getElementById('originalDate').value;
+                      const origStart = document.getElementById('originalStartTime').value;
+                      const origContent = document.getElementById('originalContentId').value;
+
+                      if (newDate !== origDate || schedData.startTime !== origStart || schedData.contentId !== origContent) {
+                          updateData.date = newDate;
+                          updateData.startTime = schedData.startTime;
+                          updateData.contentId = schedData.contentId;
+                          updateData.courseName = schedData.courseName;
+                      }
+                }
+
+                try {
+                    await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId), updateData);
+                    document.getElementById('bookingEditModal').classList.add('hidden');
+                    showToast("予約情報を更新しました");
+                } catch (err) {
+                    alert("更新に失敗しました: " + err.message);
+                }
+            };
+
+            window.deleteBooking = async (bookingId) => {
+                if (!confirm("本当にこの予約を削除しますか？\nこの操作は取り消せません。")) return;
+                try {
+                    await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'bookings', bookingId));
+                    showToast("予約を削除しました");
+                } catch (err) {
+                    alert("削除に失敗しました: " + err.message);
+                }
+            };
+
+            // URL Gen
+            const updateGeneratedUrl = () => {
+                const base = location.href.replace('admin.html', 'index.html').split('?')[0];
+                const source = document.getElementById('utmSource').value.trim();
+                const medium = document.getElementById('utmMedium').value.trim();
+                const campaign = document.getElementById('utmCampaign').value.trim();
+                
+                let url = `${base}?school=${currentSchoolId}`;
+                if(source) url += `&utm_source=${encodeURIComponent(source)}`;
+                if(medium) url += `&utm_medium=${encodeURIComponent(medium)}`;
+                if(campaign) url += `&utm_campaign=${encodeURIComponent(campaign)}`;
+                
+                document.getElementById('generatedUrl').value = url;
+            };
+
+            ['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
+                document.getElementById(id).addEventListener('input', updateGeneratedUrl);
+            });
+
+            document.getElementById('copyUrlBtn').onclick = () => {
+                const copyText = document.getElementById("generatedUrl");
+                copyText.select();
+                document.execCommand("copy");
+                showToast("URLをコピーしました");
+            };
+
+            // Utils
+            async function saveSettings() {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
+            }
+            
             function showToast(msg) {
                 const t = document.getElementById('toast');
                 t.textContent = msg;
                 t.classList.remove('opacity-0');
                 setTimeout(() => t.classList.add('opacity-0'), 3000);
             }
-            
-            // ... (既存のタブ切り替えやボタン動作などはそのまま)
-             document.getElementById('backToSchoolSelectBtn').onclick = () => {
+
+            document.getElementById('backToSchoolSelectBtn').onclick = () => {
                 if (unsubscribeSettings) unsubscribeSettings();
                 if (unsubscribeBookings) unsubscribeBookings();
                 if (unsubscribeLogs) unsubscribeLogs();
@@ -2111,579 +2677,7 @@
                     if(btn.dataset.tab === 'url-generator') updateGeneratedUrl(); 
                 };
             });
-            
-// ▼▼▼ 追加・復元するコード ▼▼▼
 
-const renderLocalContents = () => {
-    const list = document.getElementById('localContentList');
-    list.innerHTML = '';
-    
-    if (!currentSettings.contents || currentSettings.contents.length === 0) {
-        list.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">登録されたコンテンツはありません</p>';
-        return;
-    }
-
-    currentSettings.contents.forEach((c, idx) => {
-        const div = document.createElement('div');
-        div.className = "flex justify-between items-center p-3 bg-slate-50 border rounded text-sm mb-2";
-        div.innerHTML = `
-            <div>
-                <div class="font-bold text-slate-700">${c.name}</div>
-                <div class="text-xs text-slate-500">ID: ${c.id} | ¥${c.price}</div>
-            </div>
-            <div class="flex gap-2">
-                <button class="text-blue-500 text-xs font-bold edit-local" data-idx="${idx}">編集</button>
-                <button class="text-red-500 text-xs font-bold del-local" data-idx="${idx}">削除</button>
-            </div>
-        `;
-        list.appendChild(div);
-    });
-
-    // 編集ボタンのイベント設定
-    list.querySelectorAll('.edit-local').forEach(btn => {
-        btn.onclick = () => {
-            const idx = btn.dataset.idx;
-            const content = currentSettings.contents[idx];
-            openContentModal(content, idx);
-        };
-    });
-
-    // 削除ボタンのイベント設定
-    list.querySelectorAll('.del-local').forEach(btn => {
-        btn.onclick = async () => {
-            if (confirm('このコンテンツを削除しますか？')) {
-                currentSettings.contents.splice(btn.dataset.idx, 1);
-                await saveSettings();
-                renderLocalContents();
-                showToast("コンテンツを削除しました");
-            }
-        };
-    });
-};
-
-const openContentModal = (content = null, idx = -1) => {
-    const modal = document.getElementById('contentModal');
-    modal.classList.remove('hidden');
-    
-    // 編集時と新規作成時でタイトルなどを切り替え
-    const isEdit = content !== null;
-    document.getElementById('contentFormTitle').textContent = isEdit ? 'コンテンツ編集' : '新規作成';
-    document.getElementById('editContentId').value = idx; // インデックスを保存 (-1なら新規)
-
-    if (isEdit) {
-        document.getElementById('editContentName').value = content.name || '';
-        document.getElementById('editContentCustomId').value = content.id || '';
-        document.getElementById('editContentCustomId').disabled = true; // IDは編集不可
-        document.getElementById('editContentDescription').value = content.description || '';
-        document.getElementById('editContentDuration').value = content.duration || '';
-        document.getElementById('editContentPrice').value = content.price || '';
-        document.getElementById('editContentNotes').value = content.notes || '';
-        document.getElementById('editContentImage').value = content.imageUrl || '';
-        document.getElementById('editContentType').value = content.type || 'trial';
-    } else {
-        // フォームをリセット
-        document.getElementById('editContentName').value = '';
-        document.getElementById('editContentCustomId').value = '';
-        document.getElementById('editContentCustomId').disabled = false;
-        document.getElementById('editContentDescription').value = '';
-        document.getElementById('editContentDuration').value = '';
-        document.getElementById('editContentPrice').value = '';
-        document.getElementById('editContentNotes').value = '';
-        document.getElementById('editContentImage').value = '';
-        document.getElementById('editContentType').value = 'trial';
-    }
-};
-
-document.getElementById('closeContentModal').onclick = () => {
-    document.getElementById('contentModal').classList.add('hidden');
-};
-
-document.getElementById('openContentModalBtn').onclick = () => {
-    openContentModal(null, -1);
-};
-
-document.getElementById('saveContentBtn').onclick = async () => {
-    const idx = parseInt(document.getElementById('editContentId').value);
-    const name = document.getElementById('editContentName').value;
-    const price = document.getElementById('editContentPrice').value;
-    
-    if (!name || !price) return alert("コンテンツ名と金額は必須です");
-
-    const newData = {
-        name: name,
-        price: parseInt(price),
-        description: document.getElementById('editContentDescription').value,
-        duration: document.getElementById('editContentDuration').value,
-        notes: document.getElementById('editContentNotes').value,
-        imageUrl: document.getElementById('editContentImage').value,
-        type: document.getElementById('editContentType').value,
-    };
-
-    if (idx === -1) {
-        // 新規作成
-        let customId = document.getElementById('editContentCustomId').value.trim();
-        if (!customId) customId = 'c_' + Date.now();
-        
-        // ID重複チェック
-        if (currentSettings.contents.some(c => c.id === customId)) {
-            return alert("そのIDは既に使用されています");
-        }
-        newData.id = customId;
-        currentSettings.contents.push(newData);
-    } else {
-        // 更新（IDは維持）
-        newData.id = currentSettings.contents[idx].id;
-        currentSettings.contents[idx] = newData;
-    }
-
-    await saveSettings();
-    document.getElementById('contentModal').classList.add('hidden');
-    renderLocalContents();
-    showToast("コンテンツを保存しました");
-};
-            // ▼▼▼ ここから追加コード (ダッシュボード・カレンダー機能の復元) ▼▼▼
-
-// --- ダッシュボード関連 ---
-
-const renderDashboard = () => {
-    // 1. 基本集計 (総予約数、今月の予約、売上)
-    const total = allBookings.length;
-    
-    const today = new Date();
-    const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
-    
-    const thisMonthBookings = allBookings.filter(b => b.date && b.date.startsWith(currentMonthPrefix));
-    
-    let monthSales = 0;
-    thisMonthBookings.forEach(b => {
-        // コンテンツ情報を検索して金額を加算
-        const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
-        if (content && content.price) {
-            monthSales += parseInt(content.price);
-        }
-    });
-
-    document.getElementById('totalBookings').textContent = total;
-    document.getElementById('monthBookings').textContent = thisMonthBookings.length;
-    document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
-
-    // 2. カレンダー表示更新 (ダッシュボード下部のカレンダー)
-    renderDashCalendar();
-    
-    // 3. グラフ等の更新
-    updateStats();
-};
-
-const renderDashCalendar = () => {
-    // ダッシュボード内の簡易カレンダー描画
-    const title = document.getElementById('dashboardCalendarTitle');
-    const grid = document.getElementById('dashGrid');
-    if(!grid) return;
-    grid.innerHTML = '';
-
-    const year = adminDashboardDate.getFullYear();
-    const month = adminDashboardDate.getMonth();
-    title.textContent = `${year}年 ${month + 1}月`;
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const lastDate = new Date(year, month + 1, 0).getDate();
-
-    // 空白セル
-    for (let i = 0; i < firstDay; i++) {
-        const cell = document.createElement('div');
-        cell.className = "bg-slate-100 min-h-[80px]";
-        grid.appendChild(cell);
-    }
-
-    // 日付セル
-    for (let d = 1; d <= lastDate; d++) {
-        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const cell = document.createElement('div');
-        cell.className = "bg-white p-1 min-h-[80px] border hover:bg-slate-50 transition relative group";
-        
-        // その日の予約数をカウント
-        const count = allBookings.filter(b => b.date === dateStr).length;
-        
-        let badge = '';
-        if (count > 0) {
-            badge = `<span class="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">${count}件</span>`;
-        }
-
-        cell.innerHTML = `
-            <div class="text-xs font-bold text-slate-500 mb-1">${d}${badge}</div>
-            <div class="space-y-1 overflow-y-auto max-h-[60px]">
-                ${allBookings.filter(b => b.date === dateStr).map(b => 
-                    `<div class="text-[9px] bg-blue-50 text-blue-700 px-1 rounded truncate">${b.startTime} ${b.childName}</div>`
-                ).join('')}
-            </div>
-        `;
-        grid.appendChild(cell);
-    }
-};
-
-document.getElementById('prevDashboardMonth').onclick = () => {
-    adminDashboardDate.setMonth(adminDashboardDate.getMonth() - 1);
-    renderDashCalendar();
-};
-document.getElementById('nextDashboardMonth').onclick = () => {
-    adminDashboardDate.setMonth(adminDashboardDate.getMonth() + 1);
-    renderDashCalendar();
-};
-
-
-// --- 予約一覧テーブル描画 ---
-
-const renderBookingTable = () => {
-    const tbody = document.getElementById('bookingTableBody');
-    tbody.innerHTML = '';
-    
-    // 日付・時間順にソート
-    const sorted = [...allBookings].sort((a, b) => {
-        if (a.date !== b.date) return a.date.localeCompare(b.date);
-        return a.startTime.localeCompare(b.startTime);
-    });
-
-    if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">予約データはありません</td></tr>';
-        return;
-    }
-
-    sorted.forEach(b => {
-        const tr = document.createElement('tr');
-        tr.className = "hover:bg-slate-50 border-b last:border-0";
-        
-        // 開催日時
-        const dateDisplay = `${b.date} ${b.startTime}`;
-        
-        // 流入元
-        let sourceDisplay = '<span class="text-xs text-slate-400">-</span>';
-        if (b.sourceType === 'admin') sourceDisplay = '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">管理画面</span>';
-        else if (b.utmSource) sourceDisplay = `<span class="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-xs font-bold">${b.utmSource}</span>`;
-        else sourceDisplay = '<span class="bg-teal-50 text-teal-600 px-2 py-0.5 rounded text-xs font-bold">Web</span>';
-
-        tr.innerHTML = `
-            <td class="px-6 py-4 font-bold text-slate-700">${dateDisplay}</td>
-            <td class="px-6 py-4">
-                <div class="text-xs font-bold text-slate-700">${b.courseName || '-'}</div>
-                <div class="text-[10px] text-slate-400">ID: ${b.contentId}</div>
-            </td>
-            <td class="px-6 py-4">
-                <div class="font-bold text-slate-700">${b.childName}</div>
-                <div class="text-xs text-slate-500">保護者: ${b.parentName}</div>
-            </td>
-            <td class="px-6 py-4 text-xs text-slate-600">
-                <div>${b.email}</div>
-                <div>${b.phone}</div>
-            </td>
-            <td class="px-6 py-4 text-center">
-                 ${getGradeLabel(b.grade)}
-            </td>
-            <td class="px-6 py-4 text-center">
-                ${sourceDisplay}
-            </td>
-            <td class="px-6 py-4 text-center">
-                <button class="text-blue-600 hover:text-blue-800 font-bold text-xs mr-2 edit-booking" data-id="${b.id}">編集</button>
-                <button class="text-red-500 hover:text-red-700 font-bold text-xs delete-booking" data-id="${b.id}">削除</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-
-    // 編集・削除ボタンのイベント設定
-    tbody.querySelectorAll('.edit-booking').forEach(btn => btn.onclick = () => openEditBookingModal(btn.dataset.id));
-    tbody.querySelectorAll('.delete-booking').forEach(btn => btn.onclick = () => deleteBooking(btn.dataset.id));
-};
-
-const getGradeLabel = (grade) => {
-    if (grade === 'preschool') return '<span class="bg-[#ff91aa] text-white px-2 py-1 rounded text-xs">年中・長</span>';
-    if (grade === 'grade1_2') return '<span class="bg-[#ffac2d] text-white px-2 py-1 rounded text-xs">小1-2</span>';
-    if (grade === 'grade3_plus') return '<span class="bg-[#00b4dc] text-white px-2 py-1 rounded text-xs">小3以上</span>';
-    return '<span class="bg-slate-200 text-slate-500 px-2 py-1 rounded text-xs">-</span>';
-};
-
-
-// --- スケジュール(開催日程登録)カレンダー関連 ---
-
-const renderSchedCalendar = () => {
-    const grid = document.getElementById('schedGrid');
-    if(!grid) return;
-    grid.innerHTML = '';
-    
-    const year = adminDate.getFullYear();
-    const month = adminDate.getMonth();
-    document.getElementById('schedTitle').textContent = `${year}年 ${month + 1}月`;
-
-    const firstDay = new Date(year, month, 1).getDay();
-    const lastDate = new Date(year, month + 1, 0).getDate();
-
-    // 空白セル
-    for(let i=0; i<firstDay; i++) {
-        grid.appendChild(document.createElement('div'));
-    }
-
-    // 日付セル
-    for(let d=1; d<=lastDate; d++) {
-        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const cell = document.createElement('div');
-        cell.className = "h-24 border bg-white p-1 cursor-pointer hover:bg-indigo-50 transition relative flex flex-col items-center justify-start group";
-        
-        const scheduleList = currentSettings.schedule ? (currentSettings.schedule[dateStr] || []) : [];
-        const count = scheduleList.length;
-        
-        let contentHtml = '';
-        if(count > 0) {
-            contentHtml = `
-                <div class="mt-1 flex flex-col gap-1 w-full px-1">
-                    <span class="text-[10px] bg-indigo-100 text-indigo-700 text-center rounded font-bold">${count}枠設定中</span>
-                    <div class="flex flex-wrap gap-0.5 justify-center">
-                        ${scheduleList.slice(0, 3).map(() => '<span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>').join('')}
-                    </div>
-                </div>
-            `;
-        } else {
-             contentHtml = `<span class="mt-4 text-xs text-slate-300 opacity-0 group-hover:opacity-100 font-bold">+ 設定</span>`;
-        }
-
-        cell.innerHTML = `
-            <span class="text-sm font-bold text-slate-700">${d}</span>
-            ${contentHtml}
-        `;
-        
-        cell.onclick = () => openScheduleModal(dateStr);
-        grid.appendChild(cell);
-    }
-};
-
-document.getElementById('schedPrev').onclick = () => {
-    adminDate.setMonth(adminDate.getMonth() - 1);
-    renderSchedCalendar();
-};
-document.getElementById('schedNext').onclick = () => {
-    adminDate.setMonth(adminDate.getMonth() + 1);
-    renderSchedCalendar();
-};
-
-
-// --- スケジュール編集モーダル関連 ---
-
-let editingDateStr = '';
-
-const openScheduleModal = (dateStr) => {
-    editingDateStr = dateStr;
-    const d = new Date(dateStr);
-    document.getElementById('modalDateDisplay').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
-    document.getElementById('scheduleModal').classList.remove('hidden');
-    
-    // コンテンツ選択肢の更新
-    const sel = document.getElementById('schedContentSelect');
-    sel.innerHTML = '';
-    (currentSettings.contents || []).forEach(c => {
-        const opt = document.createElement('option');
-        opt.value = c.id;
-        opt.textContent = `${c.name} (${c.duration} / ¥${c.price})`;
-        sel.appendChild(opt);
-    });
-
-    // フォームリセット
-    resetSchedForm();
-    
-    // リストとタイムラインの描画
-    renderDayList();
-    renderTimeline();
-};
-
-const resetSchedForm = () => {
-    document.getElementById('schedFormTitle').textContent = "新規枠を追加";
-    document.getElementById('schedEditIndex').value = "-1";
-    document.getElementById('schedStart').value = "10:00";
-    document.getElementById('schedEnd').value = "11:30";
-    document.getElementById('schedCap').value = "5";
-    document.getElementById('schedDeleteBtn').classList.add('hidden');
-    document.getElementById('schedCancelBtn').classList.add('hidden');
-    
-    document.querySelectorAll('.sched-grade').forEach(cb => cb.checked = true);
-};
-
-document.getElementById('closeScheduleModal').onclick = () => {
-    document.getElementById('scheduleModal').classList.add('hidden');
-    renderSchedCalendar(); // カレンダーの表示を更新
-};
-
-const renderDayList = () => {
-    const list = document.getElementById('daySchedList');
-    list.innerHTML = '';
-    
-    const schedules = (currentSettings.schedule && currentSettings.schedule[editingDateStr]) ? currentSettings.schedule[editingDateStr] : [];
-    
-    if (schedules.length === 0) {
-        list.innerHTML = '<div class="text-center text-slate-400 py-4">設定された枠はありません</div>';
-        return;
-    }
-
-    // 時間順にソート
-    schedules.sort((a,b) => a.startTime.localeCompare(b.startTime));
-
-    schedules.forEach((s, idx) => {
-        const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '不明なコンテンツ'};
-        
-        const div = document.createElement('div');
-        div.className = "p-3 border rounded bg-white hover:bg-slate-50 cursor-pointer flex justify-between items-center";
-        div.innerHTML = `
-            <div>
-                <div class="font-bold text-slate-700 text-xs">${s.startTime} - ${s.endTime}</div>
-                <div class="font-bold text-slate-600">${content.name}</div>
-                <div class="text-[10px] text-slate-400">定員: ${s.capacity}名</div>
-            </div>
-            <div class="text-blue-500 text-xs font-bold">編集</div>
-        `;
-        div.onclick = () => editScheduleItem(idx, s);
-        list.appendChild(div);
-    });
-};
-
-const editScheduleItem = (idx, s) => {
-    document.getElementById('schedFormTitle').textContent = "枠を編集";
-    document.getElementById('schedEditIndex').value = idx;
-    document.getElementById('schedContentSelect').value = s.contentId;
-    document.getElementById('schedStart').value = s.startTime;
-    document.getElementById('schedEnd').value = s.endTime;
-    document.getElementById('schedCap').value = s.capacity;
-    
-    const grades = s.grades || [];
-    document.querySelectorAll('.sched-grade').forEach(cb => {
-        cb.checked = grades.includes(cb.value);
-    });
-
-    document.getElementById('schedDeleteBtn').classList.remove('hidden');
-    document.getElementById('schedCancelBtn').classList.remove('hidden');
-};
-
-document.getElementById('schedCancelBtn').onclick = resetSchedForm;
-
-document.getElementById('schedSaveBtn').onclick = async () => {
-    const idx = parseInt(document.getElementById('schedEditIndex').value);
-    const contentId = document.getElementById('schedContentSelect').value;
-    const start = document.getElementById('schedStart').value;
-    const end = document.getElementById('schedEnd').value;
-    const cap = parseInt(document.getElementById('schedCap').value);
-    
-    const grades = [];
-    document.querySelectorAll('.sched-grade:checked').forEach(cb => grades.push(cb.value));
-
-    if (!contentId) return alert("コンテンツを選択してください");
-    if (!start || !end) return alert("時間を入力してください");
-    if (grades.length === 0) return alert("対象学年を少なくとも1つ選択してください");
-
-    if (!currentSettings.schedule) currentSettings.schedule = {};
-    if (!currentSettings.schedule[editingDateStr]) currentSettings.schedule[editingDateStr] = [];
-
-    const newItem = { contentId, startTime: start, endTime: end, capacity: cap, grades };
-
-    if (idx === -1) {
-        currentSettings.schedule[editingDateStr].push(newItem);
-    } else {
-        currentSettings.schedule[editingDateStr][idx] = newItem;
-    }
-
-    await saveSettings();
-    resetSchedForm();
-    renderDayList();
-    renderTimeline();
-    showToast("スケジュールを保存しました");
-};
-
-document.getElementById('schedDeleteBtn').onclick = async () => {
-    const idx = parseInt(document.getElementById('schedEditIndex').value);
-    if(idx === -1) return;
-    
-    if(confirm("この枠を削除しますか？")) {
-        currentSettings.schedule[editingDateStr].splice(idx, 1);
-        await saveSettings();
-        resetSchedForm();
-        renderDayList();
-        renderTimeline();
-        showToast("削除しました");
-    }
-};
-
-const renderTimeline = () => {
-    const container = document.getElementById('timelineTracks');
-    const axis = document.getElementById('timelineAxis');
-    container.innerHTML = '';
-    axis.innerHTML = '';
-
-    // 軸の描画 (9:00 - 20:00)
-    for(let h=9; h<=20; h++) {
-        const div = document.createElement('div');
-        div.className = "h-[60px] border-b text-[10px] text-slate-400 text-center relative";
-        div.innerHTML = `<span class="absolute -top-2 left-0 right-0">${h}:00</span>`;
-        axis.appendChild(div);
-        
-        const trackLine = document.createElement('div');
-        trackLine.className = "h-[60px] border-b border-slate-100";
-        container.appendChild(trackLine);
-    }
-
-    const schedules = (currentSettings.schedule && currentSettings.schedule[editingDateStr]) ? currentSettings.schedule[editingDateStr] : [];
-    
-    schedules.forEach((s, idx) => {
-        const startH = parseInt(s.startTime.split(':')[0]);
-        const startM = parseInt(s.startTime.split(':')[1]);
-        const endH = parseInt(s.endTime.split(':')[0]);
-        const endM = parseInt(s.endTime.split(':')[1]);
-
-        // 9:00を0pxとする。1時間=60px, 1分=1px
-        const top = (startH - 9) * 60 + startM;
-        const duration = ((endH * 60 + endM) - (startH * 60 + startM));
-        const height = duration;
-
-        const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '?'};
-
-        const block = document.createElement('div');
-        block.className = "timeline-event-block bg-blue-500 shadow-sm hover:bg-blue-600";
-        block.style.top = `${top}px`;
-        block.style.height = `${height}px`;
-        block.innerHTML = `<span class="font-bold">${s.startTime}</span> ${content.name}`;
-        
-        block.onclick = () => editScheduleItem(idx, s);
-        
-        container.appendChild(block);
-    });
-};
-
-// --- URL作成ツール ---
-const updateGeneratedUrl = () => {
-    const base = location.href.replace('admin.html', 'index.html').split('?')[0];
-    const source = document.getElementById('utmSource').value.trim();
-    const medium = document.getElementById('utmMedium').value.trim();
-    const campaign = document.getElementById('utmCampaign').value.trim();
-    
-    let url = `${base}?school=${currentSchoolId}`;
-    if(source) url += `&utm_source=${encodeURIComponent(source)}`;
-    if(medium) url += `&utm_medium=${encodeURIComponent(medium)}`;
-    if(campaign) url += `&utm_campaign=${encodeURIComponent(campaign)}`;
-    
-    document.getElementById('generatedUrl').value = url;
-};
-
-['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
-    document.getElementById(id).addEventListener('input', updateGeneratedUrl);
-});
-
-document.getElementById('copyUrlBtn').onclick = () => {
-    const copyText = document.getElementById("generatedUrl");
-    copyText.select();
-    document.execCommand("copy");
-    showToast("URLをコピーしました");
-};
-
-// ▲▲▲ 追加コードここまで ▲▲▲
-
-// ▲▲▲ 追加・復元ここまで ▲▲▲
-            async function saveSettings() {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'settings', currentSchoolId), currentSettings);
-            }
-            
             document.getElementById('addSchoolForm').onsubmit = async (e) => {
                 e.preventDefault();
                 const name = document.getElementById('newSchoolName').value;
@@ -2697,10 +2691,22 @@ document.getElementById('copyUrlBtn').onclick = () => {
                 e.target.reset();
             };
 
+            document.getElementById('schoolSettingsForm').onsubmit = async (e) => {
+                e.preventDefault();
+                const fd = new FormData(e.target);
+                currentSettings.schoolName = fd.get('schoolName');
+                currentSettings.address = fd.get('address');
+                currentSettings.phoneNumber = fd.get('phoneNumber');
+                currentSettings.pageTitle = fd.get('pageTitle');
+                currentSettings.pageDescription = fd.get('pageDescription');
+                currentSettings.headerImageUrl = fd.get('headerImageUrl');
+                await saveSettings();
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'schools', currentSchoolId), { id: currentSchoolId, name: currentSettings.schoolName }, {merge: true});
+                showToast("保存しました");
+            };
+
             initFirebase();
         });
     </script>
 </body>
 </html>
-
-
