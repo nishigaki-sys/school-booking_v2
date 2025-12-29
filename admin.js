@@ -714,19 +714,27 @@ function updateGlobalStats() {
 
     // Chart: School Comparison
     const schoolCounts = {};
-    schools.forEach(s => schoolCounts[s.name] = 0);
+    schools.forEach(s => schoolCounts[s.id] = 0);
+    
     periodBookings.forEach(b => {
-        const sName = b.schoolName || 'Unknown';
-        schoolCounts[sName] = (schoolCounts[sName] || 0) + 1;
+        const sId = b.schoolId || 'unknown';
+        schoolCounts[sId] = (schoolCounts[sId] || 0) + 1;
     });
+    
     const sortedSchools = Object.entries(schoolCounts).sort((a,b) => b[1] - a[1]);
     
+    const chartLabels = sortedSchools.map(([id, count]) => {
+        if (id === 'unknown') return '不明';
+        const s = schools.find(school => school.id === id);
+        return s ? s.name : `削除済・不明(${id})`;
+    });
+
     if (schoolComparisonChart) schoolComparisonChart.destroy();
     const ctx = document.getElementById('schoolComparisonChart').getContext('2d');
     schoolComparisonChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: sortedSchools.map(s => s[0]),
+            labels: chartLabels,
             datasets: [{
                 label: '予約数',
                 data: sortedSchools.map(s => s[1]),
