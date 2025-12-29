@@ -2241,6 +2241,443 @@ document.getElementById('saveContentBtn').onclick = async () => {
     renderLocalContents();
     showToast("コンテンツを保存しました");
 };
+            // ▼▼▼ ここから追加コード (ダッシュボード・カレンダー機能の復元) ▼▼▼
+
+// --- ダッシュボード関連 ---
+
+const renderDashboard = () => {
+    // 1. 基本集計 (総予約数、今月の予約、売上)
+    const total = allBookings.length;
+    
+    const today = new Date();
+    const currentMonthPrefix = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+    
+    const thisMonthBookings = allBookings.filter(b => b.date && b.date.startsWith(currentMonthPrefix));
+    
+    let monthSales = 0;
+    thisMonthBookings.forEach(b => {
+        // コンテンツ情報を検索して金額を加算
+        const content = (currentSettings.contents || []).find(c => c.id === b.contentId);
+        if (content && content.price) {
+            monthSales += parseInt(content.price);
+        }
+    });
+
+    document.getElementById('totalBookings').textContent = total;
+    document.getElementById('monthBookings').textContent = thisMonthBookings.length;
+    document.getElementById('monthSales').textContent = `¥${monthSales.toLocaleString()}`;
+
+    // 2. カレンダー表示更新 (ダッシュボード下部のカレンダー)
+    renderDashCalendar();
+    
+    // 3. グラフ等の更新
+    updateStats();
+};
+
+const renderDashCalendar = () => {
+    // ダッシュボード内の簡易カレンダー描画
+    const title = document.getElementById('dashboardCalendarTitle');
+    const grid = document.getElementById('dashGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+
+    const year = adminDashboardDate.getFullYear();
+    const month = adminDashboardDate.getMonth();
+    title.textContent = `${year}年 ${month + 1}月`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    // 空白セル
+    for (let i = 0; i < firstDay; i++) {
+        const cell = document.createElement('div');
+        cell.className = "bg-slate-100 min-h-[80px]";
+        grid.appendChild(cell);
+    }
+
+    // 日付セル
+    for (let d = 1; d <= lastDate; d++) {
+        const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        const cell = document.createElement('div');
+        cell.className = "bg-white p-1 min-h-[80px] border hover:bg-slate-50 transition relative group";
+        
+        // その日の予約数をカウント
+        const count = allBookings.filter(b => b.date === dateStr).length;
+        
+        let badge = '';
+        if (count > 0) {
+            badge = `<span class="bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded-full font-bold ml-1">${count}件</span>`;
+        }
+
+        cell.innerHTML = `
+            <div class="text-xs font-bold text-slate-500 mb-1">${d}${badge}</div>
+            <div class="space-y-1 overflow-y-auto max-h-[60px]">
+                ${allBookings.filter(b => b.date === dateStr).map(b => 
+                    `<div class="text-[9px] bg-blue-50 text-blue-700 px-1 rounded truncate">${b.startTime} ${b.childName}</div>`
+                ).join('')}
+            </div>
+        `;
+        grid.appendChild(cell);
+    }
+};
+
+document.getElementById('prevDashboardMonth').onclick = () => {
+    adminDashboardDate.setMonth(adminDashboardDate.getMonth() - 1);
+    renderDashCalendar();
+};
+document.getElementById('nextDashboardMonth').onclick = () => {
+    adminDashboardDate.setMonth(adminDashboardDate.getMonth() + 1);
+    renderDashCalendar();
+};
+
+
+// --- 予約一覧テーブル描画 ---
+
+const renderBookingTable = () => {
+    const tbody = document.getElementById('bookingTableBody');
+    tbody.innerHTML = '';
+    
+    // 日付・時間順にソート
+    const sorted = [...allBookings].sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return a.startTime.localeCompare(b.startTime);
+    });
+
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" class="px-6 py-8 text-center text-slate-400">予約データはありません</td></tr>';
+        return;
+    }
+
+    sorted.forEach(b => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 border-b last:border-0";
+        
+        // 開催日時
+        const dateDisplay = `${b.date} ${b.startTime}`;
+        
+        // 流入元
+        let sourceDisplay = '<span class="text-xs text-slate-400">-</span>';
+        if (b.sourceType === 'admin') sourceDisplay = '<span class="bg-slate-200 text-slate-600 px-2 py-0.5 rounded text-xs font-bold">管理画面</span>';
+        else if (b.utmSource) sourceDisplay = `<span class="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-xs font-bold">${b.utmSource}</span>`;
+        else sourceDisplay = '<span class="bg-teal-50 text-teal-600 px-2 py-0.5 rounded text-xs font-bold">Web</span>';
+
+        tr.innerHTML = `
+            <td class="px-6 py-4 font-bold text-slate-700">${dateDisplay}</td>
+            <td class="px-6 py-4">
+                <div class="text-xs font-bold text-slate-700">${b.courseName || '-'}</div>
+                <div class="text-[10px] text-slate-400">ID: ${b.contentId}</div>
+            </td>
+            <td class="px-6 py-4">
+                <div class="font-bold text-slate-700">${b.childName}</div>
+                <div class="text-xs text-slate-500">保護者: ${b.parentName}</div>
+            </td>
+            <td class="px-6 py-4 text-xs text-slate-600">
+                <div>${b.email}</div>
+                <div>${b.phone}</div>
+            </td>
+            <td class="px-6 py-4 text-center">
+                 ${getGradeLabel(b.grade)}
+            </td>
+            <td class="px-6 py-4 text-center">
+                ${sourceDisplay}
+            </td>
+            <td class="px-6 py-4 text-center">
+                <button class="text-blue-600 hover:text-blue-800 font-bold text-xs mr-2 edit-booking" data-id="${b.id}">編集</button>
+                <button class="text-red-500 hover:text-red-700 font-bold text-xs delete-booking" data-id="${b.id}">削除</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    // 編集・削除ボタンのイベント設定
+    tbody.querySelectorAll('.edit-booking').forEach(btn => btn.onclick = () => openEditBookingModal(btn.dataset.id));
+    tbody.querySelectorAll('.delete-booking').forEach(btn => btn.onclick = () => deleteBooking(btn.dataset.id));
+};
+
+const getGradeLabel = (grade) => {
+    if (grade === 'preschool') return '<span class="bg-[#ff91aa] text-white px-2 py-1 rounded text-xs">年中・長</span>';
+    if (grade === 'grade1_2') return '<span class="bg-[#ffac2d] text-white px-2 py-1 rounded text-xs">小1-2</span>';
+    if (grade === 'grade3_plus') return '<span class="bg-[#00b4dc] text-white px-2 py-1 rounded text-xs">小3以上</span>';
+    return '<span class="bg-slate-200 text-slate-500 px-2 py-1 rounded text-xs">-</span>';
+};
+
+
+// --- スケジュール(開催日程登録)カレンダー関連 ---
+
+const renderSchedCalendar = () => {
+    const grid = document.getElementById('schedGrid');
+    if(!grid) return;
+    grid.innerHTML = '';
+    
+    const year = adminDate.getFullYear();
+    const month = adminDate.getMonth();
+    document.getElementById('schedTitle').textContent = `${year}年 ${month + 1}月`;
+
+    const firstDay = new Date(year, month, 1).getDay();
+    const lastDate = new Date(year, month + 1, 0).getDate();
+
+    // 空白セル
+    for(let i=0; i<firstDay; i++) {
+        grid.appendChild(document.createElement('div'));
+    }
+
+    // 日付セル
+    for(let d=1; d<=lastDate; d++) {
+        const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const cell = document.createElement('div');
+        cell.className = "h-24 border bg-white p-1 cursor-pointer hover:bg-indigo-50 transition relative flex flex-col items-center justify-start group";
+        
+        const scheduleList = currentSettings.schedule ? (currentSettings.schedule[dateStr] || []) : [];
+        const count = scheduleList.length;
+        
+        let contentHtml = '';
+        if(count > 0) {
+            contentHtml = `
+                <div class="mt-1 flex flex-col gap-1 w-full px-1">
+                    <span class="text-[10px] bg-indigo-100 text-indigo-700 text-center rounded font-bold">${count}枠設定中</span>
+                    <div class="flex flex-wrap gap-0.5 justify-center">
+                        ${scheduleList.slice(0, 3).map(() => '<span class="w-1.5 h-1.5 rounded-full bg-indigo-400"></span>').join('')}
+                    </div>
+                </div>
+            `;
+        } else {
+             contentHtml = `<span class="mt-4 text-xs text-slate-300 opacity-0 group-hover:opacity-100 font-bold">+ 設定</span>`;
+        }
+
+        cell.innerHTML = `
+            <span class="text-sm font-bold text-slate-700">${d}</span>
+            ${contentHtml}
+        `;
+        
+        cell.onclick = () => openScheduleModal(dateStr);
+        grid.appendChild(cell);
+    }
+};
+
+document.getElementById('schedPrev').onclick = () => {
+    adminDate.setMonth(adminDate.getMonth() - 1);
+    renderSchedCalendar();
+};
+document.getElementById('schedNext').onclick = () => {
+    adminDate.setMonth(adminDate.getMonth() + 1);
+    renderSchedCalendar();
+};
+
+
+// --- スケジュール編集モーダル関連 ---
+
+let editingDateStr = '';
+
+const openScheduleModal = (dateStr) => {
+    editingDateStr = dateStr;
+    const d = new Date(dateStr);
+    document.getElementById('modalDateDisplay').textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日`;
+    document.getElementById('scheduleModal').classList.remove('hidden');
+    
+    // コンテンツ選択肢の更新
+    const sel = document.getElementById('schedContentSelect');
+    sel.innerHTML = '';
+    (currentSettings.contents || []).forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = `${c.name} (${c.duration} / ¥${c.price})`;
+        sel.appendChild(opt);
+    });
+
+    // フォームリセット
+    resetSchedForm();
+    
+    // リストとタイムラインの描画
+    renderDayList();
+    renderTimeline();
+};
+
+const resetSchedForm = () => {
+    document.getElementById('schedFormTitle').textContent = "新規枠を追加";
+    document.getElementById('schedEditIndex').value = "-1";
+    document.getElementById('schedStart').value = "10:00";
+    document.getElementById('schedEnd').value = "11:30";
+    document.getElementById('schedCap').value = "5";
+    document.getElementById('schedDeleteBtn').classList.add('hidden');
+    document.getElementById('schedCancelBtn').classList.add('hidden');
+    
+    document.querySelectorAll('.sched-grade').forEach(cb => cb.checked = true);
+};
+
+document.getElementById('closeScheduleModal').onclick = () => {
+    document.getElementById('scheduleModal').classList.add('hidden');
+    renderSchedCalendar(); // カレンダーの表示を更新
+};
+
+const renderDayList = () => {
+    const list = document.getElementById('daySchedList');
+    list.innerHTML = '';
+    
+    const schedules = (currentSettings.schedule && currentSettings.schedule[editingDateStr]) ? currentSettings.schedule[editingDateStr] : [];
+    
+    if (schedules.length === 0) {
+        list.innerHTML = '<div class="text-center text-slate-400 py-4">設定された枠はありません</div>';
+        return;
+    }
+
+    // 時間順にソート
+    schedules.sort((a,b) => a.startTime.localeCompare(b.startTime));
+
+    schedules.forEach((s, idx) => {
+        const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '不明なコンテンツ'};
+        
+        const div = document.createElement('div');
+        div.className = "p-3 border rounded bg-white hover:bg-slate-50 cursor-pointer flex justify-between items-center";
+        div.innerHTML = `
+            <div>
+                <div class="font-bold text-slate-700 text-xs">${s.startTime} - ${s.endTime}</div>
+                <div class="font-bold text-slate-600">${content.name}</div>
+                <div class="text-[10px] text-slate-400">定員: ${s.capacity}名</div>
+            </div>
+            <div class="text-blue-500 text-xs font-bold">編集</div>
+        `;
+        div.onclick = () => editScheduleItem(idx, s);
+        list.appendChild(div);
+    });
+};
+
+const editScheduleItem = (idx, s) => {
+    document.getElementById('schedFormTitle').textContent = "枠を編集";
+    document.getElementById('schedEditIndex').value = idx;
+    document.getElementById('schedContentSelect').value = s.contentId;
+    document.getElementById('schedStart').value = s.startTime;
+    document.getElementById('schedEnd').value = s.endTime;
+    document.getElementById('schedCap').value = s.capacity;
+    
+    const grades = s.grades || [];
+    document.querySelectorAll('.sched-grade').forEach(cb => {
+        cb.checked = grades.includes(cb.value);
+    });
+
+    document.getElementById('schedDeleteBtn').classList.remove('hidden');
+    document.getElementById('schedCancelBtn').classList.remove('hidden');
+};
+
+document.getElementById('schedCancelBtn').onclick = resetSchedForm;
+
+document.getElementById('schedSaveBtn').onclick = async () => {
+    const idx = parseInt(document.getElementById('schedEditIndex').value);
+    const contentId = document.getElementById('schedContentSelect').value;
+    const start = document.getElementById('schedStart').value;
+    const end = document.getElementById('schedEnd').value;
+    const cap = parseInt(document.getElementById('schedCap').value);
+    
+    const grades = [];
+    document.querySelectorAll('.sched-grade:checked').forEach(cb => grades.push(cb.value));
+
+    if (!contentId) return alert("コンテンツを選択してください");
+    if (!start || !end) return alert("時間を入力してください");
+    if (grades.length === 0) return alert("対象学年を少なくとも1つ選択してください");
+
+    if (!currentSettings.schedule) currentSettings.schedule = {};
+    if (!currentSettings.schedule[editingDateStr]) currentSettings.schedule[editingDateStr] = [];
+
+    const newItem = { contentId, startTime: start, endTime: end, capacity: cap, grades };
+
+    if (idx === -1) {
+        currentSettings.schedule[editingDateStr].push(newItem);
+    } else {
+        currentSettings.schedule[editingDateStr][idx] = newItem;
+    }
+
+    await saveSettings();
+    resetSchedForm();
+    renderDayList();
+    renderTimeline();
+    showToast("スケジュールを保存しました");
+};
+
+document.getElementById('schedDeleteBtn').onclick = async () => {
+    const idx = parseInt(document.getElementById('schedEditIndex').value);
+    if(idx === -1) return;
+    
+    if(confirm("この枠を削除しますか？")) {
+        currentSettings.schedule[editingDateStr].splice(idx, 1);
+        await saveSettings();
+        resetSchedForm();
+        renderDayList();
+        renderTimeline();
+        showToast("削除しました");
+    }
+};
+
+const renderTimeline = () => {
+    const container = document.getElementById('timelineTracks');
+    const axis = document.getElementById('timelineAxis');
+    container.innerHTML = '';
+    axis.innerHTML = '';
+
+    // 軸の描画 (9:00 - 20:00)
+    for(let h=9; h<=20; h++) {
+        const div = document.createElement('div');
+        div.className = "h-[60px] border-b text-[10px] text-slate-400 text-center relative";
+        div.innerHTML = `<span class="absolute -top-2 left-0 right-0">${h}:00</span>`;
+        axis.appendChild(div);
+        
+        const trackLine = document.createElement('div');
+        trackLine.className = "h-[60px] border-b border-slate-100";
+        container.appendChild(trackLine);
+    }
+
+    const schedules = (currentSettings.schedule && currentSettings.schedule[editingDateStr]) ? currentSettings.schedule[editingDateStr] : [];
+    
+    schedules.forEach((s, idx) => {
+        const startH = parseInt(s.startTime.split(':')[0]);
+        const startM = parseInt(s.startTime.split(':')[1]);
+        const endH = parseInt(s.endTime.split(':')[0]);
+        const endM = parseInt(s.endTime.split(':')[1]);
+
+        // 9:00を0pxとする。1時間=60px, 1分=1px
+        const top = (startH - 9) * 60 + startM;
+        const duration = ((endH * 60 + endM) - (startH * 60 + startM));
+        const height = duration;
+
+        const content = (currentSettings.contents || []).find(c => c.id === s.contentId) || {name: '?'};
+
+        const block = document.createElement('div');
+        block.className = "timeline-event-block bg-blue-500 shadow-sm hover:bg-blue-600";
+        block.style.top = `${top}px`;
+        block.style.height = `${height}px`;
+        block.innerHTML = `<span class="font-bold">${s.startTime}</span> ${content.name}`;
+        
+        block.onclick = () => editScheduleItem(idx, s);
+        
+        container.appendChild(block);
+    });
+};
+
+// --- URL作成ツール ---
+const updateGeneratedUrl = () => {
+    const base = location.href.replace('admin.html', 'index.html').split('?')[0];
+    const source = document.getElementById('utmSource').value.trim();
+    const medium = document.getElementById('utmMedium').value.trim();
+    const campaign = document.getElementById('utmCampaign').value.trim();
+    
+    let url = `${base}?school=${currentSchoolId}`;
+    if(source) url += `&utm_source=${encodeURIComponent(source)}`;
+    if(medium) url += `&utm_medium=${encodeURIComponent(medium)}`;
+    if(campaign) url += `&utm_campaign=${encodeURIComponent(campaign)}`;
+    
+    document.getElementById('generatedUrl').value = url;
+};
+
+['utmSource', 'utmMedium', 'utmCampaign'].forEach(id => {
+    document.getElementById(id).addEventListener('input', updateGeneratedUrl);
+});
+
+document.getElementById('copyUrlBtn').onclick = () => {
+    const copyText = document.getElementById("generatedUrl");
+    copyText.select();
+    document.execCommand("copy");
+    showToast("URLをコピーしました");
+};
+
+// ▲▲▲ 追加コードここまで ▲▲▲
 
 // ▲▲▲ 追加・復元ここまで ▲▲▲
             async function saveSettings() {
@@ -2265,4 +2702,5 @@ document.getElementById('saveContentBtn').onclick = async () => {
     </script>
 </body>
 </html>
+
 
