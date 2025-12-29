@@ -102,17 +102,21 @@ const setupAuthEvents = () => {
     document.getElementById('loginForm').onsubmit = async (e) => {
         e.preventDefault();
         
-        // 1. IP Check
+        // 1. IP Check & Rescue Login Logic
+        const email = document.getElementById('adminEmail').value.trim();
+        const pass = document.getElementById('adminPassword').value.trim();
+        
+        // 救済ログインかどうか（admin@example.com / password）
+        const isRescueLogin = (email === 'admin@example.com' && pass === 'password');
+
         if (globalAllowedIps.length > 0) {
             const currentIp = await fetchIpAddress();
-            if (!currentIp || !globalAllowedIps.includes(currentIp)) {
+            // 救済ログイン以外でIPが許可されていない場合は弾く
+            if (!isRescueLogin && (!currentIp || !globalAllowedIps.includes(currentIp))) {
                 alert("許可されていないIPアドレスからのアクセスです。");
                 return; 
             }
         }
-        
-        const email = document.getElementById('adminEmail').value.trim();
-        const pass = document.getElementById('adminPassword').value.trim();
 
         if (!email || !pass) return alert("メールアドレスとパスワードを入力してください");
 
@@ -129,17 +133,29 @@ const setupAuthEvents = () => {
                 }
             });
 
-            // 初期ユーザーがいない場合のバックドア (初回セットアップ用)
-            if (querySnapshot.empty && email === 'admin@example.com' && pass === 'password') {
-                if (confirm("管理者ユーザーが登録されていません。初期管理者(admin@example.com)を作成してログインしますか？")) {
-                    await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'users'), {
+            // 救済処置: ログインできない場合でも、特定の認証情報なら強制ログイン＆ユーザー自動修復
+            if (!matchedUser && isRescueLogin) {
+                if (confirm("緊急ログイン: 初期管理者(admin@example.com)として強制ログインしますか？\n※ユーザーデータが存在しない場合は再作成、パスワードが異なる場合は上書きされます。")) {
+                    // 既存の admin@example.com があれば更新、なければ作成
+                    let targetDocId = null;
+                    querySnapshot.forEach(doc => { targetDocId = doc.id; }); // 既存があればID取得
+
+                    const adminData = {
                         email: 'admin@example.com',
                         password: 'password',
                         name: '初期管理者',
                         role: 'global',
-                        createdAt: serverTimestamp()
-                    });
-                    matchedUser = { email: 'admin@example.com', role: 'global', name: '初期管理者' };
+                        updatedAt: serverTimestamp()
+                    };
+
+                    if (targetDocId) {
+                        await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', targetDocId), adminData);
+                    } else {
+                        await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'users'), {
+                            ...adminData, createdAt: serverTimestamp()
+                        });
+                    }
+                    matchedUser = { ...adminData, id: targetDocId || 'temp-id' };
                 } else {
                     return;
                 }
