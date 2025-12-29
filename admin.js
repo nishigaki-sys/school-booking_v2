@@ -101,15 +101,21 @@ const initFirebase = async () => {
 
                     showAdminScreen();
                 } else {
-                    // AuthにはいるがDBにデータがない（不正な状態 or 初期管理者）
-                    if (user.email === 'admin@example.com') {
-                        // Recovery for initial admin
-                        currentUserData = { uid: user.uid, email: user.email, role: 'global', name: '初期管理者' };
-                        // DB修復
+                    // AuthにはいるがDBにデータがない場合（初回ログイン時など）
+                    // ユーザーに確認して初期管理者として登録する
+                    if (confirm(`ユーザーデータ未登録です。\nメールアドレス: ${user.email}\n\nこのアカウントを「本部管理者（全権限）」として初期登録してログインしますか？`)) {
+                        currentUserData = { 
+                            uid: user.uid, 
+                            email: user.email, 
+                            role: 'global', 
+                            name: '初期管理者', 
+                            createdAt: serverTimestamp() 
+                        };
+                        // DB修復・初期登録
                         await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'users', user.uid), currentUserData);
                         showAdminScreen();
                     } else {
-                        alert("ユーザー権限情報が見つかりません。管理者に問い合わせてください。");
+                        alert("ログインをキャンセルしました。管理者に問い合わせてください。");
                         await signOut(auth);
                     }
                 }
